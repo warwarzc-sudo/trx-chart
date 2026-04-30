@@ -11,7 +11,8 @@ body{margin:0;background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;over
 #chart{width:100%;height:100vh}
 #loading{position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
 #loading h2{margin:0;color:#10b981;font-size:22px}
-.pw{width:300px;height:8px;background:#1e293b;border-radius:999px;overflow:hidden}
+#loading p{margin:0;color:#94a3b8;font-size:13px}
+.pw{width:320px;height:8px;background:#1e293b;border-radius:999px;overflow:hidden}
 .pb{width:0%;height:100%;background:linear-gradient(90deg,#10b981,#06b6d4);transition:width .3s}
 #loadTxt{font-size:12px;color:#64748b;text-align:center}
 #box{position:fixed;top:12px;left:12px;z-index:1000;background:rgba(15,23,42,.96);border:1px solid #334155;border-radius:12px;padding:10px 14px;min-width:260px;font-size:12px;line-height:1.9;display:none}
@@ -29,10 +30,11 @@ body{margin:0;background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;over
 <body>
 <div id="loading">
     <h2>TRX WinGo Live Chart</h2>
-    <p style="color:#94a3b8;margin:0;font-size:13px">Loading blockchain history...</p>
+    <p>Loading blockchain history...</p>
     <div class="pw"><div class="pb" id="pbar"></div></div>
     <div id="loadTxt">Preparing...</div>
 </div>
+
 <div id="box">
     <div><span class="lv">● LIVE</span></div>
     <div><span class="lb">Periods: </span><span class="vl" id="xTotal">--</span></div>
@@ -41,22 +43,26 @@ body{margin:0;background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;over
     <div><span class="lb">Result: </span><span class="vl" id="xResult">--</span></div>
     <div><span class="lb">Big: </span><span class="bg" id="xBig">--</span><span class="lb"> Small: </span><span class="sm" id="xSmall">--</span></div>
     <div><span class="lb">Updated: </span><span class="vl" id="xTime">--</span></div>
+    <div><span class="lb">Sync: </span><span class="vl" id="xSync">--</span></div>
 </div>
+
 <div id="hbox">
     <div>Scroll = Zoom</div>
     <div>Drag = Move</div>
     <div>Green = Big (5-9)</div>
     <div>Red = Small (0-4)</div>
-    <div>Auto update = 10 sec</div>
+    <div>Auto update = 5 sec</div>
 </div>
+
 <div id="badge"></div>
 <div id="chart"></div>
+
 <script>
 var WORKER_URL="https://trx-apl.warwar-zc.workers.dev/";
-var DB_NAME="TRX_CF_V1";
+var DB_NAME="TRX_CF_V2";
 var STORE="results";
 var HOURS=12;
-var POLL=10000;
+var POLL=5000;
 var PAGE=40;
 
 var pbar=document.getElementById("pbar");
@@ -67,12 +73,15 @@ var hboxEl=document.getElementById("hbox");
 var badgeEl=document.getElementById("badge");
 
 var chart=LightweightCharts.createChart(document.getElementById("chart"),{
-    width:innerWidth,height:innerHeight,
+    width:window.innerWidth,
+    height:window.innerHeight,
     layout:{background:{color:"#0f172a"},textColor:"#94a3b8",fontSize:11},
     grid:{vertLines:{color:"#1e293b"},horzLines:{color:"#1e293b"}},
-    crosshair:{mode:LightweightCharts.CrosshairMode.Normal,
+    crosshair:{
+        mode:LightweightCharts.CrosshairMode.Normal,
         vertLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"},
-        horzLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"}},
+        horzLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"}
+    },
     timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#334155",barSpacing:8,minBarSpacing:3,rightOffset:10},
     rightPriceScale:{borderColor:"#334155",scaleMargins:{top:.18,bottom:.18}},
     handleScroll:{mouseWheel:true,pressedMouseMove:true},
@@ -80,18 +89,25 @@ var chart=LightweightCharts.createChart(document.getElementById("chart"),{
 });
 
 var series=chart.addCandlestickSeries({
-    upColor:"#10b981",downColor:"#ef4444",
-    borderUpColor:"#10b981",borderDownColor:"#ef4444",
-    wickUpColor:"#10b981",wickDownColor:"#ef4444",
+    upColor:"#10b981",
+    downColor:"#ef4444",
+    borderUpColor:"#10b981",
+    borderDownColor:"#ef4444",
+    wickUpColor:"#10b981",
+    wickDownColor:"#ef4444",
     autoscaleInfoProvider:function(o){
-        var r=o();if(!r)return null;
-        var mn=r.priceRange.minValue,mx=r.priceRange.maxValue;
+        var r=o();
+        if(!r)return null;
+        var mn=r.priceRange.minValue;
+        var mx=r.priceRange.maxValue;
         var pad=Math.max(6,(mx-mn)*1.2);
         return{priceRange:{minValue:mn-pad,maxValue:mx+pad}};
     }
 });
 
-addEventListener("resize",function(){chart.applyOptions({width:innerWidth,height:innerHeight})});
+window.addEventListener("resize",function(){
+    chart.applyOptions({width:window.innerWidth,height:window.innerHeight});
+});
 
 function openDB(){
     return new Promise(function(ok,no){
@@ -126,7 +142,10 @@ function dbGetAll(db){
 
 function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
-function setP(p,t){pbar.style.width=p+"%";loadTxt.textContent=t}
+function setP(p,t){
+    pbar.style.width=p+"%";
+    loadTxt.textContent=t;
+}
 
 function showUI(){
     loadingEl.style.display="none";
@@ -156,8 +175,8 @@ function utcTime(ts){
 
 function rHash(h){
     var p=h.length>16?h.slice(16):h;
-    for(var i=p.length-1;i>=0;i--)if(p[i]>="0"&&p[i]<="9")return+p[i];
-    for(var j=h.length-1;j>=0;j--)if(h[j]>="0"&&h[j]<="9")return+h[j];
+    for(var i=p.length-1;i>=0;i--)if(p[i]>="0"&&p[i]<="9")return +p[i];
+    for(var j=h.length-1;j>=0;j--)if(h[j]>="0"&&h[j]<="9")return +h[j];
     return 0;
 }
 
@@ -175,7 +194,7 @@ function toRec(row){
     };
 }
 
-function updSt(t){
+function updSt(sync){
     var arr=Array.from(rMap.values()).sort(function(a,b){return a.period.localeCompare(b.period)});
     var last=arr[arr.length-1];
     var bc=arr.filter(function(x){return x.bigSmall==="Big"}).length;
@@ -183,6 +202,7 @@ function updSt(t){
     document.getElementById("xBig").textContent=bc;
     document.getElementById("xSmall").textContent=arr.length-bc;
     document.getElementById("xTime").textContent=new Date().toLocaleTimeString();
+    document.getElementById("xSync").textContent=sync||"--";
     if(last){
         document.getElementById("xPeriod").textContent=last.period;
         document.getElementById("xBlock").textContent=last.blockHeight;
@@ -198,10 +218,15 @@ function showBadge(rec){
 }
 
 function fetchBlocks(start){
-    var url=WORKER_URL+"?start="+(start||0)+"&limit="+PAGE+"&_="+Date.now();
-    return fetch(url)
-        .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
-        .then(function(d){return Array.isArray(d.data)?d.data:[]});
+    var url=WORKER_URL+"?start="+(start||0)+"&limit="+PAGE+"&_="+Date.now()+"_"+Math.random();
+    return fetch(url,{method:"GET"})
+        .then(function(r){
+            if(!r.ok)throw new Error("HTTP "+r.status);
+            return r.json();
+        })
+        .then(function(d){
+            return Array.isArray(d.data)?d.data:[];
+        });
 }
 
 var db;
@@ -215,7 +240,10 @@ function procRows(rows){
         var rec=toRec(rows[i]);
         if(rec.second!==54)continue;
         var old=rMap.get(rec.period);
-        if(!old||rec.timestamp>old.timestamp){rMap.set(rec.period,rec);sv.push(rec)}
+        if(!old||rec.timestamp>old.timestamp){
+            rMap.set(rec.period,rec);
+            sv.push(rec);
+        }
     }
     if(sv.length)return dbPutMany(db,sv).then(function(){return true});
     return Promise.resolve(false);
@@ -225,66 +253,129 @@ function render(){
     var all=Array.from(rMap.values()).sort(function(a,b){return a.period.localeCompare(b.period)});
     var cut=Date.now()-HOURS*3600000;
     var vis=all.filter(function(r){return r.timestamp>=cut});
-    var c=[],price=100,prev=null;
+    var candles=[];
+    var price=100;
+    var prev=null;
+
     for(var i=0;i<vis.length;i++){
         var row=vis[i];
         var s=row.bigSmall==="Big"?"big":"small";
         var t=pToUnix(row.period);
-        if(s==="big"){if(prev==="big")price+=1;c.push({time:t,open:price,high:price+1,low:price,close:price+1})}
-        else{if(prev==="small")price-=1;c.push({time:t,open:price+1,high:price+1,low:price,close:price})}
+        if(s==="big"){
+            if(prev==="big")price+=1;
+            candles.push({time:t,open:price,high:price+1,low:price,close:price+1});
+        }else{
+            if(prev==="small")price-=1;
+            candles.push({time:t,open:price+1,high:price+1,low:price,close:price});
+        }
         prev=s;
     }
-    series.setData(c);
+
+    series.setData(candles);
+    chart.timeScale().scrollToRealTime();
 }
 
 async function loadHistory(){
     var cached=await dbGetAll(db);
     if(cached.length>0){
         cached.forEach(function(r){rMap.set(r.period,r)});
-        render();updSt("Loaded from cache");showUI();firstVisible=true;
-        chart.timeScale().fitContent();
+        render();
+        updSt("Loaded from cache");
+        showUI();
+        firstVisible=true;
     }
+
     setP(5,"Scanning blockchain...");
     var now=Date.now();
     var target=now-HOURS*3600000;
-    var pg=0,sc=0,ot=now,done=false;
+    var pg=0,ot=now,done=false;
+
     while(!done){
         var rows;
-        try{rows=await fetchBlocks(pg*PAGE)}catch(e){console.error(e);await wait(2000);continue}
+        try{
+            rows=await fetchBlocks(pg*PAGE);
+        }catch(e){
+            console.error(e);
+            await wait(2000);
+            continue;
+        }
         if(!rows.length)break;
-        sc+=rows.length;ot=rows[rows.length-1].timestamp;
-        var ch=await procRows(rows);
-        var cv=((now-ot)/3600000).toFixed(1);
+
+        ot=rows[rows.length-1].timestamp;
+        var changed=await procRows(rows);
+
+        var covered=((now-ot)/3600000).toFixed(1);
         var pct=Math.min(95,Math.floor(((now-ot)/(now-target))*100));
-        setP(pct,"Scanning... page "+(pg+1)+", "+cv+"h covered");
-        if(!firstVisible&&rMap.size>=20){render();updSt("Syncing...");showUI();firstVisible=true;chart.timeScale().fitContent()}
-        else if(firstVisible&&(ch||pg%3===0)){render();updSt("Syncing...")}
+        setP(pct,"Scanning... page "+(pg+1)+", "+covered+"h covered");
+
+        if(!firstVisible&&rMap.size>=20){
+            render();
+            updSt("Syncing...");
+            showUI();
+            firstVisible=true;
+            chart.timeScale().fitContent();
+        }else if(firstVisible&&(changed||pg%3===0)){
+            render();
+            updSt("Syncing...");
+        }
+
         if(ot<=target)done=true;
-        pg++;await wait(150);
+        pg++;
+        await wait(150);
     }
-    render();updSt("Ready");
-    if(!firstVisible){showUI();chart.timeScale().fitContent();firstVisible=true}
+
+    render();
+    updSt("Ready");
+    if(!firstVisible){
+        showUI();
+        chart.timeScale().fitContent();
+        firstVisible=true;
+    }
 }
 
 async function livePoll(){
     try{
         var rows=await fetchBlocks(0);
         var exact=[];
-        for(var i=0;i<rows.length;i++){var rec=toRec(rows[i]);if(rec.second===54)exact.push(rec)}
-        if(!exact.length){updSt("Waiting :54 block...");return}
+
+        for(var i=0;i<rows.length;i++){
+            var rec=toRec(rows[i]);
+            if(rec.second===54) exact.push(rec);
+        }
+
+        if(!exact.length){
+            updSt("Waiting :54 block...");
+            return;
+        }
+
         exact.sort(function(a,b){return a.timestamp-b.timestamp});
-        var nw=exact[exact.length-1];
-        var old=rMap.get(nw.period);
-        if(!old||nw.timestamp>old.timestamp){
-            rMap.set(nw.period,nw);
-            await dbPutMany(db,[nw]);
-            render();chart.timeScale().scrollToRealTime();updSt("Live synced");
-            if(nw.period!==lastLP){lastLP=nw.period;showBadge(nw)}
-        }else{updSt("Live synced")}
-    }catch(e){console.error(e);updSt("Live error")}
+        var newest=exact[exact.length-1];
+        var old=rMap.get(newest.period);
+
+        if(!old||newest.timestamp>old.timestamp){
+            rMap.set(newest.period,newest);
+            await dbPutMany(db,[newest]);
+            render();
+            updSt("Live synced");
+
+            if(newest.period!==lastLP){
+                lastLP=newest.period;
+                showBadge(newest);
+            }
+        }else{
+            updSt("Live synced");
+        }
+    }catch(e){
+        console.error(e);
+        updSt("Live error");
+    }
 }
 
-function liveLoop(){livePoll().then(function(){setTimeout(liveLoop,POLL)}).catch(function(){setTimeout(liveLoop,POLL)})}
+function liveLoop(){
+    livePoll()
+        .then(function(){setTimeout(liveLoop,POLL)})
+        .catch(function(){setTimeout(liveLoop,POLL)});
+}
 
 (async function(){
     try{
