@@ -15,7 +15,7 @@ body{margin:0;background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;over
 .pw{width:320px;height:8px;background:#1e293b;border-radius:999px;overflow:hidden}
 .pb{width:0%;height:100%;background:linear-gradient(90deg,#10b981,#06b6d4);transition:width .3s}
 #loadTxt{font-size:12px;color:#64748b;text-align:center}
-#box{position:fixed;top:12px;left:12px;z-index:1000;background:rgba(15,23,42,.96);border:1px solid #334155;border-radius:12px;padding:10px 14px;min-width:260px;font-size:12px;line-height:1.9;display:none}
+#box{position:fixed;top:12px;left:12px;z-index:1000;background:rgba(15,23,42,.96);border:1px solid #334155;border-radius:12px;padding:10px 14px;min-width:270px;font-size:12px;line-height:1.9;display:none}
 .lv{color:#10b981;font-weight:bold}
 .lb{color:#64748b}
 .vl{color:#e2e8f0}
@@ -29,368 +29,350 @@ body{margin:0;background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;over
 </head>
 <body>
 <div id="loading">
-    <h2>TRX WinGo Live Chart</h2>
-    <p>Loading blockchain history...</p>
-    <div class="pw"><div class="pb" id="pbar"></div></div>
-    <div id="loadTxt">Preparing...</div>
+  <h2>TRX WinGo Live Chart</h2>
+  <p>Loading blockchain history...</p>
+  <div class="pw"><div class="pb" id="pbar"></div></div>
+  <div id="loadTxt">Preparing...</div>
 </div>
 
 <div id="box">
-    <div><span class="lv">● LIVE</span></div>
-    <div><span class="lb">Periods: </span><span class="vl" id="xTotal">--</span></div>
-    <div><span class="lb">Latest: </span><span class="vl" id="xPeriod">--</span></div>
-    <div><span class="lb">Block: </span><span class="vl" id="xBlock">--</span></div>
-    <div><span class="lb">Result: </span><span class="vl" id="xResult">--</span></div>
-    <div><span class="lb">Big: </span><span class="bg" id="xBig">--</span><span class="lb"> Small: </span><span class="sm" id="xSmall">--</span></div>
-    <div><span class="lb">Updated: </span><span class="vl" id="xTime">--</span></div>
-    <div><span class="lb">Sync: </span><span class="vl" id="xSync">--</span></div>
+  <div><span class="lv">● LIVE</span></div>
+  <div><span class="lb">Stored History: </span><span class="vl" id="xTotal">--</span></div>
+  <div><span class="lb">Display Window: </span><span class="vl">12 Hours</span></div>
+  <div><span class="lb">Latest Period: </span><span class="vl" id="xPeriod">--</span></div>
+  <div><span class="lb">Latest Block: </span><span class="vl" id="xBlock">--</span></div>
+  <div><span class="lb">Latest Result: </span><span class="vl" id="xResult">--</span></div>
+  <div><span class="lb">Big: </span><span class="bg" id="xBig">--</span><span class="lb"> Small: </span><span class="sm" id="xSmall">--</span></div>
+  <div><span class="lb">Updated: </span><span class="vl" id="xTime">--</span></div>
+  <div><span class="lb">Sync: </span><span class="vl" id="xSync">--</span></div>
 </div>
 
 <div id="hbox">
-    <div>Scroll = Zoom</div>
-    <div>Drag = Move</div>
-    <div>Green = Big (5-9)</div>
-    <div>Red = Small (0-4)</div>
-    <div>Auto update = 5 sec</div>
+  <div>Scroll = Zoom</div>
+  <div>Drag = Move</div>
+  <div>Green = Big (5-9)</div>
+  <div>Red = Small (0-4)</div>
+  <div>Auto update = 5 sec</div>
 </div>
 
 <div id="badge"></div>
 <div id="chart"></div>
 
 <script>
-var WORKER_URL="https://trx-apl.warwar-zc.workers.dev/";
-var DB_NAME="TRX_CF_V2";
-var STORE="results";
-var HOURS=12;
-var POLL=5000;
-var PAGE=40;
+var WORKER_URL = "https://trx-apl.warwar-zc.workers.dev/";
+var DB_NAME = "TRX_CF_V3";
+var STORE = "results";
+var HOURS = 12;
+var POLL = 5000;
+var PAGE = 40;
 
-var pbar=document.getElementById("pbar");
-var loadTxt=document.getElementById("loadTxt");
-var loadingEl=document.getElementById("loading");
-var boxEl=document.getElementById("box");
-var hboxEl=document.getElementById("hbox");
-var badgeEl=document.getElementById("badge");
+var pbar = document.getElementById("pbar");
+var loadTxt = document.getElementById("loadTxt");
+var loadingEl = document.getElementById("loading");
+var boxEl = document.getElementById("box");
+var hboxEl = document.getElementById("hbox");
+var badgeEl = document.getElementById("badge");
 
-var chart=LightweightCharts.createChart(document.getElementById("chart"),{
-    width:window.innerWidth,
-    height:window.innerHeight,
-    layout:{background:{color:"#0f172a"},textColor:"#94a3b8",fontSize:11},
-    grid:{vertLines:{color:"#1e293b"},horzLines:{color:"#1e293b"}},
-    crosshair:{
-        mode:LightweightCharts.CrosshairMode.Normal,
-        vertLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"},
-        horzLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"}
-    },
-    timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#334155",barSpacing:8,minBarSpacing:3,rightOffset:10},
-    rightPriceScale:{borderColor:"#334155",scaleMargins:{top:.18,bottom:.18}},
-    handleScroll:{mouseWheel:true,pressedMouseMove:true},
-    handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:true}
+var chart = LightweightCharts.createChart(document.getElementById("chart"), {
+  width: window.innerWidth,
+  height: window.innerHeight,
+  layout: { background: { color: "#0f172a" }, textColor: "#94a3b8", fontSize: 11 },
+  grid: { vertLines: { color: "#1e293b" }, horzLines: { color: "#1e293b" } },
+  crosshair: {
+    mode: LightweightCharts.CrosshairMode.Normal,
+    vertLine: { color: "rgba(148,163,184,.35)", labelBackgroundColor: "#334155" },
+    horzLine: { color: "rgba(148,163,184,.35)", labelBackgroundColor: "#334155" }
+  },
+  timeScale: { timeVisible: true, secondsVisible: false, borderColor: "#334155", barSpacing: 8, minBarSpacing: 3, rightOffset: 10 },
+  rightPriceScale: { borderColor: "#334155", scaleMargins: { top: .18, bottom: .18 } },
+  handleScroll: { mouseWheel: true, pressedMouseMove: true },
+  handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true }
 });
 
-var series=chart.addCandlestickSeries({
-    upColor:"#10b981",
-    downColor:"#ef4444",
-    borderUpColor:"#10b981",
-    borderDownColor:"#ef4444",
-    wickUpColor:"#10b981",
-    wickDownColor:"#ef4444",
-    autoscaleInfoProvider:function(o){
-        var r=o();
-        if(!r)return null;
-        var mn=r.priceRange.minValue;
-        var mx=r.priceRange.maxValue;
-        var pad=Math.max(6,(mx-mn)*1.2);
-        return{priceRange:{minValue:mn-pad,maxValue:mx+pad}};
-    }
+var series = chart.addCandlestickSeries({
+  upColor: "#10b981",
+  downColor: "#ef4444",
+  borderUpColor: "#10b981",
+  borderDownColor: "#ef4444",
+  wickUpColor: "#10b981",
+  wickDownColor: "#ef4444",
+  autoscaleInfoProvider: function (o) {
+    var r = o();
+    if (!r) return null;
+    var mn = r.priceRange.minValue;
+    var mx = r.priceRange.maxValue;
+    var pad = Math.max(6, (mx - mn) * 1.2);
+    return { priceRange: { minValue: mn - pad, maxValue: mx + pad } };
+  }
 });
 
-window.addEventListener("resize",function(){
-    chart.applyOptions({width:window.innerWidth,height:window.innerHeight});
+window.addEventListener("resize", function () {
+  chart.applyOptions({ width: window.innerWidth, height: window.innerHeight });
 });
 
-function openDB(){
-    return new Promise(function(ok,no){
-        var r=indexedDB.open(DB_NAME,1);
-        r.onupgradeneeded=function(e){
-            var d=e.target.result;
-            if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:"period"});
-        };
-        r.onsuccess=function(e){ok(e.target.result)};
-        r.onerror=function(e){no(e.target.error)};
-    });
-}
-
-function dbPutMany(db,recs){
-    return new Promise(function(ok,no){
-        var tx=db.transaction(STORE,"readwrite");
-        var st=tx.objectStore(STORE);
-        recs.forEach(function(r){st.put(r)});
-        tx.oncomplete=ok;
-        tx.onerror=function(e){no(e.target.error)};
-    });
-}
-
-function dbGetAll(db){
-    return new Promise(function(ok,no){
-        var tx=db.transaction(STORE,"readonly");
-        var r=tx.objectStore(STORE).getAll();
-        r.onsuccess=function(){ok(r.result||[])};
-        r.onerror=function(e){no(e.target.error)};
-    });
-}
-
-function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
-
-function setP(p,t){
-    pbar.style.width=p+"%";
-    loadTxt.textContent=t;
-}
-
-function showUI(){
-    loadingEl.style.display="none";
-    boxEl.style.display="block";
-    hboxEl.style.display="block";
-}
-
-function toPeriod(ts){
-    var d=new Date(ts);
-    return String(d.getUTCFullYear())+
-        String(d.getUTCMonth()+1).padStart(2,"0")+
-        String(d.getUTCDate()).padStart(2,"0")+
-        String(d.getUTCHours()).padStart(2,"0")+
-        String(d.getUTCMinutes()).padStart(2,"0");
-}
-
-function pToUnix(p){
-    return Math.floor(Date.UTC(+p.slice(0,4),+p.slice(4,6)-1,+p.slice(6,8),+p.slice(8,10),+p.slice(10,12),0)/1000);
-}
-
-function utcTime(ts){
-    var d=new Date(ts);
-    return String(d.getUTCHours()).padStart(2,"0")+":"+
-        String(d.getUTCMinutes()).padStart(2,"0")+":"+
-        String(d.getUTCSeconds()).padStart(2,"0");
-}
-
-function rHash(h){
-    var p=h.length>16?h.slice(16):h;
-    for(var i=p.length-1;i>=0;i--)if(p[i]>="0"&&p[i]<="9")return +p[i];
-    for(var j=h.length-1;j>=0;j--)if(h[j]>="0"&&h[j]<="9")return +h[j];
-    return 0;
-}
-
-function toRec(row){
-    var r=rHash(row.hash);
-    return{
-        period:toPeriod(row.timestamp),
-        blockHeight:row.number,
-        blockTime:utcTime(row.timestamp),
-        hash:row.hash,
-        timestamp:row.timestamp,
-        second:new Date(row.timestamp).getUTCSeconds(),
-        result:r,
-        bigSmall:r>=5?"Big":"Small"
+function openDB() {
+  return new Promise(function (ok, no) {
+    var r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = function (e) {
+      var d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: "period" });
     };
+    r.onsuccess = function (e) { ok(e.target.result); };
+    r.onerror = function (e) { no(e.target.error); };
+  });
 }
 
-function updSt(sync){
-    var arr=Array.from(rMap.values()).sort(function(a,b){return a.period.localeCompare(b.period)});
-    var last=arr[arr.length-1];
-    var bc=arr.filter(function(x){return x.bigSmall==="Big"}).length;
-    document.getElementById("xTotal").textContent=arr.length+" periods";
-    document.getElementById("xBig").textContent=bc;
-    document.getElementById("xSmall").textContent=arr.length-bc;
-    document.getElementById("xTime").textContent=new Date().toLocaleTimeString();
-    document.getElementById("xSync").textContent=sync||"--";
-    if(last){
-        document.getElementById("xPeriod").textContent=last.period;
-        document.getElementById("xBlock").textContent=last.blockHeight;
-        document.getElementById("xResult").textContent=last.result+" ("+last.bigSmall+")";
-    }
+function dbPutMany(db, recs) {
+  return new Promise(function (ok, no) {
+    var tx = db.transaction(STORE, "readwrite");
+    var st = tx.objectStore(STORE);
+    recs.forEach(function (r) { st.put(r); });
+    tx.oncomplete = ok;
+    tx.onerror = function (e) { no(e.target.error); };
+  });
 }
 
-function showBadge(rec){
-    badgeEl.textContent=rec.bigSmall.toUpperCase()+"  "+rec.result;
-    badgeEl.className=rec.bigSmall==="Big"?"big":"small";
-    badgeEl.style.display="block";
-    setTimeout(function(){badgeEl.style.display="none"},4000);
+function dbGetAll(db) {
+  return new Promise(function (ok, no) {
+    var tx = db.transaction(STORE, "readonly");
+    var r = tx.objectStore(STORE).getAll();
+    r.onsuccess = function () { ok(r.result || []); };
+    r.onerror = function (e) { no(e.target.error); };
+  });
 }
 
-function fetchBlocks(start){
-    var url=WORKER_URL+"?start="+(start||0)+"&limit="+PAGE+"&_="+Date.now()+"_"+Math.random();
-    return fetch(url,{method:"GET"})
-        .then(function(r){
-            if(!r.ok)throw new Error("HTTP "+r.status);
-            return r.json();
-        })
-        .then(function(d){
-            return Array.isArray(d.data)?d.data:[];
-        });
+function wait(ms) {
+  return new Promise(function (r) { setTimeout(r, ms); });
+}
+
+function setP(p, t) {
+  pbar.style.width = p + "%";
+  loadTxt.textContent = t;
+}
+
+function showUI() {
+  loadingEl.style.display = "none";
+  boxEl.style.display = "block";
+  hboxEl.style.display = "block";
+}
+
+function pToUnix(p) {
+  return Math.floor(Date.UTC(
+    +p.slice(0, 4),
+    +p.slice(4, 6) - 1,
+    +p.slice(6, 8),
+    +p.slice(8, 10),
+    +p.slice(10, 12),
+    0
+  ) / 1000);
+}
+
+function updateStatus(syncText) {
+  var arr = Array.from(rMap.values()).sort(function (a, b) { return a.period.localeCompare(b.period); });
+  var latest = arr[arr.length - 1];
+  var bigCount = arr.filter(function (x) { return x.bigSmall === "Big"; }).length;
+  var smallCount = arr.length - bigCount;
+
+  document.getElementById("xTotal").textContent = arr.length + " periods";
+  document.getElementById("xBig").textContent = bigCount;
+  document.getElementById("xSmall").textContent = smallCount;
+  document.getElementById("xTime").textContent = new Date().toLocaleTimeString();
+  document.getElementById("xSync").textContent = syncText || "--";
+
+  if (latest) {
+    document.getElementById("xPeriod").textContent = latest.period;
+    document.getElementById("xBlock").textContent = latest.blockHeight;
+    document.getElementById("xResult").textContent = latest.result + " (" + latest.bigSmall + ")";
+  }
+}
+
+function showBadge(rec) {
+  badgeEl.textContent = rec.bigSmall.toUpperCase() + "  " + rec.result;
+  badgeEl.className = rec.bigSmall === "Big" ? "big" : "small";
+  badgeEl.style.display = "block";
+  setTimeout(function () { badgeEl.style.display = "none"; }, 4000);
+}
+
+function fetchHistoryPage(start) {
+  var url = WORKER_URL + "?mode=page&start=" + (start || 0) + "&limit=" + PAGE + "&_=" + Date.now() + "_" + Math.random();
+  return fetch(url)
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+}
+
+function fetchLatestRecord() {
+  var url = WORKER_URL + "?mode=latest&_=" + Date.now() + "_" + Math.random();
+  return fetch(url)
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
 }
 
 var db;
-var rMap=new Map();
-var firstVisible=false;
-var lastLP=null;
+var rMap = new Map();
+var firstVisible = false;
+var lastLP = null;
 
-function procRows(rows){
-    var sv=[];
-    for(var i=0;i<rows.length;i++){
-        var rec=toRec(rows[i]);
-        if(rec.second!==54)continue;
-        var old=rMap.get(rec.period);
-        if(!old||rec.timestamp>old.timestamp){
-            rMap.set(rec.period,rec);
-            sv.push(rec);
-        }
-    }
-    if(sv.length)return dbPutMany(db,sv).then(function(){return true});
-    return Promise.resolve(false);
+function upsertRecord(rec) {
+  var old = rMap.get(rec.period);
+  if (!old || rec.timestamp > old.timestamp) {
+    rMap.set(rec.period, rec);
+    return true;
+  }
+  return false;
 }
 
-function render(){
-    var all=Array.from(rMap.values()).sort(function(a,b){return a.period.localeCompare(b.period)});
-    var cut=Date.now()-HOURS*3600000;
-    var vis=all.filter(function(r){return r.timestamp>=cut});
-    var candles=[];
-    var price=100;
-    var prev=null;
+function render() {
+  var all = Array.from(rMap.values()).sort(function (a, b) { return a.period.localeCompare(b.period); });
+  var cut = Date.now() - HOURS * 3600000;
+  var vis = all.filter(function (r) { return r.timestamp >= cut; });
 
-    for(var i=0;i<vis.length;i++){
-        var row=vis[i];
-        var s=row.bigSmall==="Big"?"big":"small";
-        var t=pToUnix(row.period);
-        if(s==="big"){
-            if(prev==="big")price+=1;
-            candles.push({time:t,open:price,high:price+1,low:price,close:price+1});
-        }else{
-            if(prev==="small")price-=1;
-            candles.push({time:t,open:price+1,high:price+1,low:price,close:price});
-        }
-        prev=s;
+  var candles = [];
+  var price = 100;
+  var prev = null;
+
+  for (var i = 0; i < vis.length; i++) {
+    var row = vis[i];
+    var side = row.bigSmall === "Big" ? "big" : "small";
+    var t = pToUnix(row.period);
+
+    if (side === "big") {
+      if (prev === "big") price += 1;
+      candles.push({ time: t, open: price, high: price + 1, low: price, close: price + 1 });
+    } else {
+      if (prev === "small") price -= 1;
+      candles.push({ time: t, open: price + 1, high: price + 1, low: price, close: price });
     }
+    prev = side;
+  }
 
-    series.setData(candles);
-    chart.timeScale().scrollToRealTime();
+  series.setData(candles);
 }
 
-async function loadHistory(){
-    var cached=await dbGetAll(db);
-    if(cached.length>0){
-        cached.forEach(function(r){rMap.set(r.period,r)});
-        render();
-        updSt("Loaded from cache");
-        showUI();
-        firstVisible=true;
-    }
-
-    setP(5,"Scanning blockchain...");
-    var now=Date.now();
-    var target=now-HOURS*3600000;
-    var pg=0,ot=now,done=false;
-
-    while(!done){
-        var rows;
-        try{
-            rows=await fetchBlocks(pg*PAGE);
-        }catch(e){
-            console.error(e);
-            await wait(2000);
-            continue;
-        }
-        if(!rows.length)break;
-
-        ot=rows[rows.length-1].timestamp;
-        var changed=await procRows(rows);
-
-        var covered=((now-ot)/3600000).toFixed(1);
-        var pct=Math.min(95,Math.floor(((now-ot)/(now-target))*100));
-        setP(pct,"Scanning... page "+(pg+1)+", "+covered+"h covered");
-
-        if(!firstVisible&&rMap.size>=20){
-            render();
-            updSt("Syncing...");
-            showUI();
-            firstVisible=true;
-            chart.timeScale().fitContent();
-        }else if(firstVisible&&(changed||pg%3===0)){
-            render();
-            updSt("Syncing...");
-        }
-
-        if(ot<=target)done=true;
-        pg++;
-        await wait(150);
-    }
-
+async function loadHistory() {
+  var cached = await dbGetAll(db);
+  if (cached.length > 0) {
+    cached.forEach(function (r) { rMap.set(r.period, r); });
     render();
-    updSt("Ready");
-    if(!firstVisible){
-        showUI();
-        chart.timeScale().fitContent();
-        firstVisible=true;
+    updateStatus("Loaded from cache");
+    showUI();
+    firstVisible = true;
+    chart.timeScale().fitContent();
+  }
+
+  setP(5, "Scanning blockchain...");
+  var now = Date.now();
+  var target = now - HOURS * 3600000;
+  var start = 0;
+  var done = false;
+
+  while (!done) {
+    var payload;
+    try {
+      payload = await fetchHistoryPage(start);
+    } catch (e) {
+      console.error(e);
+      await wait(2000);
+      continue;
     }
+
+    var records = Array.isArray(payload.records) ? payload.records : [];
+    var oldestTs = payload.oldestTs || now;
+
+    if (records.length) {
+      for (var i = 0; i < records.length; i++) {
+        upsertRecord(records[i]);
+      }
+      await dbPutMany(db, records);
+    }
+
+    var covered = ((now - oldestTs) / 3600000).toFixed(1);
+    var pct = Math.min(95, Math.floor(((now - oldestTs) / (now - target)) * 100));
+    setP(pct, "Scanning... " + covered + "h covered");
+
+    if (!firstVisible && rMap.size >= 20) {
+      render();
+      updateStatus("Syncing...");
+      showUI();
+      firstVisible = true;
+      chart.timeScale().fitContent();
+    } else if (firstVisible) {
+      render();
+      updateStatus("Syncing...");
+    }
+
+    if (oldestTs <= target || payload.rowCount === 0) {
+      done = true;
+    } else {
+      start += PAGE;
+    }
+
+    await wait(150);
+  }
+
+  render();
+  updateStatus("Ready");
+  if (!firstVisible) {
+    showUI();
+    chart.timeScale().fitContent();
+    firstVisible = true;
+  }
 }
 
-async function livePoll(){
-    try{
-        var rows=await fetchBlocks(0);
-        var exact=[];
+async function livePoll() {
+  try {
+    var payload = await fetchLatestRecord();
+    var rec = payload.record;
 
-        for(var i=0;i<rows.length;i++){
-            var rec=toRec(rows[i]);
-            if(rec.second===54) exact.push(rec);
-        }
-
-        if(!exact.length){
-            updSt("Waiting :54 block...");
-            return;
-        }
-
-        exact.sort(function(a,b){return a.timestamp-b.timestamp});
-        var newest=exact[exact.length-1];
-        var old=rMap.get(newest.period);
-
-        if(!old||newest.timestamp>old.timestamp){
-            rMap.set(newest.period,newest);
-            await dbPutMany(db,[newest]);
-            render();
-            updSt("Live synced");
-
-            if(newest.period!==lastLP){
-                lastLP=newest.period;
-                showBadge(newest);
-            }
-        }else{
-            updSt("Live synced");
-        }
-    }catch(e){
-        console.error(e);
-        updSt("Live error");
+    if (!rec) {
+      updateStatus("Waiting :54 block...");
+      return;
     }
+
+    var changed = upsertRecord(rec);
+    if (changed) {
+      await dbPutMany(db, [rec]);
+      render();
+      chart.timeScale().scrollToRealTime();
+      updateStatus("Live synced");
+
+      if (rec.period !== lastLP) {
+        lastLP = rec.period;
+        showBadge(rec);
+      }
+    } else {
+      updateStatus("Live synced");
+    }
+  } catch (e) {
+    console.error(e);
+    updateStatus("Live error");
+  }
 }
 
-function liveLoop(){
-    livePoll()
-        .then(function(){setTimeout(liveLoop,POLL)})
-        .catch(function(){setTimeout(liveLoop,POLL)});
+function liveLoop() {
+  livePoll()
+    .finally(function () {
+      setTimeout(liveLoop, POLL);
+    });
 }
 
-(async function(){
-    try{
-        db=await openDB();
-        setP(3,"Database ready...");
-        await wait(200);
-        await loadHistory();
-        setP(100,"Done!");
-        await wait(500);
-        showUI();
-        liveLoop();
-    }catch(e){
-        console.error(e);
-        loadTxt.textContent="Error: "+e.message;
-    }
+(async function () {
+  try {
+    db = await openDB();
+    setP(3, "Database ready...");
+    await wait(200);
+    await loadHistory();
+    setP(100, "Done!");
+    await wait(400);
+    showUI();
+    liveLoop();
+  } catch (e) {
+    console.error(e);
+    loadTxt.textContent = "Error: " + e.message;
+  }
 })();
 </script>
 </body>
