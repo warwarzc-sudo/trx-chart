@@ -60,7 +60,9 @@ body{margin:0;background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;over
 
 <script>
 var WORKER_URL = "https://trx-apl.warwar-zc.workers.dev/";
-var DB_NAME = "TRX_CF_V7";
+var DB_NAME = "TRX_CF_V8";
+var APP_VERSION = "V8";
+console.log("APP_VERSION =", APP_VERSION);
 var STORE = "results";
 var HOURS = 12;
 var POLL = 5000;
@@ -83,8 +85,18 @@ var chart = LightweightCharts.createChart(document.getElementById("chart"), {
     vertLine: { color: "rgba(148,163,184,.35)", labelBackgroundColor: "#334155" },
     horzLine: { color: "rgba(148,163,184,.35)", labelBackgroundColor: "#334155" }
   },
-  timeScale: { timeVisible: true, secondsVisible: false, borderColor: "#334155", barSpacing: 8, minBarSpacing: 3, rightOffset: 10 },
-  rightPriceScale: { borderColor: "#334155", scaleMargins: { top: .18, bottom: .18 } },
+  timeScale: {
+    timeVisible: true,
+    secondsVisible: false,
+    borderColor: "#334155",
+    barSpacing: 8,
+    minBarSpacing: 3,
+    rightOffset: 10
+  },
+  rightPriceScale: {
+    borderColor: "#334155",
+    scaleMargins: { top: .18, bottom: .18 }
+  },
   handleScroll: { mouseWheel: true, pressedMouseMove: true },
   handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true }
 });
@@ -115,7 +127,9 @@ function openDB() {
     var r = indexedDB.open(DB_NAME, 1);
     r.onupgradeneeded = function (e) {
       var d = e.target.result;
-      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: "period" });
+      if (!d.objectStoreNames.contains(STORE)) {
+        d.createObjectStore(STORE, { keyPath: "period" });
+      }
     };
     r.onsuccess = function (e) { ok(e.target.result); };
     r.onerror = function (e) { no(e.target.error); };
@@ -215,6 +229,7 @@ var db;
 var rMap = new Map();
 var firstVisible = false;
 var lastLP = null;
+window.__trxAutoPoll = null;
 
 function upsertRecord(rec) {
   var old = rMap.get(rec.period);
@@ -228,7 +243,7 @@ function upsertRecord(rec) {
 function render() {
   var all = Array.from(rMap.values()).sort(function (a, b) { return a.period.localeCompare(b.period); });
   var cut = Date.now() - HOURS * 3600000;
-  var vis = all.filter(function (r) { return r.timestamp >= cut; });
+  var vis = all.filter(function (r) { return r.timestamp >= cut });
 
   var candles = [];
   var price = 100;
@@ -333,6 +348,7 @@ async function livePoll() {
     }
 
     var changed = upsertRecord(rec);
+
     if (changed) {
       await dbPutMany(db, [rec]);
       render();
@@ -352,12 +368,29 @@ async function livePoll() {
   }
 }
 
-function liveLoop() {
-  livePoll()
-    .finally(function () {
-      setTimeout(liveLoop, POLL);
+function startAutoPoll() {
+  clearInterval(window.__trxAutoPoll);
+  window.__trxAutoPoll = setInterval(function () {
+    livePoll().catch(function (err) {
+      console.error("auto poll error:", err);
     });
+  }, POLL);
+  livePoll();
 }
+
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) {
+    livePoll().catch(function (err) {
+      console.error("visibility poll error:", err);
+    });
+  }
+});
+
+window.addEventListener("focus", function () {
+  livePoll().catch(function (err) {
+    console.error("focus poll error:", err);
+  });
+});
 
 (async function () {
   try {
@@ -368,7 +401,7 @@ function liveLoop() {
     setP(100, "Done!");
     await wait(400);
     showUI();
-    liveLoop();
+    startAutoPoll();
   } catch (e) {
     console.error(e);
     loadTxt.textContent = "Error: " + e.message;
