@@ -7,37 +7,37 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow:hidden;touch-action:none;}
-#header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#12122a;border-bottom:1px solid #2a2a4a;height:44px;z-index:100;}
-#header .left{display:flex;align-items:center;gap:10px;}
+#header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#12122a;border-bottom:1px solid #2a2a4a;height:48px;z-index:100;flex-wrap:wrap;}
+#header .left{display:flex;align-items:center;gap:8px;}
 #header .title{font-size:15px;font-weight:700;color:#00e5ff;}
-#countdown{background:#1a1a3a;border:1px solid #00e5ff;border-radius:6px;padding:2px 10px;font-size:18px;font-weight:700;color:#ffab00;min-width:50px;text-align:center;}
-#result-text{font-size:13px;color:#aaa;max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+#countdown-box{display:flex;align-items:center;gap:6px;background:#1a1a3a;border:1px solid #00e5ff;border-radius:6px;padding:3px 10px;}
+#countdown-num{font-size:20px;font-weight:700;color:#ffab00;min-width:28px;text-align:center;}
+#countdown-result{font-size:12px;font-weight:600;color:#aaa;max-width:160px;white-space:nowrap;}
 #toolbar{display:flex;align-items:center;gap:4px;padding:4px 8px;background:#0e0e24;border-bottom:1px solid #222248;flex-wrap:wrap;z-index:99;}
-#toolbar button{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;transition:0.2s;}
+#toolbar button{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:5px 10px;font-size:12px;cursor:pointer;transition:0.15s;}
 #toolbar button:hover{background:#2a2a5a;color:#fff;}
 #toolbar button.active{background:#00e5ff;color:#000;border-color:#00e5ff;font-weight:700;}
 #toolbar .sep{width:1px;height:22px;background:#333;margin:0 4px;}
-#toolbar select{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:3px 6px;font-size:12px;}
-#chart-wrap{position:relative;width:100%;height:calc(100vh - 88px);overflow:hidden;}
+#toolbar select{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:4px 6px;font-size:12px;}
+#chart-wrap{position:relative;width:100%;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;}
 #canvasMain{z-index:1;}
 #canvasOverlay{z-index:2;}
 #canvasDrawing{z-index:3;}
-#canvasUI{z-index:4;pointer-events:none;}
-#canvasCrosshair{z-index:5;pointer-events:none;}
+#canvasCrosshair{z-index:4;pointer-events:none;}
 #canvasInteract{z-index:10;cursor:crosshair;}
-#rsi-wrap{position:absolute;bottom:0;left:0;width:100%;height:100px;z-index:6;pointer-events:none;border-top:1px solid #2a2a4a;}
-#canvasRSI{z-index:7;}
-#info-tooltip{position:absolute;display:none;background:rgba(10,10,30,0.92);border:1px solid #00e5ff;border-radius:6px;padding:6px 10px;font-size:11px;color:#e0e0e0;pointer-events:none;z-index:50;white-space:nowrap;}
-#context-menu{position:absolute;display:none;background:#1a1a3a;border:1px solid #444;border-radius:6px;padding:4px 0;z-index:60;min-width:120px;}
-#context-menu div{padding:6px 16px;font-size:12px;cursor:pointer;color:#ddd;}
+#canvasRSI{z-index:1;}
+#rsi-wrap{position:absolute;bottom:0;left:0;width:100%;border-top:1px solid #2a2a4a;}
+#context-menu{position:absolute;display:none;background:#1a1a3a;border:1px solid #555;border-radius:6px;padding:4px 0;z-index:60;min-width:130px;box-shadow:0 4px 16px rgba(0,0,0,0.5);}
+#context-menu div{padding:8px 16px;font-size:12px;cursor:pointer;color:#ddd;}
 #context-menu div:hover{background:#2a2a5a;color:#fff;}
+#debug-box{position:fixed;bottom:4px;left:4px;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;padding:4px 8px;border-radius:4px;z-index:999;max-width:90vw;word-break:break-all;display:none;}
 @media(max-width:600px){
-  #header{padding:4px 8px;height:40px;}
+  #header{padding:4px 8px;height:44px;}
   #header .title{font-size:13px;}
-  #countdown{font-size:15px;padding:2px 7px;}
+  #countdown-num{font-size:17px;}
+  #countdown-result{font-size:10px;max-width:100px;}
   #toolbar button{padding:3px 7px;font-size:11px;}
-  #result-text{font-size:11px;max-width:120px;}
 }
 </style>
 </head>
@@ -45,8 +45,10 @@ canvas{position:absolute;top:0;left:0;}
 <div id="header">
   <div class="left">
     <span class="title">TRX WinGo</span>
-    <div id="countdown">60</div>
-    <span id="result-text"></span>
+    <div id="countdown-box">
+      <span id="countdown-num">60</span>
+      <span id="countdown-result">--</span>
+    </div>
   </div>
   <div class="right">
     <select id="tfSelect">
@@ -59,1263 +61,725 @@ canvas{position:absolute;top:0;left:0;}
 <div id="toolbar">
   <button id="btnPointer" class="active" data-tool="pointer">☝ Pointer</button>
   <div class="sep"></div>
-  <button id="btnTrendline" data-tool="trendline">📏 Trend</button>
-  <button id="btnHLine" data-tool="hline">➖ H-Line</button>
-  <button id="btnRect" data-tool="rect">⬜ Rect</button>
-  <button id="btnFib" data-tool="fib">📐 Fib</button>
-  <button id="btnText" data-tool="text">🔤 Text</button>
+  <button data-tool="trendline">📏 Trend</button>
+  <button data-tool="hline">➖ H-Line</button>
+  <button data-tool="rect">⬜ Rect</button>
+  <button data-tool="fib">📐 Fib</button>
+  <button data-tool="text">🔤 Text</button>
   <div class="sep"></div>
-  <button id="btnEMA9" data-ind="ema9">EMA9</button>
-  <button id="btnEMA21" data-ind="ema21">EMA21</button>
-  <button id="btnRSI" data-ind="rsi">RSI</button>
+  <button data-ind="ema9" class="active">EMA9</button>
+  <button data-ind="ema21" class="active">EMA21</button>
+  <button data-ind="rsi" class="active">RSI</button>
   <div class="sep"></div>
-  <button id="btnDelAll">🗑 Clear All</button>
+  <button id="btnDelAll">🗑 Clear</button>
 </div>
 <div id="chart-wrap">
   <canvas id="canvasMain"></canvas>
   <canvas id="canvasOverlay"></canvas>
   <canvas id="canvasDrawing"></canvas>
-  <canvas id="canvasUI"></canvas>
   <canvas id="canvasCrosshair"></canvas>
   <canvas id="canvasInteract"></canvas>
-  <canvas id="canvasRSI"></canvas>
-  <div id="info-tooltip"></div>
+  <div id="rsi-wrap"><canvas id="canvasRSI"></canvas></div>
   <div id="context-menu">
-    <div id="cmDelete">🗑 Delete</div>
-    <div id="cmColor">🎨 Color</div>
+    <div id="cmDelete">🗑 Delete Drawing</div>
+    <div id="cmColor">🎨 Change Color</div>
   </div>
 </div>
+<div id="debug-box"></div>
 
 <script>
-// ===== CONSTANTS & STATE =====
-const API_URL = 'https://trx-apl.warwar-zc.workers.dev/';
-const DB_NAME = 'TRXChartDB';
+// ========== CONFIG ==========
+const API = 'https://trx-apl.warwar-zc.workers.dev/';
+const DB_NAME = 'TRXChart';
 const DB_STORE = 'drawings';
-const COLORS = {
-  bg: '#0a0a1a', grid: '#1a1a3a', gridText: '#555',
-  up: '#00c853', down: '#ff1744', wick: '#888',
-  ema9: '#ffab00', ema21: '#00b0ff',
-  rsiLine: '#e040fb', rsiSignal: '#00e5ff',
-  rsiOB: 'rgba(255,23,68,0.3)', rsiOS: 'rgba(0,200,83,0.3)',
-  crosshair: 'rgba(255,255,255,0.25)', selection: '#00e5ff',
-  trendline: '#00e5ff', hline: '#ffab00', rect: 'rgba(0,229,255,0.15)',
-  rectBorder: '#00e5ff', fib: '#e040fb', text: '#ffffff'
+const FIB = [0,0.236,0.382,0.5,0.618,0.786,1];
+const COL = {
+  bg:'#0a0a1a', grid:'#1a1a3a', gridTxt:'#555',
+  up:'#00c853', dn:'#ff1744',
+  ema9:'#ffab00', ema21:'#00b0ff',
+  rsi1:'#e040fb', rsi2:'#00e5ff',
+  cross:'rgba(255,255,255,0.2)', sel:'#00e5ff',
+  trend:'#00e5ff', hline:'#ffab00',
+  rectFill:'rgba(0,229,255,0.12)', rectLine:'#00e5ff',
+  fib:'#e040fb', text:'#fff'
 };
-const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 
-let W, H, mainH, rsiH = 100;
-let canvases = {}, ctx = {};
-let rawCandles = [], candles = [], visibleCandles = [];
-let candleW = 10, gap = 3, scrollX = 0, maxScrollX = 0;
-let priceMin, priceMax, priceRange;
-let indicators = { ema9: true, ema21: true, rsi: true };
-let emaData9 = [], emaData21 = [], rsiData = [], rsiSignalData = [];
+// ========== STATE ==========
+let W, H, mainH, rsiH=100;
+let cvs={}, cx={};
+let candles=[], ema9=[], ema21=[], rsiArr=[], rsiSig=[];
+let candleW=10, gap=3, scrollX=0;
+let pMin, pMax, pRange;
+let indicators={ema9:true, ema21:true, rsi:true};
 
-// Drawing state
-let currentTool = 'pointer';
-let drawings = [];
-let drawingInProgress = null;
-let selectedDrawing = null;
-let dragState = null; // {type:'move'|'endpoint', drawingId, endpointIdx, startX, startY, origPoints}
-let isDrawing = false;
-let blockAutoScroll = false;
+let tool='pointer';
+let drawings=[], selDraw=null, diprog=null;
+let isDraw=false, dragSt=null, panSt=null;
+let blockScroll=false;
+let mouseX=-1, mouseY=-1;
+let longTimer=null, longFired=false;
+let lastPeriod='', lastResult='';
 
-// Mouse/touch state
-let mouseX = -1, mouseY = -1;
-let longPressTimer = null;
-let longPressTriggered = false;
-const LONG_PRESS_MS = 500;
-const ENDPOINT_RADIUS = 8;
+// ========== DEBUG ==========
+function dbg(msg){
+  const el=document.getElementById('debug-box');
+  el.style.display='block';
+  el.textContent=msg;
+  setTimeout(()=>{el.style.display='none';},8000);
+}
 
-// Countdown
-let countdownValue = 60;
-let lastPeriod = '';
-
-// ===== INIT =====
-function init() {
-  setupCanvases();
+// ========== INIT ==========
+function init(){
+  sizeAll();
   setupToolbar();
-  setupInteraction();
-  loadDrawingsFromDB();
-  fetchData();
-  setInterval(fetchDataSilent, 5000);
-  setInterval(updateCountdown, 1000);
-  updateCountdown();
-  requestAnimationFrame(renderLoop);
+  setupInput();
+  loadDB();
+  fetchData(true);
+  setInterval(()=>fetchData(false),5000);
+  setInterval(tickCountdown,1000);
+  tickCountdown();
+  window.addEventListener('resize',()=>{sizeAll();renderAll();});
 }
 
-function setupCanvases() {
-  const wrap = document.getElementById('chart-wrap');
-  W = wrap.clientWidth;
-  H = wrap.clientHeight;
-  mainH = H - rsiH;
-  ['Main','Overlay','Drawing','UI','Crosshair','Interact','RSI'].forEach(name => {
-    const c = document.getElementById('canvas' + name);
-    canvases[name] = c;
-    ctx[name] = c.getContext('2d');
-    if (name === 'RSI') {
-      c.width = W; c.height = rsiH;
-      c.style.top = mainH + 'px';
-      c.style.width = W + 'px'; c.style.height = rsiH + 'px';
-    } else {
-      c.width = W; c.height = H;
-      c.style.width = W + 'px'; c.style.height = H + 'px';
-    }
+function sizeAll(){
+  const wrap=document.getElementById('chart-wrap');
+  const hdr=document.getElementById('header');
+  const tb=document.getElementById('toolbar');
+  const topH=hdr.offsetHeight+tb.offsetHeight;
+  W=window.innerWidth;
+  H=window.innerHeight-topH;
+  wrap.style.height=H+'px';
+  mainH=H-rsiH;
+  if(mainH<100){rsiH=50;mainH=H-rsiH;}
+
+  ['Main','Overlay','Drawing','Crosshair','Interact'].forEach(n=>{
+    const c=document.getElementById('canvas'+n);
+    c.width=W; c.height=H;
+    c.style.width=W+'px'; c.style.height=H+'px';
+    cvs[n]=c; cx[n]=c.getContext('2d');
   });
-  window.addEventListener('resize', () => {
-    W = wrap.clientWidth; H = wrap.clientHeight; mainH = H - rsiH;
-    ['Main','Overlay','Drawing','UI','Crosshair','Interact','RSI'].forEach(name => {
-      const c = canvases[name];
-      if (name === 'RSI') {
-        c.width = W; c.height = rsiH;
-        c.style.top = mainH + 'px';
-        c.style.width = W + 'px'; c.style.height = rsiH + 'px';
-      } else {
-        c.width = W; c.height = H;
-        c.style.width = W + 'px'; c.style.height = H + 'px';
-      }
-    });
+  const rw=document.getElementById('rsi-wrap');
+  rw.style.height=rsiH+'px';
+  rw.style.top=mainH+'px';
+  const rc=document.getElementById('canvasRSI');
+  rc.width=W; rc.height=rsiH;
+  rc.style.width=W+'px'; rc.style.height=rsiH+'px';
+  cvs.RSI=rc; cx.RSI=rc.getContext('2d');
+}
+
+// ========== API ==========
+async function fetchData(first){
+  try{
+    const tf=document.getElementById('tfSelect').value;
+    const r=await fetch(API+'?tf='+tf+'&limit=500');
+    const txt=await r.text();
+    let data;
+    try{data=JSON.parse(txt);}catch(e){dbg('JSON parse err: '+txt.substring(0,200));return;}
+
+    // detect format
+    let arr=null;
+    if(Array.isArray(data)) arr=data;
+    else if(data.candles && Array.isArray(data.candles)) arr=data.candles;
+    else if(data.data && Array.isArray(data.data)) arr=data.data;
+    else{
+      // try keys
+      const keys=Object.keys(data);
+      for(const k of keys){if(Array.isArray(data[k])){arr=data[k];break;}}
+    }
+    if(!arr||arr.length===0){dbg('No candle array found. Keys: '+Object.keys(data||{}).join(','));return;}
+
+    candles=arr.map(c=>{
+      const o=pf(c.open??c.o??c.Open??0);
+      const h=pf(c.high??c.h??c.High??0);
+      const l=pf(c.low??c.l??c.Low??0);
+      const cl=pf(c.close??c.c??c.Close??0);
+      const t=pf(c.time??c.t??c.timestamp??c.Time??0);
+      const v=pf(c.volume??c.v??c.Vol??0);
+      const p=c.period??c.p??c.issueNumber??'';
+      return {time:t,open:o,high:h,low:l,close:cl,volume:v,period:String(p)};
+    }).filter(c=>c.open>0&&c.close>0)
+      .sort((a,b)=>a.time-b.time);
+
+    if(candles.length===0){dbg('Parsed 0 valid candles from '+arr.length+' items');return;}
+
+    calcEMA(9,ema9); calcEMA(21,ema21); calcRSI(14);
+    if(first||(!blockScroll&&!isDraw&&!dragSt)) scrollEnd();
     renderAll();
-  });
+    updateResult();
+  }catch(e){dbg('Fetch error: '+e.message);}
+}
+function pf(v){return parseFloat(v)||0;}
+
+function scrollEnd(){
+  const tw=candles.length*(candleW+gap);
+  scrollX=Math.max(0,tw-W+80);
 }
 
-// ===== TOOLBAR =====
-function setupToolbar() {
-  document.querySelectorAll('#toolbar button[data-tool]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentTool = btn.dataset.tool;
-      document.querySelectorAll('#toolbar button[data-tool]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      cancelDrawing();
-      deselectAll();
-      canvases.Interact.style.cursor = currentTool === 'pointer' ? 'default' : 'crosshair';
+function updateResult(){
+  if(candles.length<1)return;
+  const last=candles[candles.length-1];
+  const isUp=last.close>=last.open;
+  const dir=isUp?'🟢 Big':'🔴 Small';
+  lastResult=dir;
+  document.getElementById('countdown-result').textContent=dir+' '+last.close.toFixed(4);
+  document.getElementById('countdown-result').style.color=isUp?'#00c853':'#ff1744';
+}
+
+// ========== INDICATORS ==========
+function calcEMA(p,out){
+  out.length=0;
+  if(!candles.length)return;
+  const k=2/(p+1);
+  let e=candles[0].close;
+  out.push(e);
+  for(let i=1;i<candles.length;i++){
+    e=candles[i].close*k+e*(1-k);
+    out.push(e);
+  }
+}
+function calcRSI(p){
+  rsiArr.length=0;rsiSig.length=0;
+  if(candles.length<p+1)return;
+  let g=0,ls=0;
+  for(let i=1;i<=p;i++){
+    const d=candles[i].close-candles[i-1].close;
+    if(d>0)g+=d;else ls-=d;
+  }
+  let ag=g/p,al=ls/p;
+  for(let i=0;i<p;i++)rsiArr.push(null);
+  rsiArr.push(al===0?100:100-100/(1+ag/al));
+  for(let i=p+1;i<candles.length;i++){
+    const d=candles[i].close-candles[i-1].close;
+    ag=(ag*(p-1)+(d>0?d:0))/p;
+    al=(al*(p-1)+(d<0?-d:0))/p;
+    rsiArr.push(al===0?100:100-100/(1+ag/al));
+  }
+  // signal
+  const sk=2/10;let se=0,ss=false;
+  for(let i=0;i<rsiArr.length;i++){
+    if(rsiArr[i]===null){rsiSig.push(null);continue;}
+    if(!ss){se=rsiArr[i];ss=true;rsiSig.push(se);continue;}
+    se=rsiArr[i]*sk+se*(1-sk);rsiSig.push(se);
+  }
+}
+
+// ========== COORDS ==========
+function visRange(){
+  const s=Math.floor(scrollX/(candleW+gap));
+  const e=Math.min(candles.length-1,s+Math.ceil(W/(candleW+gap))+2);
+  return{s:Math.max(0,s),e};
+}
+function calcPrice(){
+  const{s,e}=visRange();
+  if(s>e||!candles.length){pMin=0;pMax=1;pRange=1;return;}
+  let mn=Infinity,mx=-Infinity;
+  for(let i=s;i<=e;i++){
+    if(candles[i].low<mn)mn=candles[i].low;
+    if(candles[i].high>mx)mx=candles[i].high;
+  }
+  if(indicators.ema9)for(let i=s;i<=e;i++){if(ema9[i]!==undefined){if(ema9[i]<mn)mn=ema9[i];if(ema9[i]>mx)mx=ema9[i];}}
+  if(indicators.ema21)for(let i=s;i<=e;i++){if(ema21[i]!==undefined){if(ema21[i]<mn)mn=ema21[i];if(ema21[i]>mx)mx=ema21[i];}}
+  const pad=(mx-mn)*0.1||0.0001;
+  pMin=mn-pad;pMax=mx+pad;pRange=pMax-pMin;
+}
+function p2y(p){return mainH-((p-pMin)/pRange)*(mainH-40)-20;}
+function y2p(y){return pMin+((mainH-y-20)/(mainH-40))*pRange;}
+function i2x(i){return i*(candleW+gap)-scrollX+gap;}
+function x2i(x){return(x+scrollX-gap)/(candleW+gap);}
+function r2y(v){return rsiH-((v)/100)*(rsiH-14)-7;}
+
+// ========== COUNTDOWN ==========
+function tickCountdown(){
+  const now=Math.floor(Date.now()/1000);
+  let v=60-(now%60);if(v===60)v=0;
+  const el=document.getElementById('countdown-num');
+  el.textContent=v;
+  el.style.color=v<=10?'#ff1744':'#ffab00';
+}
+
+// ========== RENDER ==========
+function renderAll(){
+  if(!candles.length)return;
+  calcPrice();
+  rMain();rOverlay();rDrawings();rRSI();
+}
+
+function rMain(){
+  const c=cx.Main;
+  c.clearRect(0,0,W,H);
+  c.fillStyle=COL.bg;c.fillRect(0,0,W,H);
+
+  // grid
+  c.strokeStyle=COL.grid;c.lineWidth=0.5;c.fillStyle=COL.gridTxt;c.font='10px monospace';
+  const nl=8,st=pRange/nl;
+  for(let i=0;i<=nl;i++){
+    const p=pMin+st*i,y=p2y(p);
+    if(y<0||y>mainH)continue;
+    c.setLineDash([2,4]);c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();
+    c.setLineDash([]);c.fillText(p.toFixed(4),W-65,y-3);
+  }
+  const{s,e}=visRange();
+  const vs=Math.max(1,Math.floor((e-s)/6));
+  for(let i=s;i<=e;i+=vs){
+    const x=i2x(i)+candleW/2;
+    c.setLineDash([2,4]);c.beginPath();c.moveTo(x,0);c.lineTo(x,mainH);c.stroke();c.setLineDash([]);
+    if(candles[i]){
+      const d=new Date(candles[i].time*1000);
+      const ts=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      c.fillText(ts,x-14,mainH-4);
+    }
+  }
+  // separator
+  c.strokeStyle='#2a2a4a';c.lineWidth=1;c.setLineDash([]);
+  c.beginPath();c.moveTo(0,mainH);c.lineTo(W,mainH);c.stroke();
+
+  // candles
+  for(let i=s;i<=e;i++){
+    const cd=candles[i],x=i2x(i);
+    const up=cd.close>=cd.open;
+    const col=up?COL.up:COL.dn;
+    const bTop=p2y(Math.max(cd.open,cd.close));
+    const bBot=p2y(Math.min(cd.open,cd.close));
+    const bH=Math.max(1,bBot-bTop);
+    const wTop=p2y(cd.high),wBot=p2y(cd.low);
+    const cx2=x+candleW/2;
+    c.strokeStyle=col;c.lineWidth=1;
+    c.beginPath();c.moveTo(cx2,wTop);c.lineTo(cx2,wBot);c.stroke();
+    c.fillStyle=col;
+    if(candleW>=3)c.fillRect(x,bTop,candleW,bH);
+    else c.fillRect(cx2,bTop,1,bH);
+  }
+}
+
+function rOverlay(){
+  const c=cx.Overlay;c.clearRect(0,0,W,H);
+  const{s,e}=visRange();
+  // EMA9
+  if(indicators.ema9&&ema9.length){
+    c.strokeStyle=COL.ema9;c.lineWidth=1.5;c.beginPath();let st=false;
+    for(let i=s;i<=e;i++){if(ema9[i]===undefined)continue;const x=i2x(i)+candleW/2,y=p2y(ema9[i]);if(!st){c.moveTo(x,y);st=true;}else c.lineTo(x,y);}
+    c.stroke();
+  }
+  // EMA21
+  if(indicators.ema21&&ema21.length){
+    c.strokeStyle=COL.ema21;c.lineWidth=1.5;c.beginPath();let st=false;
+    for(let i=s;i<=e;i++){if(ema21[i]===undefined)continue;const x=i2x(i)+candleW/2,y=p2y(ema21[i]);if(!st){c.moveTo(x,y);st=true;}else c.lineTo(x,y);}
+    c.stroke();
+  }
+  // price line
+  if(candles.length){
+    const la=candles[candles.length-1],y=p2y(la.close),up=la.close>=la.open;
+    c.strokeStyle=up?COL.up:COL.dn;c.lineWidth=1;c.setLineDash([4,4]);
+    c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();c.setLineDash([]);
+    c.fillStyle=up?COL.up:COL.dn;c.fillRect(W-70,y-10,70,20);
+    c.fillStyle='#000';c.font='bold 11px monospace';c.fillText(la.close.toFixed(4),W-66,y+4);
+  }
+}
+
+function rRSI(){
+  const c=cx.RSI;c.clearRect(0,0,W,rsiH);
+  if(!indicators.rsi||!rsiArr.length)return;
+  c.fillStyle=COL.bg;c.fillRect(0,0,W,rsiH);
+  const ob=r2y(70),os=r2y(30);
+  c.fillStyle='rgba(255,23,68,0.15)';c.fillRect(0,0,W,ob);
+  c.fillStyle='rgba(0,200,83,0.15)';c.fillRect(0,os,W,rsiH-os);
+  c.strokeStyle='#333';c.lineWidth=0.5;
+  [30,50,70].forEach(v=>{const y=r2y(v);c.setLineDash([3,3]);c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();});
+  c.setLineDash([]);
+  const{s,e}=visRange();
+  // RSI
+  c.strokeStyle=COL.rsi1;c.lineWidth=1.5;c.beginPath();let st=false;
+  for(let i=s;i<=e;i++){if(rsiArr[i]==null)continue;const x=i2x(i)+candleW/2,y=r2y(rsiArr[i]);if(!st){c.moveTo(x,y);st=true;}else c.lineTo(x,y);}
+  c.stroke();
+  // Signal
+  c.strokeStyle=COL.rsi2;c.lineWidth=1;c.beginPath();st=false;
+  for(let i=s;i<=e;i++){if(rsiSig[i]==null)continue;const x=i2x(i)+candleW/2,y=r2y(rsiSig[i]);if(!st){c.moveTo(x,y);st=true;}else c.lineTo(x,y);}
+  c.stroke();
+  c.fillStyle='#666';c.font='9px monospace';c.fillText('70',2,ob+10);c.fillText('30',2,os-3);c.fillText('RSI',W-28,12);
+}
+
+// ========== DRAWINGS RENDER ==========
+function rDrawings(){
+  const c=cx.Drawing;c.clearRect(0,0,W,H);
+  drawings.forEach(d=>drawOne(c,d,selDraw&&selDraw.id===d.id));
+  if(diprog)drawOne(c,diprog,false);
+}
+
+function drawOne(c,d,sel){
+  switch(d.type){
+    case'trendline':dTrend(c,d,sel);break;
+    case'hline':dHLine(c,d,sel);break;
+    case'rect':dRect(c,d,sel);break;
+    case'fib':dFib(c,d,sel);break;
+    case'text':dText(c,d,sel);break;
+  }
+}
+
+function dTrend(c,d,sel){
+  const x1=i2x(d.x1)+candleW/2,y1=p2y(d.y1),x2=i2x(d.x2)+candleW/2,y2=p2y(d.y2);
+  c.strokeStyle=d.color||COL.trend;c.lineWidth=sel?2.5:1.5;
+  c.setLineDash(sel?[6,3]:[]);c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.setLineDash([]);
+  if(sel){ep(c,x1,y1);ep(c,x2,y2);}
+}
+function dHLine(c,d,sel){
+  const y=p2y(d.y1);
+  c.strokeStyle=d.color||COL.hline;c.lineWidth=sel?2:1;c.setLineDash([6,4]);
+  c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();c.setLineDash([]);
+  c.fillStyle=d.color||COL.hline;c.font='10px monospace';c.fillText(d.y1.toFixed(4),5,y-4);
+  if(sel)ep(c,W/2,y);
+}
+function dRect(c,d,sel){
+  const x1=i2x(d.x1)+candleW/2,y1=p2y(d.y1),x2=i2x(d.x2)+candleW/2,y2=p2y(d.y2);
+  const rx=Math.min(x1,x2),ry=Math.min(y1,y2),rw=Math.abs(x2-x1),rh=Math.abs(y2-y1);
+  c.fillStyle=d.fill||COL.rectFill;c.fillRect(rx,ry,rw,rh);
+  c.strokeStyle=d.color||COL.rectLine;c.lineWidth=sel?2:1;
+  c.setLineDash(sel?[4,3]:[]);c.strokeRect(rx,ry,rw,rh);c.setLineDash([]);
+  if(sel){ep(c,x1,y1);ep(c,x2,y2);ep(c,x1,y2);ep(c,x2,y1);}
+}
+function dFib(c,d,sel){
+  const x1=i2x(d.x1)+candleW/2,x2=i2x(d.x2)+candleW/2;
+  const hi=Math.max(d.y1,d.y2),lo=Math.min(d.y1,d.y2),rng=hi-lo;
+  const cols=['#ff1744','#ff6d00','#ffab00','#fff','#00e5ff','#00c853','#e040fb'];
+  FIB.forEach((lv,i)=>{
+    const p=hi-rng*lv,y=p2y(p);
+    c.strokeStyle=cols[i]||COL.fib;c.lineWidth=sel?1.5:1;
+    c.setLineDash(lv===0||lv===1?[]:[4,3]);
+    c.beginPath();c.moveTo(Math.min(x1,x2)-20,y);c.lineTo(Math.max(x1,x2)+20,y);c.stroke();c.setLineDash([]);
+    c.fillStyle=cols[i];c.font='10px monospace';c.fillText((lv*100).toFixed(1)+'% '+p.toFixed(4),Math.min(x1,x2)-20,y-3);
+  });
+  if(sel){ep(c,x1,p2y(d.y1));ep(c,x2,p2y(d.y2));}
+}
+function dText(c,d,sel){
+  const x=i2x(d.x1)+candleW/2,y=p2y(d.y1);
+  c.fillStyle=d.color||COL.text;c.font='bold 13px sans-serif';
+  const t=d.text||'Text';c.fillText(t,x,y);
+  if(sel){const m=c.measureText(t);c.strokeStyle=COL.sel;c.lineWidth=1;c.setLineDash([3,3]);c.strokeRect(x-3,y-14,m.width+6,18);c.setLineDash([]);}
+}
+function ep(c,x,y){
+  c.fillStyle=COL.sel;c.strokeStyle='#fff';c.lineWidth=1.5;
+  c.beginPath();c.arc(x,y,6,0,Math.PI*2);c.fill();c.stroke();
+}
+
+// ========== CROSSHAIR ==========
+function rCross(mx,my){
+  const c=cx.Crosshair;c.clearRect(0,0,W,H);
+  if(mx<0||my<0)return;
+  c.strokeStyle=COL.cross;c.lineWidth=0.5;c.setLineDash([4,4]);
+  c.beginPath();c.moveTo(mx,0);c.lineTo(mx,mainH);c.moveTo(0,my);c.lineTo(W,my);c.stroke();c.setLineDash([]);
+  if(my<mainH){
+    const p=y2p(my);
+    c.fillStyle='#1a1a3a';c.fillRect(W-70,my-10,70,20);c.strokeStyle='#555';c.strokeRect(W-70,my-10,70,20);
+    c.fillStyle='#ddd';c.font='10px monospace';c.fillText(p.toFixed(4),W-66,my+4);
+  }
+  const idx=Math.round(x2i(mx));
+  if(idx>=0&&idx<candles.length){
+    const d=new Date(candles[idx].time*1000);
+    const ts=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    c.fillStyle='#1a1a3a';c.fillRect(mx-20,mainH-16,40,16);
+    c.fillStyle='#ddd';c.font='10px monospace';c.fillText(ts,mx-14,mainH-4);
+  }
+}<script>
+// ========== TOOLBAR ==========
+function setupToolbar(){
+  document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      tool=b.dataset.tool;
+      document.querySelectorAll('#toolbar button[data-tool]').forEach(bb=>bb.classList.remove('active'));
+      b.classList.add('active');
+      cancelDraw();deselect();
+      cvs.Interact.style.cursor=tool==='pointer'?'default':'crosshair';
     });
   });
-  document.querySelectorAll('#toolbar button[data-ind]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const ind = btn.dataset.ind;
-      indicators[ind] = !indicators[ind];
-      btn.classList.toggle('active', indicators[ind]);
+  document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const k=b.dataset.ind;indicators[k]=!indicators[k];
+      b.classList.toggle('active',indicators[k]);
+      // show/hide RSI panel
+      document.getElementById('rsi-wrap').style.display=indicators.rsi?'block':'none';
+      if(!indicators.rsi){rsiH=0;mainH=H;}else{rsiH=100;mainH=H-rsiH;}
+      document.getElementById('rsi-wrap').style.height=rsiH+'px';
+      document.getElementById('rsi-wrap').style.top=mainH+'px';
+      cvs.RSI.height=rsiH;cvs.RSI.style.height=rsiH+'px';
       renderAll();
     });
-    btn.classList.toggle('active', indicators[btn.dataset.ind]);
   });
-  document.getElementById('btnDelAll').addEventListener('click', () => {
-    drawings = []; selectedDrawing = null; saveDrawingsToDB(); renderAll();
+  document.getElementById('btnDelAll').addEventListener('click',()=>{
+    drawings=[];selDraw=null;saveDB();renderAll();
   });
-  document.getElementById('cmDelete').addEventListener('click', () => {
-    if (selectedDrawing) {
-      drawings = drawings.filter(d => d.id !== selectedDrawing.id);
-      selectedDrawing = null; saveDrawingsToDB(); renderAll();
-    }
-    hideContextMenu();
+  document.getElementById('cmDelete').addEventListener('click',()=>{
+    if(selDraw){drawings=drawings.filter(d=>d.id!==selDraw.id);selDraw=null;saveDB();renderAll();}
+    hideCM();
   });
-  document.getElementById('cmColor').addEventListener('click', () => {
-    if (selectedDrawing) {
-      const colors = ['#00e5ff','#ffab00','#ff1744','#00c853','#e040fb','#ffffff','#ff6d00'];
-      const ci = (colors.indexOf(selectedDrawing.color) + 1) % colors.length;
-      selectedDrawing.color = colors[ci];
-      saveDrawingsToDB(); renderAll();
+  document.getElementById('cmColor').addEventListener('click',()=>{
+    if(selDraw){
+      const cs=['#00e5ff','#ffab00','#ff1744','#00c853','#e040fb','#fff','#ff6d00'];
+      selDraw.color=cs[(cs.indexOf(selDraw.color)+1)%cs.length];
+      saveDB();renderAll();
     }
-    hideContextMenu();
+    hideCM();
   });
-  document.getElementById('tfSelect').addEventListener('change', () => { fetchData(); });
 }
 
-// ===== DATA FETCH =====
-async function fetchData() {
-  try {
-    const tf = document.getElementById('tfSelect').value;
-    const res = await fetch(API_URL + '?tf=' + tf + '&limit=500');
-    const data = await res.json();
-    if (data && data.candles) {
-      rawCandles = data.candles.map(c => ({
-        time: c.time || c.t,
-        open: parseFloat(c.open || c.o),
-        high: parseFloat(c.high || c.h),
-        low: parseFloat(c.low || c.l),
-        close: parseFloat(c.close || c.c),
-        volume: parseFloat(c.volume || c.v || 0),
-        period: c.period || c.p || ''
-      }));
-      processData();
-      if (!blockAutoScroll) scrollToEnd();
-      renderAll();
-      updateResult();
-    }
-  } catch(e) { console.error('Fetch error:', e); }
-}
+// ========== INPUT ==========
+function setupInput(){
+  const el=cvs.Interact;
 
-async function fetchDataSilent() {
-  try {
-    const tf = document.getElementById('tfSelect').value;
-    const res = await fetch(API_URL + '?tf=' + tf + '&limit=500');
-    const data = await res.json();
-    if (data && data.candles) {
-      rawCandles = data.candles.map(c => ({
-        time: c.time || c.t,
-        open: parseFloat(c.open || c.o),
-        high: parseFloat(c.high || c.h),
-        low: parseFloat(c.low || c.l),
-        close: parseFloat(c.close || c.c),
-        volume: parseFloat(c.volume || c.v || 0),
-        period: c.period || c.p || ''
-      }));
-      processData();
-      if (!blockAutoScroll && !isDrawing && !dragState) scrollToEnd();
-      renderAll();
-      updateResult();
-    }
-  } catch(e) {}
-}
+  // Mouse
+  el.addEventListener('mousedown',e=>{e.preventDefault();pDown(e.offsetX,e.offsetY);});
+  el.addEventListener('mousemove',e=>{pMove(e.offsetX,e.offsetY);});
+  el.addEventListener('mouseup',e=>{pUp(e.offsetX,e.offsetY);});
+  el.addEventListener('mouseleave',()=>{mouseX=-1;mouseY=-1;rCross(-1,-1);});
+  el.addEventListener('dblclick',e=>{onDbl(e.offsetX,e.offsetY);});
+  el.addEventListener('wheel',e=>{e.preventDefault();e.deltaY<0?zoomIn():zoomOut();},{passive:false});
+  el.addEventListener('contextmenu',e=>e.preventDefault());
 
-function processData() {
-  candles = rawCandles.slice().sort((a,b) => a.time - b.time);
-  calcEMA(9, emaData9);
-  calcEMA(21, emaData21);
-  calcRSI(14);
-}
-
-function scrollToEnd() {
-  const totalW = candles.length * (candleW + gap);
-  scrollX = Math.max(0, totalW - W + 60);
-  maxScrollX = Math.max(0, totalW - W + 60);
-}
-
-function updateResult() {
-  if (candles.length < 2) return;
-  const last = candles[candles.length - 1];
-  const prev = candles[candles.length - 2];
-  const dir = last.close >= last.open ? '🟢 Big' : '🔴 Small';
-  const resultEl = document.getElementById('result-text');
-  resultEl.textContent = `${dir} | C: ${last.close.toFixed(4)}`;
-  if (last.period && last.period !== lastPeriod) {
-    lastPeriod = last.period;
-  }
-}
-
-// ===== INDICATORS =====
-function calcEMA(period, out) {
-  out.length = 0;
-  if (candles.length === 0) return;
-  const k = 2 / (period + 1);
-  let ema = candles[0].close;
-  out.push(ema);
-  for (let i = 1; i < candles.length; i++) {
-    ema = candles[i].close * k + ema * (1 - k);
-    out.push(ema);
-  }
-}
-
-function calcRSI(period) {
-  rsiData.length = 0;
-  rsiSignalData.length = 0;
-  if (candles.length < period + 1) return;
-  let gains = 0, losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const diff = candles[i].close - candles[i-1].close;
-    if (diff > 0) gains += diff; else losses -= diff;
-  }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
-  for (let i = 0; i < period; i++) rsiData.push(null);
-  let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-  rsiData.push(100 - 100 / (1 + rs));
-  for (let i = period + 1; i < candles.length; i++) {
-    const diff = candles[i].close - candles[i-1].close;
-    avgGain = (avgGain * (period - 1) + (diff > 0 ? diff : 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + (diff < 0 ? -diff : 0)) / period;
-    rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-    rsiData.push(100 - 100 / (1 + rs));
-  }
-  // Signal line (EMA 9 of RSI)
-  const sigPeriod = 9;
-  const k = 2 / (sigPeriod + 1);
-  let started = false, ema = 0;
-  for (let i = 0; i < rsiData.length; i++) {
-    if (rsiData[i] === null) { rsiSignalData.push(null); continue; }
-    if (!started) { ema = rsiData[i]; started = true; rsiSignalData.push(ema); continue; }
-    ema = rsiData[i] * k + ema * (1 - k);
-    rsiSignalData.push(ema);
-  }
-}
-
-// ===== COORDINATE HELPERS =====
-function getVisibleRange() {
-  const startIdx = Math.floor(scrollX / (candleW + gap));
-  const endIdx = Math.min(candles.length - 1, startIdx + Math.ceil(W / (candleW + gap)) + 1);
-  return { startIdx: Math.max(0, startIdx), endIdx };
-}
-
-function calcPriceRange() {
-  const { startIdx, endIdx } = getVisibleRange();
-  if (startIdx > endIdx || candles.length === 0) {
-    priceMin = 0; priceMax = 1; priceRange = 1; return;
-  }
-  let min = Infinity, max = -Infinity;
-  for (let i = startIdx; i <= endIdx; i++) {
-    if (candles[i].low < min) min = candles[i].low;
-    if (candles[i].high > max) max = candles[i].high;
-  }
-  // Include EMA in range
-  if (indicators.ema9) {
-    for (let i = startIdx; i <= endIdx; i++) {
-      if (emaData9[i] !== undefined) {
-        if (emaData9[i] < min) min = emaData9[i];
-        if (emaData9[i] > max) max = emaData9[i];
-      }
-    }
-  }
-  if (indicators.ema21) {
-    for (let i = startIdx; i <= endIdx; i++) {
-      if (emaData21[i] !== undefined) {
-        if (emaData21[i] < min) min = emaData21[i];
-        if (emaData21[i] > max) max = emaData21[i];
-      }
-    }
-  }
-  const pad = (max - min) * 0.08 || 0.0001;
-  priceMin = min - pad;
-  priceMax = max + pad;
-  priceRange = priceMax - priceMin;
-}
-
-function priceToY(price) {
-  return mainH - ((price - priceMin) / priceRange) * (mainH - 30) - 15;
-}
-function yToPrice(y) {
-  return priceMin + ((mainH - y - 15) / (mainH - 30)) * priceRange;
-}
-function indexToX(idx) {
-  return idx * (candleW + gap) - scrollX + gap;
-}
-function xToIndex(x) {
-  return (x + scrollX - gap) / (candleW + gap);
-}
-function xToExactIndex(x) {
-  return (x + scrollX - gap) / (candleW + gap);
-}
-function rsiToY(val) {
-  return rsiH - (val / 100) * (rsiH - 10) - 5;
-}
-
-// ===== COUNTDOWN =====
-function updateCountdown() {
-  const now = Math.floor(Date.now() / 1000);
-  countdownValue = 60 - (now % 60);
-  if (countdownValue === 60) countdownValue = 0;
-  const el = document.getElementById('countdown');
-  el.textContent = countdownValue;
-  el.style.color = countdownValue <= 10 ? '#ff1744' : '#ffab00';
-}
-
-// ===== RENDER =====
-function renderLoop() {
-  requestAnimationFrame(renderLoop);
-}
-
-function renderAll() {
-  if (candles.length === 0) return;
-  calcPriceRange();
-  drawMain();
-  drawOverlay();
-  drawDrawings();
-  drawRSI();
-}
-
-function drawMain() {
-  const c = ctx.Main;
-  c.clearRect(0, 0, W, H);
-  c.fillStyle = COLORS.bg;
-  c.fillRect(0, 0, W, H);
-
-  // Grid
-  drawGrid(c);
-
-  // Candles
-  const { startIdx, endIdx } = getVisibleRange();
-  for (let i = startIdx; i <= endIdx; i++) {
-    const candle = candles[i];
-    const x = indexToX(i);
-    const isUp = candle.close >= candle.open;
-    const color = isUp ? COLORS.up : COLORS.down;
-    const bodyTop = priceToY(Math.max(candle.open, candle.close));
-    const bodyBot = priceToY(Math.min(candle.open, candle.close));
-    const bodyH = Math.max(1, bodyBot - bodyTop);
-    const wickTop = priceToY(candle.high);
-    const wickBot = priceToY(candle.low);
-    const cx = x + candleW / 2;
-
-    // Wick
-    c.strokeStyle = color;
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(cx, wickTop);
-    c.lineTo(cx, wickBot);
-    c.stroke();
-
-    // Body
-    c.fillStyle = color;
-    if (candleW >= 3) {
-      c.fillRect(x, bodyTop, candleW, bodyH);
-    } else {
-      c.fillRect(cx, bodyTop, 1, bodyH);
-    }
-  }
-}
-
-function drawGrid(c) {
-  c.strokeStyle = COLORS.grid;
-  c.lineWidth = 0.5;
-  c.fillStyle = COLORS.gridText;
-  c.font = '10px monospace';
-
-  // Horizontal price lines
-  const nLines = 8;
-  const step = priceRange / nLines;
-  for (let i = 0; i <= nLines; i++) {
-    const price = priceMin + step * i;
-    const y = priceToY(price);
-    if (y < 0 || y > mainH) continue;
-    c.beginPath();
-    c.setLineDash([2, 4]);
-    c.moveTo(0, y);
-    c.lineTo(W, y);
-    c.stroke();
-    c.setLineDash([]);
-    c.fillText(price.toFixed(4), W - 65, y - 3);
-  }
-
-  // Vertical time lines
-  const { startIdx, endIdx } = getVisibleRange();
-  const vStep = Math.max(1, Math.floor((endIdx - startIdx) / 6));
-  for (let i = startIdx; i <= endIdx; i += vStep) {
-    const x = indexToX(i);
-    c.beginPath();
-    c.setLineDash([2, 4]);
-    c.moveTo(x, 0);
-    c.lineTo(x, mainH);
-    c.stroke();
-    c.setLineDash([]);
-    if (candles[i]) {
-      const d = new Date(candles[i].time * 1000);
-      const ts = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
-      c.fillText(ts, x - 14, mainH - 3);
-    }
-  }
-
-  // RSI separator
-  c.strokeStyle = '#2a2a4a';
-  c.lineWidth = 1;
-  c.setLineDash([]);
-  c.beginPath();
-  c.moveTo(0, mainH);
-  c.lineTo(W, mainH);
-  c.stroke();
-}
-
-function drawOverlay() {
-  const c = ctx.Overlay;
-  c.clearRect(0, 0, W, H);
-  const { startIdx, endIdx } = getVisibleRange();
-
-  // EMA 9
-  if (indicators.ema9 && emaData9.length > 0) {
-    c.strokeStyle = COLORS.ema9;
-    c.lineWidth = 1.5;
-    c.beginPath();
-    let started = false;
-    for (let i = startIdx; i <= endIdx; i++) {
-      if (emaData9[i] === undefined) continue;
-      const x = indexToX(i) + candleW / 2;
-      const y = priceToY(emaData9[i]);
-      if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
-    }
-    c.stroke();
-  }
-
-  // EMA 21
-  if (indicators.ema21 && emaData21.length > 0) {
-    c.strokeStyle = COLORS.ema21;
-    c.lineWidth = 1.5;
-    c.beginPath();
-    let started = false;
-    for (let i = startIdx; i <= endIdx; i++) {
-      if (emaData21[i] === undefined) continue;
-      const x = indexToX(i) + candleW / 2;
-      const y = priceToY(emaData21[i]);
-      if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
-    }
-    c.stroke();
-  }
-
-  // Current price line
-  if (candles.length > 0) {
-    const last = candles[candles.length - 1];
-    const y = priceToY(last.close);
-    const isUp = last.close >= last.open;
-    c.strokeStyle = isUp ? COLORS.up : COLORS.down;
-    c.lineWidth = 1;
-    c.setLineDash([4, 4]);
-    c.beginPath();
-    c.moveTo(0, y);
-    c.lineTo(W, y);
-    c.stroke();
-    c.setLineDash([]);
-    // Price label
-    c.fillStyle = isUp ? COLORS.up : COLORS.down;
-    c.fillRect(W - 68, y - 9, 68, 18);
-    c.fillStyle = '#000';
-    c.font = 'bold 11px monospace';
-    c.fillText(last.close.toFixed(4), W - 64, y + 4);
-  }
-}
-
-function drawRSI() {
-  const c = ctx.RSI;
-  c.clearRect(0, 0, W, rsiH);
-  if (!indicators.rsi || rsiData.length === 0) return;
-
-  c.fillStyle = '#0a0a1a';
-  c.fillRect(0, 0, W, rsiH);
-
-  // OB/OS zones
-  const ob = rsiToY(70), os = rsiToY(30);
-  c.fillStyle = COLORS.rsiOB;
-  c.fillRect(0, 0, W, ob);
-  c.fillStyle = COLORS.rsiOS;
-  c.fillRect(0, os, W, rsiH - os);
-
-  // 50 line
-  c.strokeStyle = '#333';
-  c.lineWidth = 0.5;
-  c.setLineDash([3, 3]);
-  c.beginPath();
-  const y50 = rsiToY(50);
-  c.moveTo(0, y50); c.lineTo(W, y50);
-  c.stroke();
-  c.setLineDash([]);
-
-  // OB/OS lines
-  c.strokeStyle = '#444';
-  c.beginPath(); c.moveTo(0, ob); c.lineTo(W, ob); c.stroke();
-  c.beginPath(); c.moveTo(0, os); c.lineTo(W, os); c.stroke();
-
-  const { startIdx, endIdx } = getVisibleRange();
-
-  // RSI line
-  c.strokeStyle = COLORS.rsiLine;
-  c.lineWidth = 1.5;
-  c.beginPath();
-  let started = false;
-  for (let i = startIdx; i <= endIdx; i++) {
-    if (rsiData[i] === null || rsiData[i] === undefined) continue;
-    const x = indexToX(i) + candleW / 2;
-    const y = rsiToY(rsiData[i]);
-    if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
-  }
-  c.stroke();
-
-  // Signal line
-  c.strokeStyle = COLORS.rsiSignal;
-  c.lineWidth = 1;
-  c.beginPath();
-  started = false;
-  for (let i = startIdx; i <= endIdx; i++) {
-    if (rsiSignalData[i] === null || rsiSignalData[i] === undefined) continue;
-    const x = indexToX(i) + candleW / 2;
-    const y = rsiToY(rsiSignalData[i]);
-    if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
-  }
-  c.stroke();
-
-  // Labels
-  c.fillStyle = '#666';
-  c.font = '9px monospace';
-  c.fillText('70', 2, ob + 10);
-  c.fillText('30', 2, os - 3);
-  c.fillText('RSI', W - 28, 12);
-}
-
-// ===== DRAWINGS =====
-function drawDrawings() {
-  const c = ctx.Drawing;
-  c.clearRect(0, 0, W, H);
-
-  drawings.forEach(d => {
-    const isSel = selectedDrawing && selectedDrawing.id === d.id;
-    switch(d.type) {
-      case 'trendline': drawTrendline(c, d, isSel); break;
-      case 'hline': drawHLine(c, d, isSel); break;
-      case 'rect': drawRectangle(c, d, isSel); break;
-      case 'fib': drawFibonacci(c, d, isSel); break;
-      case 'text': drawTextAnnotation(c, d, isSel); break;
-    }
-  });
-
-  // Drawing in progress
-  if (drawingInProgress) {
-    switch(drawingInProgress.type) {
-      case 'trendline': drawTrendline(c, drawingInProgress, false); break;
-      case 'hline': drawHLine(c, drawingInProgress, false); break;
-      case 'rect': drawRectangle(c, drawingInProgress, false); break;
-      case 'fib': drawFibonacci(c, drawingInProgress, false); break;
-    }
-  }
-}
-
-function drawTrendline(c, d, selected) {
-  const x1 = indexToX(d.x1) + candleW / 2;
-  const y1 = priceToY(d.y1);
-  const x2 = indexToX(d.x2) + candleW / 2;
-  const y2 = priceToY(d.y2);
-  c.strokeStyle = d.color || COLORS.trendline;
-  c.lineWidth = selected ? 2.5 : 1.5;
-  if (selected) c.setLineDash([6, 3]); else c.setLineDash([]);
-  c.beginPath();
-  c.moveTo(x1, y1);
-  c.lineTo(x2, y2);
-  c.stroke();
-  c.setLineDash([]);
-  if (selected) {
-    drawEndpoint(c, x1, y1);
-    drawEndpoint(c, x2, y2);
-  }
-}
-
-function drawHLine(c, d, selected) {
-  const y = priceToY(d.y1);
-  c.strokeStyle = d.color || COLORS.hline;
-  c.lineWidth = selected ? 2 : 1;
-  c.setLineDash([6, 4]);
-  c.beginPath();
-  c.moveTo(0, y);
-  c.lineTo(W, y);
-  c.stroke();
-  c.setLineDash([]);
-  // Price label
-  c.fillStyle = d.color || COLORS.hline;
-  c.font = '10px monospace';
-  c.fillText(d.y1.toFixed(4), 5, y - 4);
-  if (selected) {
-    drawEndpoint(c, W / 2, y);
-  }
-}
-
-function drawRectangle(c, d, selected) {
-  const x1 = indexToX(d.x1) + candleW / 2;
-  const y1 = priceToY(d.y1);
-  const x2 = indexToX(d.x2) + candleW / 2;
-  const y2 = priceToY(d.y2);
-  const rx = Math.min(x1, x2), ry = Math.min(y1, y2);
-  const rw = Math.abs(x2 - x1), rh = Math.abs(y2 - y1);
-  c.fillStyle = d.fillColor || COLORS.rect;
-  c.fillRect(rx, ry, rw, rh);
-  c.strokeStyle = d.color || COLORS.rectBorder;
-  c.lineWidth = selected ? 2 : 1;
-  if (selected) c.setLineDash([4, 3]); else c.setLineDash([]);
-  c.strokeRect(rx, ry, rw, rh);
-  c.setLineDash([]);
-  if (selected) {
-    drawEndpoint(c, x1, y1);
-    drawEndpoint(c, x2, y2);
-    drawEndpoint(c, x1, y2);
-    drawEndpoint(c, x2, y1);
-  }
-}
-
-function drawFibonacci(c, d, selected) {
-  const x1 = indexToX(d.x1) + candleW / 2;
-  const x2 = indexToX(d.x2) + candleW / 2;
-  const high = Math.max(d.y1, d.y2);
-  const low = Math.min(d.y1, d.y2);
-  const range = high - low;
-  const fibColors = ['#ff1744','#ff6d00','#ffab00','#ffffff','#00e5ff','#00c853','#e040fb'];
-  FIB_LEVELS.forEach((level, i) => {
-    const price = high - range * level;
-    const y = priceToY(price);
-    c.strokeStyle = fibColors[i] || COLORS.fib;
-    c.lineWidth = selected ? 1.5 : 1;
-    c.setLineDash(level === 0 || level === 1 ? [] : [4, 3]);
-    c.beginPath();
-    c.moveTo(Math.min(x1, x2) - 20, y);
-    c.lineTo(Math.max(x1, x2) + 20, y);
-    c.stroke();
-    c.setLineDash([]);
-    c.fillStyle = fibColors[i];
-    c.font = '10px monospace';
-    c.fillText(`${(level * 100).toFixed(1)}% ${price.toFixed(4)}`, Math.min(x1, x2) - 20, y - 3);
-  });
-  if (selected) {
-    drawEndpoint(c, x1, priceToY(d.y1));
-    drawEndpoint(c, x2, priceToY(d.y2));
-  }
-}
-
-function drawTextAnnotation(c, d, selected) {
-  const x = indexToX(d.x1) + candleW / 2;
-  const y = priceToY(d.y1);
-  c.fillStyle = d.color || COLORS.text;
-  c.font = 'bold 13px sans-serif';
-  c.fillText(d.text || 'Text', x, y);
-  if (selected) {
-    const m = c.measureText(d.text || 'Text');
-    c.strokeStyle = COLORS.selection;
-    c.lineWidth = 1;
-    c.setLineDash([3, 3]);
-    c.strokeRect(x - 3, y - 14, m.width + 6, 18);
-    c.setLineDash([]);
-  }
-}
-
-function drawEndpoint(c, x, y) {
-  c.fillStyle = COLORS.selection;
-  c.strokeStyle = '#fff';
-  c.lineWidth = 1.5;
-  c.beginPath();
-  c.arc(x, y, ENDPOINT_RADIUS - 2, 0, Math.PI * 2);
-  c.fill();
-  c.stroke();
-}
-
-// ===== CROSSHAIR =====
-function drawCrosshair(mx, my) {
-  const c = ctx.Crosshair;
-  c.clearRect(0, 0, W, H);
-  if (mx < 0 || my < 0 || mx > W || my > H) return;
-
-  c.strokeStyle = COLORS.crosshair;
-  c.lineWidth = 0.5;
-  c.setLineDash([4, 4]);
-  c.beginPath();
-  c.moveTo(mx, 0); c.lineTo(mx, mainH);
-  c.moveTo(0, my); c.lineTo(W, my);
-  c.stroke();
-  c.setLineDash([]);
-
-  // Price label
-  if (my < mainH) {
-    const price = yToPrice(my);
-    c.fillStyle = '#1a1a3a';
-    c.fillRect(W - 68, my - 9, 68, 18);
-    c.strokeStyle = '#555';
-    c.strokeRect(W - 68, my - 9, 68, 18);
-    c.fillStyle = '#ddd';
-    c.font = '10px monospace';
-    c.fillText(price.toFixed(4), W - 64, my + 4);
-  }
-
-  // Time label
-  const idx = Math.round(xToIndex(mx));
-  if (idx >= 0 && idx < candles.length) {
-    const d = new Date(candles[idx].time * 1000);
-    const ts = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
-    c.fillStyle = '#1a1a3a';
-    c.fillRect(mx - 20, mainH - 16, 40, 16);
-    c.fillStyle = '#ddd';
-    c.font = '10px monospace';
-    c.fillText(ts, mx - 14, mainH - 4);
-  }
-}
-
-// ===== INTERACTION =====
-function setupInteraction() {
-  const el = canvases.Interact;
-
-  // --- MOUSE ---
-  el.addEventListener('mousedown', e => { onPointerDown(e.offsetX, e.offsetY, e); });
-  el.addEventListener('mousemove', e => { onPointerMove(e.offsetX, e.offsetY, e); });
-  el.addEventListener('mouseup', e => { onPointerUp(e.offsetX, e.offsetY, e); });
-  el.addEventListener('mouseleave', () => { mouseX = -1; mouseY = -1; drawCrosshair(-1, -1); });
-  el.addEventListener('dblclick', e => { onDoubleClick(e.offsetX, e.offsetY); });
-  el.addEventListener('wheel', e => { e.preventDefault(); onWheel(e); }, { passive: false });
-
-  // --- TOUCH ---
-  let touchStartX = 0, touchStartY = 0, touchStartScrollX = 0;
-  let pinchDist = 0;
-  let isTouching = false;
-
-  el.addEventListener('touchstart', e => {
+  // Touch
+  let tsx=0,tsy=0,tss=0,pinchD=0,touching=false;
+  el.addEventListener('touchstart',e=>{
     e.preventDefault();
-    if (e.touches.length === 2) {
-      pinchDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
+    if(e.touches.length===2){
+      pinchD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
       return;
     }
-    const touch = e.touches[0];
-    const rect = el.getBoundingClientRect();
-    const tx = touch.clientX - rect.left;
-    const ty = touch.clientY - rect.top;
-    isTouching = true;
-    touchStartX = tx;
-    touchStartY = ty;
-    touchStartScrollX = scrollX;
-    longPressTriggered = false;
-    longPressTimer = setTimeout(() => {
-      longPressTriggered = true;
-      onDoubleClick(tx, ty);
-    }, LONG_PRESS_MS);
-    onPointerDown(tx, ty, null);
-  }, { passive: false });
-
-  el.addEventListener('touchmove', e => {
+    const t=e.touches[0],r=el.getBoundingClientRect();
+    const tx=t.clientX-r.left,ty=t.clientY-r.top;
+    touching=true;tsx=tx;tsy=ty;tss=scrollX;
+    longFired=false;
+    longTimer=setTimeout(()=>{longFired=true;onDbl(tx,ty);},500);
+    pDown(tx,ty);
+  },{passive:false});
+  el.addEventListener('touchmove',e=>{
     e.preventDefault();
-    if (e.touches.length === 2) {
-      const nd = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const scale = nd / pinchDist;
-      if (scale > 1.03) { zoomIn(); pinchDist = nd; }
-      else if (scale < 0.97) { zoomOut(); pinchDist = nd; }
+    if(e.touches.length===2){
+      const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      if(nd/pinchD>1.04){zoomIn();pinchD=nd;}
+      else if(nd/pinchD<0.96){zoomOut();pinchD=nd;}
       return;
     }
-    clearTimeout(longPressTimer);
-    const touch = e.touches[0];
-    const rect = el.getBoundingClientRect();
-    const tx = touch.clientX - rect.left;
-    const ty = touch.clientY - rect.top;
-    onPointerMove(tx, ty, null);
-  }, { passive: false });
-
-  el.addEventListener('touchend', e => {
-    e.preventDefault();
-    clearTimeout(longPressTimer);
-    if (isTouching) {
-      const rect = el.getBoundingClientRect();
-      let tx = touchStartX, ty = touchStartY;
-      if (e.changedTouches.length > 0) {
-        tx = e.changedTouches[0].clientX - rect.left;
-        ty = e.changedTouches[0].clientY - rect.top;
-      }
-      if (!longPressTriggered) {
-        onPointerUp(tx, ty, null);
-      }
-      isTouching = false;
+    clearTimeout(longTimer);
+    const t=e.touches[0],r=el.getBoundingClientRect();
+    pMove(t.clientX-r.left,t.clientY-r.top);
+  },{passive:false});
+  el.addEventListener('touchend',e=>{
+    e.preventDefault();clearTimeout(longTimer);
+    if(touching&&!longFired){
+      const r=el.getBoundingClientRect();
+      let tx=tsx,ty=tsy;
+      if(e.changedTouches.length){tx=e.changedTouches[0].clientX-r.left;ty=e.changedTouches[0].clientY-r.top;}
+      pUp(tx,ty);
     }
-    mouseX = -1; mouseY = -1;
-    drawCrosshair(-1, -1);
-  }, { passive: false });
-
-  // Context menu prevention
-  el.addEventListener('contextmenu', e => e.preventDefault());
+    touching=false;mouseX=-1;mouseY=-1;rCross(-1,-1);
+  },{passive:false});
 
   // Keyboard
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      if (selectedDrawing) {
-        drawings = drawings.filter(d => d.id !== selectedDrawing.id);
-        selectedDrawing = null;
-        saveDrawingsToDB();
-        renderAll();
-      }
+  document.addEventListener('keydown',e=>{
+    if((e.key==='Delete'||e.key==='Backspace')&&selDraw){
+      drawings=drawings.filter(d=>d.id!==selDraw.id);selDraw=null;saveDB();renderAll();
     }
-    if (e.key === 'Escape') {
-      cancelDrawing();
-      deselectAll();
-      currentTool = 'pointer';
-      document.querySelectorAll('#toolbar button[data-tool]').forEach(b => b.classList.remove('active'));
+    if(e.key==='Escape'){cancelDraw();deselect();tool='pointer';
+      document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>b.classList.remove('active'));
       document.getElementById('btnPointer').classList.add('active');
-      canvases.Interact.style.cursor = 'default';
+      cvs.Interact.style.cursor='default';
     }
   });
+  document.addEventListener('click',e=>{if(!e.target.closest('#context-menu'))hideCM();});
 }
 
-// ===== POINTER HANDLERS =====
-let panState = null;
+// ========== POINTER HANDLERS ==========
+function pDown(x,y){
+  mouseX=x;mouseY=y;
 
-function onPointerDown(x, y, e) {
-  mouseX = x; mouseY = y;
-
-  // If we have a selected drawing, check for endpoint drag
-  if (selectedDrawing && currentTool === 'pointer') {
-    const ep = findEndpoint(selectedDrawing, x, y);
-    if (ep !== null) {
-      dragState = {
-        type: 'endpoint',
-        drawingId: selectedDrawing.id,
-        endpointIdx: ep,
-        startX: x, startY: y
-      };
-      blockAutoScroll = true;
-      return;
+  // Selected drawing: endpoint drag?
+  if(selDraw&&tool==='pointer'){
+    const epi=findEP(selDraw,x,y);
+    if(epi!==null){
+      dragSt={type:'ep',id:selDraw.id,idx:epi,sx:x,sy:y};
+      blockScroll=true;return;
     }
-    // Check for body drag on selected
-    if (hitTestDrawing(selectedDrawing, x, y)) {
-      dragState = {
-        type: 'move',
-        drawingId: selectedDrawing.id,
-        startX: x, startY: y,
-        origX1: selectedDrawing.x1, origY1: selectedDrawing.y1,
-        origX2: selectedDrawing.x2, origY2: selectedDrawing.y2
-      };
-      blockAutoScroll = true;
-      return;
+    if(hitTest(selDraw,x,y)){
+      dragSt={type:'mv',id:selDraw.id,sx:x,sy:y,
+        ox1:selDraw.x1,oy1:selDraw.y1,ox2:selDraw.x2,oy2:selDraw.y2};
+      blockScroll=true;return;
     }
   }
 
   // Drawing tools
-  if (currentTool !== 'pointer') {
-    blockAutoScroll = true;
-    const idx = xToExactIndex(x);
-    const price = yToPrice(y);
-    if (currentTool === 'text') {
-      const txt = prompt('Enter text:', 'Label');
-      if (txt) {
-        const d = {
-          id: genId(), type: 'text',
-          x1: idx, y1: price,
-          text: txt, color: COLORS.text
-        };
-        drawings.push(d);
-        saveDrawingsToDB();
-        renderAll();
-      }
-      blockAutoScroll = false;
-      return;
+  if(tool!=='pointer'){
+    blockScroll=true;
+    const idx=x2i(x),price=y2p(y);
+    if(tool==='text'){
+      const txt=prompt('Enter text:','Label');
+      if(txt){drawings.push({id:gid(),type:'text',x1:idx,y1:price,text:txt,color:COL.text});saveDB();renderAll();}
+      blockScroll=false;return;
     }
-    if (currentTool === 'hline') {
-      const d = {
-        id: genId(), type: 'hline',
-        y1: price, color: COLORS.hline
-      };
-      drawings.push(d);
-      saveDrawingsToDB();
-      renderAll();
-      blockAutoScroll = false;
-      return;
+    if(tool==='hline'){
+      drawings.push({id:gid(),type:'hline',y1:price,color:COL.hline});saveDB();renderAll();
+      blockScroll=false;return;
     }
-    // Trendline, Rect, Fib: need two points
-    if (!drawingInProgress) {
-      drawingInProgress = {
-        id: genId(), type: currentTool,
-        x1: idx, y1: price,
-        x2: idx, y2: price,
-        color: currentTool === 'trendline' ? COLORS.trendline :
-               currentTool === 'rect' ? COLORS.rectBorder :
-               currentTool === 'fib' ? COLORS.fib : COLORS.trendline,
-        fillColor: currentTool === 'rect' ? COLORS.rect : undefined
-      };
-      isDrawing = true;
+    // 2-point tools
+    if(!diprog){
+      diprog={id:gid(),type:tool,x1:idx,y1:price,x2:idx,y2:price,
+        color:tool==='trendline'?COL.trend:tool==='rect'?COL.rectLine:COL.fib,
+        fill:tool==='rect'?COL.rectFill:undefined};
+      isDraw=true;
     }
     return;
   }
 
-  // Pointer tool: start panning
-  panState = { startX: x, startY: y, startScrollX: scrollX };
+  // Pan
+  panSt={sx:x,sy:y,ss:scrollX};
 }
 
-function onPointerMove(x, y, e) {
-  mouseX = x; mouseY = y;
-  drawCrosshair(x, y);
+function pMove(x,y){
+  mouseX=x;mouseY=y;rCross(x,y);
 
-  // Endpoint drag
-  if (dragState && dragState.type === 'endpoint') {
-    const d = drawings.find(dd => dd.id === dragState.drawingId);
-    if (d) {
-      const idx = xToExactIndex(x);
-      const price = yToPrice(y);
-      if (d.type === 'trendline' || d.type === 'fib') {
-        if (dragState.endpointIdx === 0) { d.x1 = idx; d.y1 = price; }
-        else { d.x2 = idx; d.y2 = price; }
-      } else if (d.type === 'rect') {
-        if (dragState.endpointIdx === 0) { d.x1 = idx; d.y1 = price; }
-        else if (dragState.endpointIdx === 1) { d.x2 = idx; d.y2 = price; }
-        else if (dragState.endpointIdx === 2) { d.x1 = idx; d.y2 = price; }
-        else { d.x2 = idx; d.y1 = price; }
-      } else if (d.type === 'hline') {
-        d.y1 = price;
-      }
-      selectedDrawing = d;
-      renderAll();
-    }
-    return;
+  // EP drag
+  if(dragSt&&dragSt.type==='ep'){
+    const d=drawings.find(dd=>dd.id===dragSt.id);if(!d)return;
+    const idx=x2i(x),price=y2p(y);
+    if(d.type==='trendline'||d.type==='fib'){
+      if(dragSt.idx===0){d.x1=idx;d.y1=price;}else{d.x2=idx;d.y2=price;}
+    }else if(d.type==='rect'){
+      if(dragSt.idx===0){d.x1=idx;d.y1=price;}
+      else if(dragSt.idx===1){d.x2=idx;d.y2=price;}
+      else if(dragSt.idx===2){d.x1=idx;d.y2=price;}
+      else{d.x2=idx;d.y1=price;}
+    }else if(d.type==='hline'){d.y1=price;}
+    selDraw=d;renderAll();return;
   }
 
   // Move drag
-  if (dragState && dragState.type === 'move') {
-    const d = drawings.find(dd => dd.id === dragState.drawingId);
-    if (d) {
-      const dxPx = x - dragState.startX;
-      const dyPx = y - dragState.startY;
-      const dIdx = dxPx / (candleW + gap);
-      const dPrice = -dyPx / (mainH - 30) * priceRange;
-      if (d.type === 'trendline' || d.type === 'rect' || d.type === 'fib') {
-        d.x1 = dragState.origX1 + dIdx;
-        d.y1 = dragState.origY1 + dPrice;
-        d.x2 = dragState.origX2 + dIdx;
-        d.y2 = dragState.origY2 + dPrice;
-      } else if (d.type === 'hline') {
-        d.y1 = dragState.origY1 + dPrice;
-      } else if (d.type === 'text') {
-        d.x1 = dragState.origX1 + dIdx;
-        d.y1 = dragState.origY1 + dPrice;
-      }
-      selectedDrawing = d;
-      renderAll();
-    }
-    return;
+  if(dragSt&&dragSt.type==='mv'){
+    const d=drawings.find(dd=>dd.id===dragSt.id);if(!d)return;
+    const di=(x-dragSt.sx)/(candleW+gap);
+    const dp=-(y-dragSt.sy)/(mainH-40)*pRange;
+    if(d.type==='trendline'||d.type==='rect'||d.type==='fib'){
+      d.x1=dragSt.ox1+di;d.y1=dragSt.oy1+dp;
+      d.x2=dragSt.ox2+di;d.y2=dragSt.oy2+dp;
+    }else if(d.type==='hline'){d.y1=dragSt.oy1+dp;}
+    else if(d.type==='text'){d.x1=dragSt.ox1+di;d.y1=dragSt.oy1+dp;}
+    selDraw=d;renderAll();return;
   }
 
   // Drawing in progress
-  if (isDrawing && drawingInProgress) {
-    drawingInProgress.x2 = xToExactIndex(x);
-    drawingInProgress.y2 = yToPrice(y);
-    renderAll();
-    return;
+  if(isDraw&&diprog){
+    diprog.x2=x2i(x);diprog.y2=y2p(y);
+    renderAll();return;
   }
 
-  // Panning
-  if (panState && currentTool === 'pointer') {
-    const dx = panState.startX - x;
-    scrollX = Math.max(0, panState.startScrollX + dx);
-    const totalW = candles.length * (candleW + gap);
-    maxScrollX = Math.max(0, totalW - W + 60);
-    scrollX = Math.min(scrollX, maxScrollX);
+  // Pan
+  if(panSt&&tool==='pointer'){
+    const dx=panSt.sx-x;
+    scrollX=Math.max(0,panSt.ss+dx);
+    const tw=candles.length*(candleW+gap);
+    scrollX=Math.min(scrollX,Math.max(0,tw-W+80));
     renderAll();
   }
 }
 
-function onPointerUp(x, y, e) {
-  mouseX = x; mouseY = y;
+function pUp(x,y){
+  mouseX=x;mouseY=y;
 
-  // Finish endpoint/move drag
-  if (dragState) {
-    dragState = null;
-    blockAutoScroll = false;
-    saveDrawingsToDB();
-    renderAll();
-    return;
-  }
+  if(dragSt){dragSt=null;blockScroll=false;saveDB();renderAll();return;}
 
-  // Finish drawing
-  if (isDrawing && drawingInProgress) {
-    drawingInProgress.x2 = xToExactIndex(x);
-    drawingInProgress.y2 = yToPrice(y);
-    // Validate minimum distance
-    const dx = Math.abs(indexToX(drawingInProgress.x2) - indexToX(drawingInProgress.x1));
-    const dy = Math.abs(priceToY(drawingInProgress.y2) - priceToY(drawingInProgress.y1));
-    if (dx > 5 || dy > 5) {
-      drawings.push({...drawingInProgress});
-      saveDrawingsToDB();
+  if(isDraw&&diprog){
+    diprog.x2=x2i(x);diprog.y2=y2p(y);
+    const dx2=Math.abs(i2x(diprog.x2)-i2x(diprog.x1));
+    const dy2=Math.abs(p2y(diprog.y2)-p2y(diprog.y1));
+    if(dx2>3||dy2>3){
+      drawings.push({...diprog});saveDB();
     }
-    drawingInProgress = null;
-    isDrawing = false;
-    blockAutoScroll = false;
-    renderAll();
-    return;
+    diprog=null;isDraw=false;blockScroll=false;renderAll();return;
   }
 
-  panState = null;
+  panSt=null;
 }
 
-function onDoubleClick(x, y) {
-  // Select drawing under cursor
-  deselectAll();
-  hideContextMenu();
-  for (let i = drawings.length - 1; i >= 0; i--) {
-    if (hitTestDrawing(drawings[i], x, y)) {
-      selectedDrawing = drawings[i];
-      renderAll();
-      showContextMenu(x, y);
-      return;
+function onDbl(x,y){
+  deselect();hideCM();
+  for(let i=drawings.length-1;i>=0;i--){
+    if(hitTest(drawings[i],x,y)){
+      selDraw=drawings[i];renderAll();showCM(x,y);return;
     }
   }
-  deselectAll();
-  renderAll();
+  deselect();renderAll();
 }
 
-function onWheel(e) {
-  if (e.deltaY < 0) zoomIn(); else zoomOut();
-}
+function zoomIn(){if(candleW<40){candleW=Math.min(40,candleW+2);gap=Math.max(1,Math.round(candleW*0.3));adjScroll();renderAll();}}
+function zoomOut(){if(candleW>2){candleW=Math.max(2,candleW-2);gap=Math.max(1,Math.round(candleW*0.3));adjScroll();renderAll();}}
+function adjScroll(){const tw=candles.length*(candleW+gap);scrollX=Math.min(scrollX,Math.max(0,tw-W+80));}
 
-function zoomIn() {
-  if (candleW < 40) {
-    candleW = Math.min(40, candleW + 2);
-    gap = Math.max(1, Math.round(candleW * 0.3));
-    adjustScrollAfterZoom();
-    renderAll();
-  }
-}
-
-function zoomOut() {
-  if (candleW > 2) {
-    candleW = Math.max(2, candleW - 2);
-    gap = Math.max(1, Math.round(candleW * 0.3));
-    adjustScrollAfterZoom();
-    renderAll();
-  }
-}
-
-function adjustScrollAfterZoom() {
-  const totalW = candles.length * (candleW + gap);
-  maxScrollX = Math.max(0, totalW - W + 60);
-  scrollX = Math.min(scrollX, maxScrollX);
-}
-
-// ===== HIT TESTING =====
-function hitTestDrawing(d, x, y) {
-  switch(d.type) {
-    case 'trendline': return hitTestLine(d, x, y);
-    case 'hline': return hitTestHLine(d, x, y);
-    case 'rect': return hitTestRect(d, x, y);
-    case 'fib': return hitTestFib(d, x, y);
-    case 'text': return hitTestText(d, x, y);
+// ========== HIT TEST ==========
+function hitTest(d,x,y){
+  switch(d.type){
+    case'trendline':return hitLine(d,x,y);
+    case'hline':return Math.abs(y-p2y(d.y1))<8;
+    case'rect':return hitRc(d,x,y);
+    case'fib':return hitFb(d,x,y);
+    case'text':const tx2=i2x(d.x1)+candleW/2,ty2=p2y(d.y1);return x>=tx2-5&&x<=tx2+100&&y>=ty2-16&&y<=ty2+6;
   }
   return false;
 }
-
-function hitTestLine(d, px, py) {
-  const x1 = indexToX(d.x1) + candleW / 2;
-  const y1 = priceToY(d.y1);
-  const x2 = indexToX(d.x2) + candleW / 2;
-  const y2 = priceToY(d.y2);
-  return distToSegment(px, py, x1, y1, x2, y2) < 10;
+function hitLine(d,px,py){
+  const x1=i2x(d.x1)+candleW/2,y1=p2y(d.y1),x2=i2x(d.x2)+candleW/2,y2=p2y(d.y2);
+  return dSeg(px,py,x1,y1,x2,y2)<10;
 }
-
-function hitTestHLine(d, px, py) {
-  const y = priceToY(d.y1);
-  return Math.abs(py - y) < 8;
+function hitRc(d,px,py){
+  const x1=i2x(d.x1)+candleW/2,y1=p2y(d.y1),x2=i2x(d.x2)+candleW/2,y2=p2y(d.y2);
+  const mn=Math.min,mx=Math.max;
+  return px>=mn(x1,x2)-8&&px<=mx(x1,x2)+8&&py>=mn(y1,y2)-8&&py<=mx(y1,y2)+8;
 }
-
-function hitTestRect(d, px, py) {
-  const x1 = indexToX(d.x1) + candleW / 2;
-  const y1 = priceToY(d.y1);
-  const x2 = indexToX(d.x2) + candleW / 2;
-  const y2 = priceToY(d.y2);
-  const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
-  const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
-  // Hit on border (within 8px of edges)
-  if (px >= minX - 8 && px <= maxX + 8 && py >= minY - 8 && py <= maxY + 8) {
-    if (px < minX + 8 || px > maxX - 8 || py < minY + 8 || py > maxY - 8) return true;
-    // Also hit inside for move
-    return true;
-  }
+function hitFb(d,px,py){
+  const hi=Math.max(d.y1,d.y2),lo=Math.min(d.y1,d.y2),rng=hi-lo;
+  for(const lv of FIB){const y=p2y(hi-rng*lv);if(Math.abs(py-y)<8)return true;}
   return false;
 }
-
-function hitTestFib(d, px, py) {
-  const high = Math.max(d.y1, d.y2);
-  const low = Math.min(d.y1, d.y2);
-  const range = high - low;
-  for (const level of FIB_LEVELS) {
-    const price = high - range * level;
-    const y = priceToY(price);
-    if (Math.abs(py - y) < 8) return true;
-  }
-  return false;
-}
-
-function hitTestText(d, px, py) {
-  const x = indexToX(d.x1) + candleW / 2;
-  const y = priceToY(d.y1);
-  return px >= x - 5 && px <= x + 100 && py >= y - 16 && py <= y + 4;
-}
-
-function findEndpoint(d, px, py) {
-  const r = ENDPOINT_RADIUS + 4;
-  if (d.type === 'trendline' || d.type === 'fib') {
-    const x1 = indexToX(d.x1) + candleW / 2, y1 = priceToY(d.y1);
-    const x2 = indexToX(d.x2) + candleW / 2, y2 = priceToY(d.y2);
-    if (Math.hypot(px - x1, py - y1) < r) return 0;
-    if (Math.hypot(px - x2, py - y2) < r) return 1;
-  } else if (d.type === 'rect') {
-    const x1 = indexToX(d.x1) + candleW / 2, y1 = priceToY(d.y1);
-    const x2 = indexToX(d.x2) + candleW / 2, y2 = priceToY(d.y2);
-    if (Math.hypot(px - x1, py - y1) < r) return 0;
-    if (Math.hypot(px - x2, py - y2) < r) return 1;
-    if (Math.hypot(px - x1, py - y2) < r) return 2;
-    if (Math.hypot(px - x2, py - y1) < r) return 3;
-  } else if (d.type === 'hline') {
-    const hy = priceToY(d.y1);
-    if (Math.abs(py - hy) < r) return 0;
-  }
+function findEP(d,px,py){
+  const R=10;
+  if(d.type==='trendline'||d.type==='fib'){
+    if(Math.hypot(px-i2x(d.x1)-candleW/2,py-p2y(d.y1))<R)return 0;
+    if(Math.hypot(px-i2x(d.x2)-candleW/2,py-p2y(d.y2))<R)return 1;
+  }else if(d.type==='rect'){
+    const x1=i2x(d.x1)+candleW/2,y1=p2y(d.y1),x2=i2x(d.x2)+candleW/2,y2=p2y(d.y2);
+    if(Math.hypot(px-x1,py-y1)<R)return 0;
+    if(Math.hypot(px-x2,py-y2)<R)return 1;
+    if(Math.hypot(px-x1,py-y2)<R)return 2;
+    if(Math.hypot(px-x2,py-y1)<R)return 3;
+  }else if(d.type==='hline'){if(Math.abs(py-p2y(d.y1))<R)return 0;}
   return null;
 }
-
-function distToSegment(px, py, x1, y1, x2, y2) {
-  const A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
-  const dot = A * C + B * D;
-  const len2 = C * C + D * D;
-  let t = len2 !== 0 ? dot / len2 : -1;
-  t = Math.max(0, Math.min(1, t));
-  const xx = x1 + t * C, yy = y1 + t * D;
-  return Math.hypot(px - xx, py - yy);
+function dSeg(px,py,x1,y1,x2,y2){
+  const A=px-x1,B=py-y1,C=x2-x1,D=y2-y1;
+  const dot=A*C+B*D,len2=C*C+D*D;
+  let t=len2?dot/len2:-1;t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(x1+t*C),py-(y1+t*D));
 }
 
-function cancelDrawing() {
-  drawingInProgress = null;
-  isDrawing = false;
-  blockAutoScroll = false;
-  renderAll();
-}
+function cancelDraw(){diprog=null;isDraw=false;blockScroll=false;renderAll();}
+function deselect(){selDraw=null;renderAll();}
+function showCM(x,y){const cm=document.getElementById('context-menu');cm.style.display='block';cm.style.left=Math.min(x,W-140)+'px';cm.style.top=Math.min(y,H-80)+'px';}
+function hideCM(){document.getElementById('context-menu').style.display='none';}
+function gid(){return'd_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);}
 
-function deselectAll() {
-  selectedDrawing = null;
-  renderAll();
-}
-
-function showContextMenu(x, y) {
-  const cm = document.getElementById('context-menu');
-  cm.style.display = 'block';
-  cm.style.left = Math.min(x, W - 130) + 'px';
-  cm.style.top = Math.min(y, H - 80) + 'px';
-}
-
-function hideContextMenu() {
-  document.getElementById('context-menu').style.display = 'none';
-}
-
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('#context-menu')) hideContextMenu();
-});
-
-function genId() {
-  return 'd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-}
-
-// ===== IndexedDB =====
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(DB_STORE)) {
-        db.createObjectStore(DB_STORE, { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror = e => reject(e);
+// ========== IndexedDB ==========
+function openIDB(){
+  return new Promise((ok,no)=>{
+    const r=indexedDB.open(DB_NAME,1);
+    r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE,{keyPath:'id'});};
+    r.onsuccess=e=>ok(e.target.result);r.onerror=e=>no(e);
   });
 }
-
-async function saveDrawingsToDB() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(DB_STORE, 'readwrite');
-    const store = tx.objectStore(DB_STORE);
-    store.clear();
-    drawings.forEach(d => store.put(JSON.parse(JSON.stringify(d))));
-  } catch(e) { console.error('DB save error:', e); }
+async function saveDB(){
+  try{const db=await openIDB();const tx=db.transaction(DB_STORE,'readwrite');const st=tx.objectStore(DB_STORE);st.clear();
+  drawings.forEach(d=>st.put(JSON.parse(JSON.stringify(d))));}catch(e){}
+}
+async function loadDB(){
+  try{const db=await openIDB();const tx=db.transaction(DB_STORE,'readonly');const st=tx.objectStore(DB_STORE);
+  const r=st.getAll();r.onsuccess=()=>{drawings=r.result||[];renderAll();};}catch(e){}
 }
 
-async function loadDrawingsFromDB() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(DB_STORE, 'readonly');
-    const store = tx.objectStore(DB_STORE);
-    const req = store.getAll();
-    req.onsuccess = () => {
-      drawings = req.result || [];
-      renderAll();
-    };
-  } catch(e) { console.error('DB load error:', e); }
-}
-
-// ===== START =====
-window.addEventListener('load', init);
+// ========== START ==========
+window.addEventListener('load',init);
 </script>
 </body>
 </html>
