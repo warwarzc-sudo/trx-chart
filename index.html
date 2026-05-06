@@ -77,28 +77,15 @@ canvas{position:absolute;top:0;left:0;}
 <button id="togH">📊</button>
 <div id="histP"><div class="ht">📋 History (<span id="hCount">0</span>)</div><div id="hList"></div></div>
 </div>
-<div id="dbgBox"></div>
+<div id="dbgBox" class="hide"></div>
 <button id="dbgToggle">🔧Debug</button>
 
 <script>
-// ===== DEBUG =====
 const dbgEl=document.getElementById('dbgBox');
 const dbgLines=[];
-function D(msg){
-  const t=new Date().toLocaleTimeString();
-  const line='['+t+'] '+msg;
-  dbgLines.push(line);
-  if(dbgLines.length>50)dbgLines.shift();
-  dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');
-  dbgEl.scrollTop=dbgEl.scrollHeight;
-  console.log(line);
-}
-document.getElementById('dbgToggle').addEventListener('click',()=>{
-  dbgEl.classList.toggle('hide');
-});
-dbgEl.classList.add('hide');
+function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>50)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
+document.getElementById('dbgToggle').addEventListener('click',()=>{dbgEl.classList.toggle('hide');});
 
-// ===== CONFIG =====
 const API='https://trx-apl.warwar-zc.workers.dev/';
 const FIBLV=[0,0.236,0.382,0.5,0.618,0.786,1];
 const COL={bg:'#0a0a1a',grid:'#1a1a3a',gtP:'#aaa',gtT:'#999',up:'#00e676',dn:'#ff5252',upB:'#00ff88',dnB:'#ff6b6b',cNum:'#ffff00',e9:'#ffab00',e21:'#00b0ff',r1:'#e040fb',r2:'#00e5ff',cr:'rgba(255,255,255,0.25)',sel:'#00e5ff',tr:'#00e5ff',hl:'#ffab00',rf:'rgba(0,229,255,0.15)',rl:'#00e5ff',fb:'#e040fb',tx:'#ffff00'};
@@ -106,11 +93,10 @@ const PAW=55,BODY_H=2;
 const STORE_KEY='TRX_HIST_V3';
 const DRAW_KEY='TRX_DRAW_V3';
 
-// ===== STATE =====
 let W,H,mH,rH=120,hW=130;
 let cv={},cc={};
 let cds=[],e9=[],e21=[],rsi=[],rsig=[];
-let cW=12,cG=4,sx=0,pN,pX,pR;
+let cW=20,cG=6,sx=0,pN,pX,pR;  // ★ Bigger candles by default
 let ind={ema9:0,ema21:0,rsi:0};
 let tool='pointer',draws=[],sel=null,dip=null;
 let isDr=false,drg=null,pan=null,blk=false;
@@ -119,79 +105,19 @@ let results=[],lastPeriod='',showH=true;
 let priceZoom=1,pzAct=false,pzSY=0,pzSZ=1,pzMan=false;
 let rsiDrg=false,rsiDSY=0,rsiDSH=0;
 
-// ========================================
-// ===== STORAGE - TESTED & VERIFIED =====
-// ========================================
-function storeSave(){
-  try{
-    const json=JSON.stringify(results);
-    localStorage.setItem(STORE_KEY,json);
-    // Verify immediately
-    const check=localStorage.getItem(STORE_KEY);
-    if(check){
-      const parsed=JSON.parse(check);
-      D('💾 SAVED: '+parsed.length+' records ('+Math.round(json.length/1024)+'KB)');
-    }else{
-      D('❌ SAVE FAILED: getItem returned null');
-    }
-  }catch(e){
-    D('❌ SAVE ERROR: '+e.message);
-    // Try with less data
-    try{
-      const trimmed=results.slice(-500);
-      localStorage.setItem(STORE_KEY,JSON.stringify(trimmed));
-      results=trimmed;
-      D('⚠️ Trimmed to 500, saved again');
-    }catch(e2){D('❌ TRIM SAVE FAILED: '+e2.message);}
-  }
-}
-
-function storeLoad(){
-  try{
-    const raw=localStorage.getItem(STORE_KEY);
-    if(!raw){D('📂 No saved data found (key: '+STORE_KEY+')');return [];}
-    const arr=JSON.parse(raw);
-    if(!Array.isArray(arr)){D('❌ Saved data not array');return [];}
-    D('✅ LOADED: '+arr.length+' records from localStorage');
-    return arr;
-  }catch(e){D('❌ LOAD ERROR: '+e.message);return [];}
-}
-
+function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-500);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
+function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){D('📂 No saved data');return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length+' records');return a;}catch(e){D('❌ LOAD: '+e.message);return[];}}
 function drawSave(){try{localStorage.setItem(DRAW_KEY,JSON.stringify(draws));}catch(e){}}
 function drawLoad(){try{const r=localStorage.getItem(DRAW_KEY);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return[];}
 
-// ===== INIT =====
 window.addEventListener('load',()=>{
   D('🚀 App starting...');
-  D('localStorage available: '+(typeof localStorage!=='undefined'));
-
-  // Test localStorage
-  try{
-    localStorage.setItem('__test__','1');
-    const v=localStorage.getItem('__test__');
-    localStorage.removeItem('__test__');
-    D('localStorage test: '+(v==='1'?'✅ PASS':'❌ FAIL'));
-  }catch(e){D('❌ localStorage test error: '+e.message);}
-
-  // Load history
   const saved=storeLoad();
-  if(saved.length>0){
-    results=saved;
-    lastPeriod=results[results.length-1].period;
-    D('📊 Last period: '+lastPeriod);
-  }
-
-  // Load drawings
+  if(saved.length>0){results=saved;lastPeriod=results[results.length-1].period;}
   draws=drawLoad();
-  D('🎨 Drawings loaded: '+draws.length);
-
-  // Build chart
   buildCandles();
   szAll();setupTB();setupIn();setupRD();
-  if(cds.length>0){scrollEnd();renderAll();}
-  renderHistory();
-
-  // Start
+  scrollEnd();renderAll();renderHistory();
   doFetch();
   setInterval(doFetch,5000);
   setInterval(tickCD,1000);
@@ -227,60 +153,28 @@ function setupRD(){
 
 function tickCD(){const now=Math.floor(Date.now()/1000);let v=60-(now%60);if(v>=60)v=0;const el=document.getElementById('cnum');el.textContent=v+'s';el.style.color=v<=10?'#ff1744':'#ffab00';}
 
-// ===== FETCH =====
 async function doFetch(){
   try{
     const r=await fetch(API);
-    const txt=await r.text();
-    let data;
-    try{data=JSON.parse(txt);}catch(pe){D('❌ JSON parse fail');return;}
-
-    let rec=null;
-    if(data.record)rec=data.record;
-    else if(data.data&&data.data.record)rec=data.data.record;
-    else rec=data;
-
-    if(!rec||!rec.period){D('⚠️ No period in response');return;}
-
+    const data=await r.json();
+    let rec=data.record||(data.data&&data.data.record)||data;
+    if(!rec||!rec.period)return;
     const isBig=rec.bigSmall==='Big';
     document.getElementById('cres').textContent=(isBig?'🟢 Big ':'🔴 Small ')+rec.result;
     document.getElementById('cres').style.color=isBig?COL.up:COL.dn;
     document.getElementById('pid').textContent='#'+rec.period;
-
-    // New period check
-    if(rec.period===lastPeriod){return;}
-
-    // Check duplicate in array
-    const dup=results.some(x=>x.period===rec.period);
-    if(dup){D('⚠️ Duplicate: '+rec.period);lastPeriod=rec.period;return;}
-
-    // NEW RESULT!
-    D('🆕 New result: '+rec.period+' → '+rec.bigSmall+' '+rec.result);
+    if(rec.period===lastPeriod)return;
+    if(results.some(x=>x.period===rec.period)){lastPeriod=rec.period;return;}
+    D('🆕 '+rec.period+' '+rec.bigSmall+' '+rec.result);
     lastPeriod=rec.period;
-
-    const entry={
-      period:rec.period,
-      result:rec.result,
-      bigSmall:rec.bigSmall,
-      timestamp:rec.timestamp||Date.now(),
-      second:rec.second||0
-    };
-    results.push(entry);
-    D('📈 Total results: '+results.length);
-
-    // SAVE IMMEDIATELY
+    results.push({period:rec.period,result:rec.result,bigSmall:rec.bigSmall,timestamp:rec.timestamp||Date.now(),second:rec.second||0});
     storeSave();
-
-    // Rebuild
     buildCandles();
     if(!blk&&!isDr&&!drg)scrollEnd();
-    renderAll();
-    renderHistory();
-
-  }catch(e){D('❌ Fetch error: '+e.message);}
+    renderAll();renderHistory();
+  }catch(e){D('❌ Fetch: '+e.message);}
 }
 
-// ===== BUILD =====
 function buildCandles(){
   cds=[];if(!results.length)return;
   let price=50;
@@ -295,7 +189,21 @@ function buildCandles(){
   if(ind.ema21)calcEMA(21,e21);else e21=[];
   if(ind.rsi)calcRSI2(14);else{rsi=[];rsig=[];}
 }
-function scrollEnd(){sx=Math.max(0,cds.length*(cW+cG)-chW()+PAW+30);}
+
+// ★★★ FIXED: Smart scroll - center if few candles, scroll to end if many
+function scrollEnd(){
+  if(!cds.length){sx=0;return;}
+  const totalW=cds.length*(cW+cG);
+  const visW=chW();
+
+  if(totalW<visW-PAW){
+    // Few candles - center them with some right padding
+    sx=-((visW-PAW-totalW)/2);
+  }else{
+    // Many candles - scroll to show latest with margin
+    sx=Math.max(0,totalW-visW+PAW+30);
+  }
+}
 
 function renderHistory(){
   document.getElementById('hCount').textContent=results.length;
@@ -316,8 +224,38 @@ function calcRSI2(p){rsi.length=0;rsig.length=0;if(cds.length<p+1)return;let g=0
 
 function CW(){return cv.Main?cv.Main.width:W;}
 function chW(){return CW()-PAW;}
-function vr(){const cw=chW(),s=Math.floor(sx/(cW+cG)),e=Math.min(cds.length-1,s+Math.ceil(cw/(cW+cG))+2);return{s:Math.max(0,s),e};}
-function cp(){const{s,e}=vr();if(s>e||!cds.length){pN=0;pX=1;pR=1;return;}let mn=1e18,mx2=-1e18;for(let i=s;i<=e;i++){if(cds[i].low<mn)mn=cds[i].low;if(cds[i].high>mx2)mx2=cds[i].high;}if(ind.ema9&&e9.length)for(let i=s;i<=e;i++){if(e9[i]!=null){if(e9[i]<mn)mn=e9[i];if(e9[i]>mx2)mx2=e9[i];}}if(ind.ema21&&e21.length)for(let i=s;i<=e;i++){if(e21[i]!=null){if(e21[i]<mn)mn=e21[i];if(e21[i]>mx2)mx2=e21[i];}}const bp=(mx2-mn)*0.15||2;const mid=(mx2+mn)/2,hr=((mx2-mn)/2+bp)*priceZoom;pN=mid-hr;pX=mid+hr;pR=pX-pN;}
+
+// ★★★ FIXED: visible range with scroll offset support (negative scroll allowed for centering)
+function vr(){
+  const cw=chW();
+  const startIdx=Math.floor(sx/(cW+cG));
+  const endIdx=Math.min(cds.length-1,startIdx+Math.ceil(cw/(cW+cG))+2);
+  return{s:Math.max(0,startIdx),e:endIdx};
+}
+
+// ★★★ FIXED: include ALL candles in price range when total fits
+function cp(){
+  if(!cds.length){pN=0;pX=1;pR=1;return;}
+
+  let s,e;
+  if(cds.length*(cW+cG)<chW()){
+    // All candles visible - use full range
+    s=0;e=cds.length-1;
+  }else{
+    const r=vr();s=r.s;e=r.e;
+  }
+
+  let mn=1e18,mx2=-1e18;
+  for(let i=s;i<=e;i++){if(cds[i].low<mn)mn=cds[i].low;if(cds[i].high>mx2)mx2=cds[i].high;}
+  if(ind.ema9&&e9.length)for(let i=s;i<=e;i++){if(e9[i]!=null){if(e9[i]<mn)mn=e9[i];if(e9[i]>mx2)mx2=e9[i];}}
+  if(ind.ema21&&e21.length)for(let i=s;i<=e;i++){if(e21[i]!=null){if(e21[i]<mn)mn=e21[i];if(e21[i]>mx2)mx2=e21[i];}}
+
+  const bp=(mx2-mn)*0.2||3;
+  const mid=(mx2+mn)/2;
+  const hr=((mx2-mn)/2+bp)*priceZoom;
+  pN=mid-hr;pX=mid+hr;pR=pX-pN;
+}
+
 function p2y(p){return mH-((p-pN)/pR)*(mH-40)-20;}
 function y2p(y){return pN+((mH-y-20)/(mH-40))*pR;}
 function i2x(i){return i*(cW+cG)-sx+cG;}
@@ -325,7 +263,17 @@ function x2i(x){return(x+sx-cG)/(cW+cG);}
 function r2y(v){return rH-(v/100)*(rH-14)-7;}
 function inPA(x){return x>=chW();}
 
-function renderAll(){if(!cds.length)return;cp();rM();rO();rD();rR();}
+function renderAll(){if(!cds.length){clearAll();return;}cp();rM();rO();rD();rR();}
+
+function clearAll(){
+  ['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});
+  // Show "waiting" message
+  if(cc.Main){
+    cc.Main.fillStyle='#666';cc.Main.font='14px sans-serif';cc.Main.textAlign='center';
+    cc.Main.fillText('Waiting for data...',CW()/2,H/2);
+    cc.Main.textAlign='left';
+  }
+}
 
 function rM(){
   const cw=CW(),ch=chW(),c=cc.Main;c.clearRect(0,0,cw,H);c.fillStyle=COL.bg;c.fillRect(0,0,cw,H);
@@ -336,9 +284,18 @@ function rM(){
   for(let i=s;i<=e;i+=vs){const x=i2x(i)+cW/2;if(x<0||x>ch)continue;c.setLineDash([2,4]);c.strokeStyle=COL.grid;c.beginPath();c.moveTo(x,0);c.lineTo(x,mH);c.stroke();c.setLineDash([]);if(cds[i]){const d=new Date(cds[i].time*1000);c.fillStyle=COL.gtT;c.font='10px monospace';c.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),x-14,mH-4);}}
   c.strokeStyle='#333';c.lineWidth=1;c.setLineDash([]);c.beginPath();c.moveTo(0,mH);c.lineTo(cw,mH);c.stroke();
   c.save();c.beginPath();c.rect(0,0,ch,mH);c.clip();
-  for(let i=s;i<=e;i++){const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(1,bot-top);c.fillStyle=col;c.fillRect(x,top,cW,bh);c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);if(cW>=8){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'11':'9')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}}
+  for(let i=s;i<=e;i++){
+    const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;
+    const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(2,bot-top);
+    c.fillStyle=col;c.fillRect(x,top,cW,bh);
+    c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);
+    if(cW>=8){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'12':'10')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}
+  }
   c.restore();
   if(pzMan){c.fillStyle='rgba(0,229,255,0.08)';c.fillRect(ch,0,PAW,mH);c.fillStyle='#00e5ff';c.font='bold 9px sans-serif';c.fillText('x'+priceZoom.toFixed(2),ch+4,14);}
+
+  // Info: show count of candles
+  c.fillStyle='#444';c.font='10px monospace';c.fillText('Candles: '+cds.length,8,H-8);
 }
 
 function rO(){
@@ -393,15 +350,14 @@ function setupIn(){
 
 function hDn(x,y){mx=x;my=y;hideCM();if(inPA(x)&&y<mH){pzAct=true;pzSY=y;pzSZ=priceZoom;pzMan=true;cv.Act.style.cursor='ns-resize';return;}uCur();if(sel&&tool==='pointer'){const ep=fEP(sel,x,y);if(ep!==null){drg={type:'ep',id:sel.id,idx:ep,sx:x,sy:y};blk=true;return;}if(hT(sel,x,y)){drg={type:'mv',id:sel.id,sx:x,sy:y,ox1:sel.x1,oy1:sel.y1,ox2:sel.x2,oy2:sel.y2};blk=true;return;}sel=null;renderAll();}if(tool!=='pointer'){blk=true;const idx=x2i(x),pr=y2p(y);if(tool==='text'){const t=prompt('Enter text:','Label');if(t){draws.push({id:gid(),type:'text',x1:idx,y1:pr,text:t,color:COL.tx});drawSave();renderAll();}blk=false;bkPtr();return;}if(tool==='hline'){draws.push({id:gid(),type:'hline',y1:pr,color:COL.hl});drawSave();renderAll();blk=false;bkPtr();return;}if(!dip){dip={id:gid(),type:tool,x1:idx,y1:pr,x2:idx,y2:pr,color:tool==='trendline'?COL.tr:tool==='rect'?COL.rl:COL.fb,fill:tool==='rect'?COL.rf:undefined};isDr=true;}return;}pan={sx:x,sy:y,ss:sx};}
 
-function hMv(x,y){mx=x;my=y;if(inPA(x)&&y<mH&&!pzAct&&!drg&&!isDr&&!pan)cv.Act.style.cursor='ns-resize';else if(!pzAct&&!drg)uCur();if(pzAct){priceZoom=Math.max(0.1,Math.min(5,pzSZ+(y-pzSY)*0.005));renderAll();return;}rCr(x,y);if(drg&&drg.type==='ep'){const d=draws.find(dd=>dd.id===drg.id);if(!d)return;const idx=x2i(x),pr=y2p(y);if(d.type==='trendline'||d.type==='fib'){drg.idx===0?(d.x1=idx,d.y1=pr):(d.x2=idx,d.y2=pr);}else if(d.type==='rect'){[()=>{d.x1=idx;d.y1=pr;},()=>{d.x2=idx;d.y2=pr;},()=>{d.x1=idx;d.y2=pr;},()=>{d.x2=idx;d.y1=pr;}][drg.idx]();}else if(d.type==='hline'){d.y1=pr;}sel=d;renderAll();return;}if(drg&&drg.type==='mv'){const d=draws.find(dd=>dd.id===drg.id);if(!d)return;const di=(x-drg.sx)/(cW+cG),dp=-(y-drg.sy)/(mH-40)*pR;if(d.type==='trendline'||d.type==='rect'||d.type==='fib'){d.x1=drg.ox1+di;d.y1=drg.oy1+dp;d.x2=drg.ox2+di;d.y2=drg.oy2+dp;}else if(d.type==='hline'){d.y1=drg.oy1+dp;}else if(d.type==='text'){d.x1=drg.ox1+di;d.y1=drg.oy1+dp;}sel=d;renderAll();return;}if(isDr&&dip){dip.x2=x2i(x);dip.y2=y2p(y);renderAll();return;}if(pan&&tool==='pointer'){sx=Math.max(0,pan.ss+(pan.sx-x));sx=Math.min(sx,Math.max(0,cds.length*(cW+cG)-chW()+30));renderAll();}}
+function hMv(x,y){mx=x;my=y;if(inPA(x)&&y<mH&&!pzAct&&!drg&&!isDr&&!pan)cv.Act.style.cursor='ns-resize';else if(!pzAct&&!drg)uCur();if(pzAct){priceZoom=Math.max(0.1,Math.min(5,pzSZ+(y-pzSY)*0.005));renderAll();return;}rCr(x,y);if(drg&&drg.type==='ep'){const d=draws.find(dd=>dd.id===drg.id);if(!d)return;const idx=x2i(x),pr=y2p(y);if(d.type==='trendline'||d.type==='fib'){drg.idx===0?(d.x1=idx,d.y1=pr):(d.x2=idx,d.y2=pr);}else if(d.type==='rect'){[()=>{d.x1=idx;d.y1=pr;},()=>{d.x2=idx;d.y2=pr;},()=>{d.x1=idx;d.y2=pr;},()=>{d.x2=idx;d.y1=pr;}][drg.idx]();}else if(d.type==='hline'){d.y1=pr;}sel=d;renderAll();return;}if(drg&&drg.type==='mv'){const d=draws.find(dd=>dd.id===drg.id);if(!d)return;const di=(x-drg.sx)/(cW+cG),dp=-(y-drg.sy)/(mH-40)*pR;if(d.type==='trendline'||d.type==='rect'||d.type==='fib'){d.x1=drg.ox1+di;d.y1=drg.oy1+dp;d.x2=drg.ox2+di;d.y2=drg.oy2+dp;}else if(d.type==='hline'){d.y1=drg.oy1+dp;}else if(d.type==='text'){d.x1=drg.ox1+di;d.y1=drg.oy1+dp;}sel=d;renderAll();return;}if(isDr&&dip){dip.x2=x2i(x);dip.y2=y2p(y);renderAll();return;}if(pan&&tool==='pointer'){sx=pan.ss+(pan.sx-x);renderAll();}}
 
 function hUp(x,y){mx=x;my=y;if(pzAct){pzAct=false;uCur();return;}if(drg){drg=null;blk=false;drawSave();renderAll();return;}if(isDr&&dip){dip.x2=x2i(x);dip.y2=y2p(y);const dx2=Math.abs(i2x(dip.x2)-i2x(dip.x1)),dy2=Math.abs(p2y(dip.y2)-p2y(dip.y1));if(dx2>3||dy2>3){draws.push({...dip});drawSave();}dip=null;isDr=false;blk=false;bkPtr();renderAll();return;}pan=null;}
 
 function hDb(x,y){if(inPA(x)&&y<mH){priceZoom=1;pzMan=false;renderAll();return;}desel();hideCM();for(let i=draws.length-1;i>=0;i--){if(hT(draws[i],x,y)){sel=draws[i];renderAll();showCM(x,y);return;}}desel();renderAll();}
 
-function zI(){if(cW<40){cW=Math.min(40,cW+2);cG=Math.max(1,Math.round(cW*0.3));adjS();renderAll();}}
-function zO(){if(cW>2){cW=Math.max(2,cW-2);cG=Math.max(1,Math.round(cW*0.3));adjS();renderAll();}}
-function adjS(){sx=Math.min(sx,Math.max(0,cds.length*(cW+cG)-chW()+30));}
+function zI(){if(cW<60){cW=Math.min(60,cW+3);cG=Math.max(2,Math.round(cW*0.3));renderAll();}}
+function zO(){if(cW>3){cW=Math.max(3,cW-3);cG=Math.max(1,Math.round(cW*0.3));renderAll();}}
 
 function hT(d,x,y){switch(d.type){case'trendline':return dSg(x,y,i2x(d.x1)+cW/2,p2y(d.y1),i2x(d.x2)+cW/2,p2y(d.y2))<10;case'hline':return Math.abs(y-p2y(d.y1))<8;case'rect':const x1=i2x(d.x1)+cW/2,y1=p2y(d.y1),x2=i2x(d.x2)+cW/2,y2=p2y(d.y2);return x>=Math.min(x1,x2)-8&&x<=Math.max(x1,x2)+8&&y>=Math.min(y1,y2)-8&&y<=Math.max(y1,y2)+8;case'fib':const hi=Math.max(d.y1,d.y2),lo=Math.min(d.y1,d.y2),rng=hi-lo;for(const lv of FIBLV){if(Math.abs(y-p2y(hi-rng*lv))<8)return true;}return false;case'text':const tx2=i2x(d.x1)+cW/2,ty2=p2y(d.y1);return x>=tx2-5&&x<=tx2+120&&y>=ty2-18&&y<=ty2+6;}return false;}
 function fEP(d,px,py){const R=14;if(d.type==='trendline'||d.type==='fib'){if(Math.hypot(px-i2x(d.x1)-cW/2,py-p2y(d.y1))<R)return 0;if(Math.hypot(px-i2x(d.x2)-cW/2,py-p2y(d.y2))<R)return 1;}else if(d.type==='rect'){const x1=i2x(d.x1)+cW/2,y1=p2y(d.y1),x2=i2x(d.x2)+cW/2,y2=p2y(d.y2);if(Math.hypot(px-x1,py-y1)<R)return 0;if(Math.hypot(px-x2,py-y2)<R)return 1;if(Math.hypot(px-x1,py-y2)<R)return 2;if(Math.hypot(px-x2,py-y1)<R)return 3;}else if(d.type==='hline'){if(Math.abs(py-p2y(d.y1))<R)return 0;}return null;}
