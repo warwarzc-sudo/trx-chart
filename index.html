@@ -22,6 +22,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 #btnLoad{background:#1a3a1a !important;color:#0f0 !important;border-color:#0f0 !important;}
 #btnLoad:hover{background:#2a5a2a !important;}
 #btnLoad.loading{background:#3a3a1a !important;color:#ff0 !important;border-color:#ff0 !important;cursor:wait;}
+#btnReset{background:#3a1a1a !important;color:#f55 !important;border-color:#f55 !important;}
 #wrap{position:relative;width:100%;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;}
 #cMain{z-index:1;}#cOver{z-index:2;}#cDraw{z-index:3;}#cCross{z-index:4;pointer-events:none;}#cAct{z-index:10;}
@@ -45,6 +46,8 @@ canvas{position:absolute;top:0;left:0;}
 #loadOverlay.show{display:block;}
 #loadProg{margin-top:10px;background:#222;border-radius:4px;height:8px;overflow:hidden;}
 #loadProgBar{background:linear-gradient(90deg,#00e5ff,#00e676);height:100%;width:0%;transition:width 0.3s;}
+#cancelBtn{margin-top:12px;background:#3a1a1a;color:#f55;border:1px solid #f55;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;}
+#cancelBtn:hover{background:#5a2a2a;}
 @media(max-width:600px){
 #header{padding:4px 8px;height:42px;}
 #header .title{font-size:13px;}
@@ -75,6 +78,7 @@ canvas{position:absolute;top:0;left:0;}
 <button data-ind="rsi">RSI</button><div class="sep"></div>
 <button id="btnLoad">⬇️ Load History</button>
 <button id="btnClear">🗑Clear</button>
+<button id="btnReset">⚠️Reset All</button>
 </div>
 <div id="wrap">
 <canvas id="cMain"></canvas><canvas id="cOver"></canvas><canvas id="cDraw"></canvas>
@@ -85,7 +89,11 @@ canvas{position:absolute;top:0;left:0;}
 <button id="togH">📊</button>
 <div id="histP"><div class="ht">📋 History (<span id="hCount">0</span>)</div><div id="hList"></div></div>
 </div>
-<div id="loadOverlay"><div id="loadMsg">Loading...</div><div id="loadProg"><div id="loadProgBar"></div></div></div>
+<div id="loadOverlay">
+  <div id="loadMsg">Loading...</div>
+  <div id="loadProg"><div id="loadProgBar"></div></div>
+  <button id="cancelBtn" onclick="cancelLoading=true">❌ Cancel</button>
+</div>
 <div id="dbgBox" class="hide"></div>
 <button id="dbgToggle">🔧Debug</button>
 
@@ -114,6 +122,8 @@ let results=[],lastPeriod='',showH=true;
 let priceZoom=1,pzAct=false,pzSY=0,pzSZ=1,pzMan=false;
 let rsiDrg=false,rsiDSY=0,rsiDSH=0;
 let isLoading=false;
+let cancelLoading=false;
+let currentBlockHeight=null;
 
 function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){D('📂 No saved data');return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length+' records');return a;}catch(e){D('❌ LOAD: '+e.message);return[];}}
@@ -146,26 +156,32 @@ function mergeResults(newRecords){
   if(results.length>0)lastPeriod=results[results.length-1].period;
   return added;
 }
+
 async function loadBulkHistory(totalHours){
   if(isLoading)return;
   isLoading=true;
+  cancelLoading=false;
   const btn=document.getElementById('btnLoad');
   btn.classList.add('loading');
 
   D('📥 Bulk loading '+totalHours+' hours via block range...');
 
-  // Step 1: Get current block number
-  showOverlay('Fetching current block info...',5);
+  // Step 1: Get current block
+  showOverlay('Fetching current block...',2);
   let currentBlock=null;
   try{
-    const r=await fetch(API+'?mode=info');
+    const ctrl=new AbortController();
+    const timeoutId=setTimeout(()=>ctrl.abort(),15000);
+    const r=await fetch(API+'?mode=info',{signal:ctrl.signal});
+    clearTimeout(timeoutId);
     const data=await r.json();
     currentBlock=data.currentBlock;
+    currentBlockHeight=currentBlock;
     D('Current block: '+currentBlock);
   }catch(e){
     D('❌ Failed to get current block: '+e.message);
-    showOverlay('❌ Failed to get current block');
-    setTimeout(hideOverlay,2000);
+    showOverlay('❌ Failed to get current block<br><small>'+e.message+'</small>');
+    setTimeout(hideOverlay,3000);
     isLoading=false;
     btn.classList.remove('loading');
     btn.textContent='⬇️ Load History';
@@ -173,20 +189,16 @@ async function loadBulkHistory(totalHours){
   }
 
   if(!currentBlock){
-    D('❌ No current block info');
     isLoading=false;
     btn.classList.remove('loading');
     btn.textContent='⬇️ Load History';
+    hideOverlay();
     return;
   }
 
   // Step 2: Calculate block range
-  // 1 hour = 1200 blocks (3 sec/block)
   const totalBlocks=totalHours*1200;
   const oldestBlock=currentBlock-totalBlocks;
-  const newestBlock=currentBlock;
-
-  // Fetch in chunks of 1200 blocks (1 hour each)
   const chunkSize=1200;
   const totalChunks=Math.ceil(totalBlocks/chunkSize);
 
@@ -195,35 +207,49 @@ async function loadBulkHistory(totalHours){
   let consecutiveFails=0;
 
   for(let i=0;i<totalChunks;i++){
-    const chunkEnd=newestBlock-(i*chunkSize);
+    if(cancelLoading){
+      D('⛔ User cancelled');
+      break;
+    }
+    const chunkEnd=currentBlock-(i*chunkSize);
     const chunkStart=Math.max(oldestBlock,chunkEnd-chunkSize);
     const prog=Math.round((i/totalChunks)*100);
     btn.textContent='⏳ '+(i+1)+'/'+totalChunks;
 
     showOverlay('Loading hour '+(i+1)+' of '+totalChunks+
       '<br><small>Block '+chunkStart+' → '+chunkEnd+
-      '<br>Total records: '+results.length+' | New: '+totalAdded+'</small>',prog);
+      '<br>Total: '+results.length+' records | New: +'+totalAdded+'</small>',prog);
 
     try{
-      const r=await fetch(API+'?mode=blocks&from='+chunkStart+'&to='+chunkEnd);
+      // 30 sec timeout per call
+      const ctrl=new AbortController();
+      const timeoutId=setTimeout(()=>ctrl.abort(),30000);
+      const r=await fetch(API+'?mode=blocks&from='+chunkStart+'&to='+chunkEnd,{signal:ctrl.signal});
+      clearTimeout(timeoutId);
       const data=await r.json();
       if(data.records&&Array.isArray(data.records)&&data.records.length>0){
         const added=mergeResults(data.records);
         totalAdded+=added;
         totalLoaded+=data.records.length;
-        D('  Hour '+(i+1)+': blocks '+chunkStart+'-'+chunkEnd+
-          ', fetched '+data.records.length+' records, added '+added+' new');
+        D('  Hour '+(i+1)+': fetched '+data.records.length+', added '+added+
+          ' (success '+(data.successes||'?')+'/'+(data.attempts||'?')+')');
         consecutiveFails=0;
+
+        // Save progress incrementally
+        storeSave();
+        buildCandles();
+        renderAll();
+        renderHistory();
       }else{
         consecutiveFails++;
-        D('  Hour '+(i+1)+': no records (blocks scanned: '+(data.blocksScanned||0)+')');
+        D('  Hour '+(i+1)+': no records');
         if(consecutiveFails>=3){
           D('⚠️ 3 consecutive empty - stopping');
           break;
         }
       }
-      // Small delay
-      await new Promise(r=>setTimeout(r,600));
+      // Delay between calls
+      await new Promise(r=>setTimeout(r,800));
     }catch(e){
       D('❌ Hour '+(i+1)+' error: '+e.message);
       consecutiveFails++;
@@ -238,25 +264,25 @@ async function loadBulkHistory(totalHours){
   renderHistory();
 
   showOverlay('✅ Done!<br><small>Fetched '+totalLoaded+' | Added '+totalAdded+' new<br>'+
-    'Total history: '+results.length+' records<br>'+
+    'Total: '+results.length+' records<br>'+
     'Coverage: ~'+Math.round(results.length/60)+' hours</small>',100);
   setTimeout(hideOverlay,4000);
   D('✅ Bulk done: '+totalAdded+' new added, total: '+results.length);
 
   isLoading=false;
+  cancelLoading=false;
   btn.classList.remove('loading');
   btn.textContent='⬇️ Load History';
-}
 }
 
 function showLoadMenu(){
   const choice=prompt(
     '📥 Load History - choose hours:\n\n'+
-    '1  = 1 hour (~60 records)\n'+
-    '3  = 3 hours (~180 records)\n'+
-    '6  = 6 hours (~360 records)\n'+
-    '12 = 12 hours (~720 records)\n'+
-    '24 = 1 day (~1440 records)\n\n'+
+    '1  = 1 hour (~45 records, ~15 sec)\n'+
+    '3  = 3 hours (~135 records, ~45 sec)\n'+
+    '6  = 6 hours (~270 records, ~90 sec)\n'+
+    '12 = 12 hours (~540 records, ~3 min)\n'+
+    '24 = 1 day (~1080 records, ~6 min)\n\n'+
     'Enter number:','3');
   if(!choice)return;
   const hours=parseInt(choice);
@@ -267,24 +293,29 @@ function showLoadMenu(){
   }
 }
 
-window.addEventListener('load',async()=>{
+window.addEventListener('load',()=>{
   D('🚀 App starting...');
+  // Load saved data SYNCHRONOUSLY - no network call
   const saved=storeLoad();
-  if(saved.length>0){results=saved;lastPeriod=results[results.length-1].period;}
+  if(saved.length>0){
+    results=saved;
+    lastPeriod=results[results.length-1].period;
+  }
   draws=drawLoad();
   buildCandles();
   szAll();setupTB();setupIn();setupRD();
   scrollEnd();renderAll();renderHistory();
 
-  if(results.length<5){
-    D('📊 Auto-loading 3 hours of history...');
-    await loadBulkHistory(3);
-  }
-
-  doFetch();
-  setInterval(doFetch,5000);
+  // Start countdown IMMEDIATELY (independent of API)
   setInterval(tickCD,1000);
   tickCD();
+
+  // Start fetch for latest result (non-blocking)
+  doFetch();
+  setInterval(doFetch,5000);
+
+  // NO auto-load history - let user click button manually
+  D('💡 Click "Load History" to fetch past data');
 });
 window.addEventListener('resize',()=>{szAll();renderAll();});
 
@@ -314,12 +345,21 @@ function setupRD(){
   document.addEventListener('touchend',e2);
 }
 
-function tickCD(){const now=Math.floor(Date.now()/1000);let v=60-(now%60);if(v>=60)v=0;const el=document.getElementById('cnum');el.textContent=v+'s';el.style.color=v<=10?'#ff1744':'#ffab00';}
+function tickCD(){
+  const now=Math.floor(Date.now()/1000);
+  let v=60-(now%60);if(v>=60)v=0;
+  const el=document.getElementById('cnum');
+  el.textContent=v+'s';
+  el.style.color=v<=10?'#ff1744':'#ffab00';
+}
 
 async function doFetch(){
   if(isLoading)return;
   try{
-    const r=await fetch(API);
+    const ctrl=new AbortController();
+    const timeoutId=setTimeout(()=>ctrl.abort(),8000);
+    const r=await fetch(API,{signal:ctrl.signal});
+    clearTimeout(timeoutId);
     const data=await r.json();
     let rec=data.record||(data.data&&data.data.record)||data;
     if(!rec||!rec.period)return;
@@ -396,7 +436,7 @@ function inPA(x){return x>=chW();}
 
 function renderAll(){if(!cds.length){clearAll();return;}cp();rM();rO();rD();rR();}
 
-function clearAll(){['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});if(cc.Main){cc.Main.fillStyle='#666';cc.Main.font='14px sans-serif';cc.Main.textAlign='center';cc.Main.fillText('Click "Load History" to start',CW()/2,H/2);cc.Main.textAlign='left';}}
+function clearAll(){['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});if(cc.Main){cc.Main.fillStyle='#888';cc.Main.font='16px sans-serif';cc.Main.textAlign='center';cc.Main.fillText('Click "Load History" button to fetch past data',CW()/2,H/2);cc.Main.font='12px sans-serif';cc.Main.fillStyle='#666';cc.Main.fillText('(Or wait for new results to appear automatically)',CW()/2,H/2+24);cc.Main.textAlign='left';}}
 
 function rM(){
   const cw=CW(),ch=chW(),c=cc.Main;c.clearRect(0,0,cw,H);c.fillStyle=COL.bg;c.fillRect(0,0,cw,H);
@@ -440,6 +480,23 @@ function setupTB(){
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
   document.getElementById('btnLoad').addEventListener('click',()=>{if(!isLoading)showLoadMenu();});
   document.getElementById('btnClear').addEventListener('click',()=>{if(confirm('Clear all drawings? (history မပျောက်ပါ)')){draws=[];sel=null;drawSave();renderAll();}});
+  document.getElementById('btnReset').addEventListener('click',()=>{
+    if(confirm('⚠️ Reset all data?\n\nDelete all history + drawings + cancel any loading?')){
+      cancelLoading=true;
+      isLoading=false;
+      results=[];
+      draws=[];
+      lastPeriod='';
+      cds=[];
+      try{localStorage.removeItem(STORE_KEY);localStorage.removeItem(DRAW_KEY);}catch(e){}
+      const btn=document.getElementById('btnLoad');
+      btn.classList.remove('loading');
+      btn.textContent='⬇️ Load History';
+      hideOverlay();
+      renderAll();renderHistory();
+      D('🗑️ All reset');
+    }
+  });
   document.getElementById('cmDel').addEventListener('click',()=>{if(sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}hideCM();});
   document.getElementById('cmCol').addEventListener('click',()=>{if(sel){const cs=['#00e5ff','#ffab00','#ff5252','#00e676','#e040fb','#ffff00','#ff6d00','#fff'];sel.color=cs[(cs.indexOf(sel.color)+1)%cs.length];drawSave();renderAll();}hideCM();});
   document.getElementById('togH').addEventListener('click',()=>{showH=!showH;szAll();renderAll();renderHistory();});
