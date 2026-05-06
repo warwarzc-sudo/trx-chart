@@ -19,6 +19,9 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 #toolbar button:hover{background:#2a2a5a;color:#fff;}
 #toolbar button.active{background:#00e5ff;color:#000;border-color:#00e5ff;font-weight:700;}
 #toolbar .sep{width:1px;height:22px;background:#333;margin:0 4px;}
+#btnLoad{background:#1a3a1a !important;color:#0f0 !important;border-color:#0f0 !important;}
+#btnLoad:hover{background:#2a5a2a !important;}
+#btnLoad.loading{background:#3a3a1a !important;color:#ff0 !important;border-color:#ff0 !important;cursor:wait;}
 #wrap{position:relative;width:100%;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;}
 #cMain{z-index:1;}#cOver{z-index:2;}#cDraw{z-index:3;}#cCross{z-index:4;pointer-events:none;}#cAct{z-index:10;}
@@ -38,6 +41,8 @@ canvas{position:absolute;top:0;left:0;}
 #dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
 #dbgBox.hide{display:none;}
 #dbgToggle{position:fixed;bottom:4px;right:4px;z-index:10000;background:#1a1a3a;color:#0f0;border:1px solid #0f0;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;}
+#loadOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,30,0.95);border:2px solid #00e5ff;border-radius:8px;padding:20px 30px;z-index:5000;color:#fff;font-size:14px;display:none;text-align:center;box-shadow:0 4px 20px rgba(0,229,255,0.3);}
+#loadOverlay.show{display:block;}
 @media(max-width:600px){
 #header{padding:4px 8px;height:42px;}
 #header .title{font-size:13px;}
@@ -66,6 +71,7 @@ canvas{position:absolute;top:0;left:0;}
 <button data-ind="ema9">EMA9</button>
 <button data-ind="ema21">EMA21</button>
 <button data-ind="rsi">RSI</button><div class="sep"></div>
+<button id="btnLoad">⬇️ Load History</button>
 <button id="btnClear">🗑Clear</button>
 </div>
 <div id="wrap">
@@ -77,13 +83,14 @@ canvas{position:absolute;top:0;left:0;}
 <button id="togH">📊</button>
 <div id="histP"><div class="ht">📋 History (<span id="hCount">0</span>)</div><div id="hList"></div></div>
 </div>
+<div id="loadOverlay"><div id="loadMsg">Loading history...</div></div>
 <div id="dbgBox" class="hide"></div>
 <button id="dbgToggle">🔧Debug</button>
 
 <script>
 const dbgEl=document.getElementById('dbgBox');
 const dbgLines=[];
-function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>50)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
+function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>80)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
 document.getElementById('dbgToggle').addEventListener('click',()=>{dbgEl.classList.toggle('hide');});
 
 const API='https://trx-apl.warwar-zc.workers.dev/';
@@ -96,7 +103,7 @@ const DRAW_KEY='TRX_DRAW_V3';
 let W,H,mH,rH=120,hW=130;
 let cv={},cc={};
 let cds=[],e9=[],e21=[],rsi=[],rsig=[];
-let cW=20,cG=6,sx=0,pN,pX,pR;  // ★ Bigger candles by default
+let cW=20,cG=6,sx=0,pN,pX,pR;
 let ind={ema9:0,ema21:0,rsi:0};
 let tool='pointer',draws=[],sel=null,dip=null;
 let isDr=false,drg=null,pan=null,blk=false;
@@ -104,13 +111,123 @@ let mx=-1,my=-1,ltm=null,lfr=false;
 let results=[],lastPeriod='',showH=true;
 let priceZoom=1,pzAct=false,pzSY=0,pzSZ=1,pzMan=false;
 let rsiDrg=false,rsiDSY=0,rsiDSH=0;
+let isLoading=false;
 
-function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-500);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
+function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-1000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){D('📂 No saved data');return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length+' records');return a;}catch(e){D('❌ LOAD: '+e.message);return[];}}
 function drawSave(){try{localStorage.setItem(DRAW_KEY,JSON.stringify(draws));}catch(e){}}
 function drawLoad(){try{const r=localStorage.getItem(DRAW_KEY);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return[];}
 
-window.addEventListener('load',()=>{
+function showOverlay(msg){
+  const el=document.getElementById('loadOverlay');
+  document.getElementById('loadMsg').innerHTML=msg;
+  el.classList.add('show');
+}
+function hideOverlay(){document.getElementById('loadOverlay').classList.remove('show');}
+
+// ===== MERGE results - dedupe by period, sort by timestamp =====
+function mergeResults(newRecords){
+  const map=new Map();
+  for(const r of results)map.set(r.period,r);
+  let added=0;
+  for(const r of newRecords){
+    if(!map.has(r.period)){
+      map.set(r.period,r);
+      added++;
+    }
+  }
+  results=Array.from(map.values()).sort((a,b)=>{
+    const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;
+    const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;
+    return ta-tb;
+  });
+  if(results.length>0)lastPeriod=results[results.length-1].period;
+  return added;
+}
+
+// ===== BULK HISTORY FETCH =====
+async function loadHistory(pages=10){
+  if(isLoading)return;
+  isLoading=true;
+  const btn=document.getElementById('btnLoad');
+  btn.classList.add('loading');
+  btn.textContent='⏳ Loading...';
+  showOverlay('Loading history...<br><small>Fetching '+pages+' pages from blockchain</small>');
+
+  try{
+    D('📥 Fetching history: '+pages+' pages...');
+    const r=await fetch(API+'?mode=history&pages='+pages);
+    const data=await r.json();
+    if(!data.records||!Array.isArray(data.records)){
+      D('❌ Invalid history response');
+      showOverlay('❌ No history data received');
+      setTimeout(hideOverlay,2000);
+      return;
+    }
+    D('📦 Got '+data.records.length+' records ('+data.blocksScanned+' blocks)');
+    const added=mergeResults(data.records);
+    D('➕ Added '+added+' new (total: '+results.length+')');
+    storeSave();
+    buildCandles();
+    scrollEnd();
+    renderAll();
+    renderHistory();
+    showOverlay('✅ Loaded '+data.records.length+' records<br><small>Added '+added+' new | Total: '+results.length+'</small>');
+    setTimeout(hideOverlay,1800);
+  }catch(e){
+    D('❌ History error: '+e.message);
+    showOverlay('❌ Error: '+e.message);
+    setTimeout(hideOverlay,2500);
+  }finally{
+    isLoading=false;
+    btn.classList.remove('loading');
+    btn.textContent='⬇️ Load History';
+  }
+}
+
+// ===== LOAD MORE OLDER (range mode) =====
+async function loadMoreHistory(){
+  if(isLoading)return;
+  isLoading=true;
+  const btn=document.getElementById('btnLoad');
+  btn.classList.add('loading');
+  btn.textContent='⏳ Loading...';
+  // Calculate offset: how many blocks back to skip (already have)
+  // Each page = 60 blocks ≈ 3 mins. We want to go further back.
+  // results length × 20 blocks ≈ how many blocks we cover
+  const startBlock=Math.max(600,results.length*20);
+  showOverlay('Loading older data...<br><small>Going back ~'+Math.round(startBlock/20)+' minutes</small>');
+
+  try{
+    D('📥 Loading older from block '+startBlock);
+    const r=await fetch(API+'?mode=range&start='+startBlock+'&pages=15');
+    const data=await r.json();
+    if(!data.records||!Array.isArray(data.records)){
+      D('❌ Invalid range response');
+      showOverlay('❌ No older data');
+      setTimeout(hideOverlay,2000);
+      return;
+    }
+    const added=mergeResults(data.records);
+    D('➕ Added '+added+' older records (total: '+results.length+')');
+    storeSave();
+    buildCandles();
+    renderAll();
+    renderHistory();
+    showOverlay('✅ Got '+data.records.length+' older<br><small>Added '+added+' new | Total: '+results.length+'</small>');
+    setTimeout(hideOverlay,1800);
+  }catch(e){
+    D('❌ Range error: '+e.message);
+    showOverlay('❌ Error: '+e.message);
+    setTimeout(hideOverlay,2500);
+  }finally{
+    isLoading=false;
+    btn.classList.remove('loading');
+    btn.textContent='⬇️ Load History';
+  }
+}
+
+window.addEventListener('load',async()=>{
   D('🚀 App starting...');
   const saved=storeLoad();
   if(saved.length>0){results=saved;lastPeriod=results[results.length-1].period;}
@@ -118,6 +235,13 @@ window.addEventListener('load',()=>{
   buildCandles();
   szAll();setupTB();setupIn();setupRD();
   scrollEnd();renderAll();renderHistory();
+
+  // Auto-load history on first launch (if no data)
+  if(results.length<5){
+    D('📊 Few records - auto loading history...');
+    await loadHistory(15);  // ~45 minutes
+  }
+
   doFetch();
   setInterval(doFetch,5000);
   setInterval(tickCD,1000);
@@ -154,6 +278,7 @@ function setupRD(){
 function tickCD(){const now=Math.floor(Date.now()/1000);let v=60-(now%60);if(v>=60)v=0;const el=document.getElementById('cnum');el.textContent=v+'s';el.style.color=v<=10?'#ff1744':'#ffab00';}
 
 async function doFetch(){
+  if(isLoading)return;
   try{
     const r=await fetch(API);
     const data=await r.json();
@@ -168,6 +293,8 @@ async function doFetch(){
     D('🆕 '+rec.period+' '+rec.bigSmall+' '+rec.result);
     lastPeriod=rec.period;
     results.push({period:rec.period,result:rec.result,bigSmall:rec.bigSmall,timestamp:rec.timestamp||Date.now(),second:rec.second||0});
+    // Keep sorted
+    results.sort((a,b)=>{const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;return ta-tb;});
     storeSave();
     buildCandles();
     if(!blk&&!isDr&&!drg)scrollEnd();
@@ -190,17 +317,13 @@ function buildCandles(){
   if(ind.rsi)calcRSI2(14);else{rsi=[];rsig=[];}
 }
 
-// ★★★ FIXED: Smart scroll - center if few candles, scroll to end if many
 function scrollEnd(){
   if(!cds.length){sx=0;return;}
   const totalW=cds.length*(cW+cG);
   const visW=chW();
-
   if(totalW<visW-PAW){
-    // Few candles - center them with some right padding
     sx=-((visW-PAW-totalW)/2);
   }else{
-    // Many candles - scroll to show latest with margin
     sx=Math.max(0,totalW-visW+PAW+30);
   }
 }
@@ -224,38 +347,8 @@ function calcRSI2(p){rsi.length=0;rsig.length=0;if(cds.length<p+1)return;let g=0
 
 function CW(){return cv.Main?cv.Main.width:W;}
 function chW(){return CW()-PAW;}
-
-// ★★★ FIXED: visible range with scroll offset support (negative scroll allowed for centering)
-function vr(){
-  const cw=chW();
-  const startIdx=Math.floor(sx/(cW+cG));
-  const endIdx=Math.min(cds.length-1,startIdx+Math.ceil(cw/(cW+cG))+2);
-  return{s:Math.max(0,startIdx),e:endIdx};
-}
-
-// ★★★ FIXED: include ALL candles in price range when total fits
-function cp(){
-  if(!cds.length){pN=0;pX=1;pR=1;return;}
-
-  let s,e;
-  if(cds.length*(cW+cG)<chW()){
-    // All candles visible - use full range
-    s=0;e=cds.length-1;
-  }else{
-    const r=vr();s=r.s;e=r.e;
-  }
-
-  let mn=1e18,mx2=-1e18;
-  for(let i=s;i<=e;i++){if(cds[i].low<mn)mn=cds[i].low;if(cds[i].high>mx2)mx2=cds[i].high;}
-  if(ind.ema9&&e9.length)for(let i=s;i<=e;i++){if(e9[i]!=null){if(e9[i]<mn)mn=e9[i];if(e9[i]>mx2)mx2=e9[i];}}
-  if(ind.ema21&&e21.length)for(let i=s;i<=e;i++){if(e21[i]!=null){if(e21[i]<mn)mn=e21[i];if(e21[i]>mx2)mx2=e21[i];}}
-
-  const bp=(mx2-mn)*0.2||3;
-  const mid=(mx2+mn)/2;
-  const hr=((mx2-mn)/2+bp)*priceZoom;
-  pN=mid-hr;pX=mid+hr;pR=pX-pN;
-}
-
+function vr(){const cw=chW(),s=Math.floor(sx/(cW+cG)),e=Math.min(cds.length-1,s+Math.ceil(cw/(cW+cG))+2);return{s:Math.max(0,s),e};}
+function cp(){if(!cds.length){pN=0;pX=1;pR=1;return;}let s,e;if(cds.length*(cW+cG)<chW()){s=0;e=cds.length-1;}else{const r=vr();s=r.s;e=r.e;}let mn=1e18,mx2=-1e18;for(let i=s;i<=e;i++){if(cds[i].low<mn)mn=cds[i].low;if(cds[i].high>mx2)mx2=cds[i].high;}if(ind.ema9&&e9.length)for(let i=s;i<=e;i++){if(e9[i]!=null){if(e9[i]<mn)mn=e9[i];if(e9[i]>mx2)mx2=e9[i];}}if(ind.ema21&&e21.length)for(let i=s;i<=e;i++){if(e21[i]!=null){if(e21[i]<mn)mn=e21[i];if(e21[i]>mx2)mx2=e21[i];}}const bp=(mx2-mn)*0.2||3;const mid=(mx2+mn)/2,hr=((mx2-mn)/2+bp)*priceZoom;pN=mid-hr;pX=mid+hr;pR=pX-pN;}
 function p2y(p){return mH-((p-pN)/pR)*(mH-40)-20;}
 function y2p(y){return pN+((mH-y-20)/(mH-40))*pR;}
 function i2x(i){return i*(cW+cG)-sx+cG;}
@@ -265,15 +358,7 @@ function inPA(x){return x>=chW();}
 
 function renderAll(){if(!cds.length){clearAll();return;}cp();rM();rO();rD();rR();}
 
-function clearAll(){
-  ['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});
-  // Show "waiting" message
-  if(cc.Main){
-    cc.Main.fillStyle='#666';cc.Main.font='14px sans-serif';cc.Main.textAlign='center';
-    cc.Main.fillText('Waiting for data...',CW()/2,H/2);
-    cc.Main.textAlign='left';
-  }
-}
+function clearAll(){['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});if(cc.Main){cc.Main.fillStyle='#666';cc.Main.font='14px sans-serif';cc.Main.textAlign='center';cc.Main.fillText('Click "Load History" to start',CW()/2,H/2);cc.Main.textAlign='left';}}
 
 function rM(){
   const cw=CW(),ch=chW(),c=cc.Main;c.clearRect(0,0,cw,H);c.fillStyle=COL.bg;c.fillRect(0,0,cw,H);
@@ -284,17 +369,9 @@ function rM(){
   for(let i=s;i<=e;i+=vs){const x=i2x(i)+cW/2;if(x<0||x>ch)continue;c.setLineDash([2,4]);c.strokeStyle=COL.grid;c.beginPath();c.moveTo(x,0);c.lineTo(x,mH);c.stroke();c.setLineDash([]);if(cds[i]){const d=new Date(cds[i].time*1000);c.fillStyle=COL.gtT;c.font='10px monospace';c.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),x-14,mH-4);}}
   c.strokeStyle='#333';c.lineWidth=1;c.setLineDash([]);c.beginPath();c.moveTo(0,mH);c.lineTo(cw,mH);c.stroke();
   c.save();c.beginPath();c.rect(0,0,ch,mH);c.clip();
-  for(let i=s;i<=e;i++){
-    const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;
-    const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(2,bot-top);
-    c.fillStyle=col;c.fillRect(x,top,cW,bh);
-    c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);
-    if(cW>=8){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'12':'10')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}
-  }
+  for(let i=s;i<=e;i++){const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(2,bot-top);c.fillStyle=col;c.fillRect(x,top,cW,bh);c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);if(cW>=8){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'12':'10')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}}
   c.restore();
   if(pzMan){c.fillStyle='rgba(0,229,255,0.08)';c.fillRect(ch,0,PAW,mH);c.fillStyle='#00e5ff';c.font='bold 9px sans-serif';c.fillText('x'+priceZoom.toFixed(2),ch+4,14);}
-
-  // Info: show count of candles
   c.fillStyle='#444';c.font='10px monospace';c.fillText('Candles: '+cds.length,8,H-8);
 }
 
@@ -323,7 +400,25 @@ function rCr(x,y){const cw=CW(),ch=chW(),c=cc.Cross;c.clearRect(0,0,cw,H);if(x<0
 function setupTB(){
   document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>{b.addEventListener('click',()=>{tool=b.dataset.tool;document.querySelectorAll('#toolbar button[data-tool]').forEach(bb=>bb.classList.remove('active'));b.classList.add('active');canDr();desel();uCur();});});
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
-  document.getElementById('btnClear').addEventListener('click',()=>{draws=[];sel=null;drawSave();renderAll();});
+
+  // ===== LOAD HISTORY BUTTON =====
+  // Single click = load 15 pages (45 min)
+  // Double click = load older 15 pages (older 45 min)
+  document.getElementById('btnLoad').addEventListener('click',e=>{
+    if(e.detail===2)return; // wait for dblclick
+    setTimeout(()=>{
+      if(!isLoading)loadHistory(15);
+    },200);
+  });
+  document.getElementById('btnLoad').addEventListener('dblclick',()=>{
+    if(!isLoading)loadMoreHistory();
+  });
+
+  document.getElementById('btnClear').addEventListener('click',()=>{
+    if(confirm('Clear all drawings? (history မပျောက်ပါ)')){
+      draws=[];sel=null;drawSave();renderAll();
+    }
+  });
   document.getElementById('cmDel').addEventListener('click',()=>{if(sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}hideCM();});
   document.getElementById('cmCol').addEventListener('click',()=>{if(sel){const cs=['#00e5ff','#ffab00','#ff5252','#00e676','#e040fb','#ffff00','#ff6d00','#fff'];sel.color=cs[(cs.indexOf(sel.color)+1)%cs.length];drawSave();renderAll();}hideCM();});
   document.getElementById('togH').addEventListener('click',()=>{showH=!showH;szAll();renderAll();renderHistory();});
