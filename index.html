@@ -2,467 +2,1320 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>TRX WinGo Live Chart</title>
-<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TRX WinGo Chart</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#cbd5e1;font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
-#app{width:100%;height:100vh;display:flex;flex-direction:column}
-#toolbar{height:40px;background:#1e293b;display:flex;align-items:center;padding:0 8px;gap:4px;border-bottom:1px solid #334155;flex-shrink:0;overflow-x:auto}
-.tb{background:none;border:1px solid #475569;color:#94a3b8;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;user-select:none}
-.tb:hover{background:#334155;color:#e2e8f0}
-.tb.on{background:#10b981;color:#000;border-color:#10b981}
-.tb.dg{border-color:#ef4444;color:#ef4444}
-.tb.dg:hover{background:#ef4444;color:#fff}
-.tb.da{background:#7f1d1d;border-color:#ef4444;color:#fff}
-.sp{width:1px;height:20px;background:#475569;margin:0 4px}
-#chart-area{flex:1;position:relative;min-height:0}
-#main-chart{width:100%;height:75%}
-#rsi-chart{width:100%;height:25%;border-top:1px solid #334155}
-#cv{position:absolute;top:0;left:0;width:100%;height:75%;z-index:50;pointer-events:none}
-#cv.on{pointer-events:auto;cursor:crosshair}
-#ci{position:absolute;top:8px;right:8px;background:rgba(15,23,42,.92);border:1px solid #334155;border-radius:8px;padding:8px 12px;font-size:11px;line-height:1.7;pointer-events:none;z-index:100;display:none;min-width:180px}
-.cl{color:#64748b}.cv{color:#e2e8f0}.cb{color:#10b981;font-weight:bold}.cs{color:#ef4444;font-weight:bold}
-#cd{position:fixed;top:50px;left:12px;z-index:200;background:rgba(15,23,42,.95);border:1px solid #334155;border-radius:12px;padding:10px 18px;text-align:center;min-width:100px}
-#cdt{font-size:28px;font-weight:bold;color:#fbbf24;font-family:monospace}
-#cdr{font-size:16px;font-weight:bold;margin-top:4px;min-height:22px}
-#cdr.big{color:#10b981}#cdr.small{color:#ef4444}
-#ld{position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-#ld h2{color:#10b981;font-size:22px}#ld p{color:#94a3b8;font-size:13px}
-.pw{width:300px;height:8px;background:#1e293b;border-radius:999px;overflow:hidden}
-.pb{width:0%;height:100%;background:linear-gradient(90deg,#10b981,#06b6d4);transition:width .3s}
-#lt{font-size:12px;color:#64748b}
-#bg{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:1000;padding:10px 26px;border-radius:999px;font-size:20px;font-weight:bold;letter-spacing:1px;display:none}
-#bg.big{color:#10b981;border:2px solid #10b981;background:rgba(16,185,129,.12)}
-#bg.small{color:#ef4444;border:2px solid #ef4444;background:rgba(239,68,68,.12)}
-#sh{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);background:rgba(34,211,238,.15);border:1px solid #22d3ee;color:#22d3ee;padding:6px 16px;border-radius:20px;font-size:12px;z-index:200;display:none}
-@media(max-width:768px){
-.tb{padding:4px 6px;font-size:10px}
-#toolbar{height:36px;gap:2px}
-#ci{font-size:10px;padding:6px 8px}
-#cd{top:44px;left:8px;padding:8px 12px}
-#cdt{font-size:22px}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow:hidden;touch-action:none;}
+#header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#12122a;border-bottom:1px solid #2a2a4a;height:44px;z-index:100;}
+#header .left{display:flex;align-items:center;gap:10px;}
+#header .title{font-size:15px;font-weight:700;color:#00e5ff;}
+#countdown{background:#1a1a3a;border:1px solid #00e5ff;border-radius:6px;padding:2px 10px;font-size:18px;font-weight:700;color:#ffab00;min-width:50px;text-align:center;}
+#result-text{font-size:13px;color:#aaa;max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+#toolbar{display:flex;align-items:center;gap:4px;padding:4px 8px;background:#0e0e24;border-bottom:1px solid #222248;flex-wrap:wrap;z-index:99;}
+#toolbar button{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;transition:0.2s;}
+#toolbar button:hover{background:#2a2a5a;color:#fff;}
+#toolbar button.active{background:#00e5ff;color:#000;border-color:#00e5ff;font-weight:700;}
+#toolbar .sep{width:1px;height:22px;background:#333;margin:0 4px;}
+#toolbar select{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:3px 6px;font-size:12px;}
+#chart-wrap{position:relative;width:100%;height:calc(100vh - 88px);overflow:hidden;}
+canvas{position:absolute;top:0;left:0;}
+#canvasMain{z-index:1;}
+#canvasOverlay{z-index:2;}
+#canvasDrawing{z-index:3;}
+#canvasUI{z-index:4;pointer-events:none;}
+#canvasCrosshair{z-index:5;pointer-events:none;}
+#canvasInteract{z-index:10;cursor:crosshair;}
+#rsi-wrap{position:absolute;bottom:0;left:0;width:100%;height:100px;z-index:6;pointer-events:none;border-top:1px solid #2a2a4a;}
+#canvasRSI{z-index:7;}
+#info-tooltip{position:absolute;display:none;background:rgba(10,10,30,0.92);border:1px solid #00e5ff;border-radius:6px;padding:6px 10px;font-size:11px;color:#e0e0e0;pointer-events:none;z-index:50;white-space:nowrap;}
+#context-menu{position:absolute;display:none;background:#1a1a3a;border:1px solid #444;border-radius:6px;padding:4px 0;z-index:60;min-width:120px;}
+#context-menu div{padding:6px 16px;font-size:12px;cursor:pointer;color:#ddd;}
+#context-menu div:hover{background:#2a2a5a;color:#fff;}
+@media(max-width:600px){
+  #header{padding:4px 8px;height:40px;}
+  #header .title{font-size:13px;}
+  #countdown{font-size:15px;padding:2px 7px;}
+  #toolbar button{padding:3px 7px;font-size:11px;}
+  #result-text{font-size:11px;max-width:120px;}
 }
 </style>
 </head>
 <body>
-<div id="ld"><h2>TRX WinGo Live Chart</h2><p>Loading blockchain history...</p><div class="pw"><div class="pb" id="pb"></div></div><div id="lt">Preparing...</div></div>
-<div id="app" style="display:none">
+<div id="header">
+  <div class="left">
+    <span class="title">TRX WinGo</span>
+    <div id="countdown">60</div>
+    <span id="result-text"></span>
+  </div>
+  <div class="right">
+    <select id="tfSelect">
+      <option value="1" selected>1m</option>
+      <option value="3">3m</option>
+      <option value="5">5m</option>
+    </select>
+  </div>
+</div>
 <div id="toolbar">
-<button class="tb" id="bCH" onclick="setTool('crosshair')">+</button><div class="sp"></div>
-<button class="tb" id="bTL" onclick="setTool('trendline')">Trend</button>
-<button class="tb" id="bHL" onclick="setTool('hline')">H-Line</button>
-<button class="tb" id="bRC" onclick="setTool('rect')">Rect</button>
-<button class="tb" id="bFB" onclick="setTool('fib')">Fib</button>
-<button class="tb" id="bTX" onclick="setTool('text')">Text</button><div class="sp"></div>
-<button class="tb" id="bE9" onclick="toggleEma(9)">EMA9</button>
-<button class="tb" id="bE21" onclick="toggleEma(21)">EMA21</button>
-<button class="tb" id="bRSI" onclick="toggleRsi()">RSI</button><div class="sp"></div>
-<button class="tb dg" id="bDel" onclick="delSel()">Del</button>
-<button class="tb dg" onclick="clrAll()">Clear</button>
+  <button id="btnPointer" class="active" data-tool="pointer">☝ Pointer</button>
+  <div class="sep"></div>
+  <button id="btnTrendline" data-tool="trendline">📏 Trend</button>
+  <button id="btnHLine" data-tool="hline">➖ H-Line</button>
+  <button id="btnRect" data-tool="rect">⬜ Rect</button>
+  <button id="btnFib" data-tool="fib">📐 Fib</button>
+  <button id="btnText" data-tool="text">🔤 Text</button>
+  <div class="sep"></div>
+  <button id="btnEMA9" data-ind="ema9">EMA9</button>
+  <button id="btnEMA21" data-ind="ema21">EMA21</button>
+  <button id="btnRSI" data-ind="rsi">RSI</button>
+  <div class="sep"></div>
+  <button id="btnDelAll">🗑 Clear All</button>
 </div>
-<div id="chart-area">
-<div id="main-chart"></div><div id="rsi-chart"></div>
-<canvas id="cv"></canvas><div id="ci"></div>
+<div id="chart-wrap">
+  <canvas id="canvasMain"></canvas>
+  <canvas id="canvasOverlay"></canvas>
+  <canvas id="canvasDrawing"></canvas>
+  <canvas id="canvasUI"></canvas>
+  <canvas id="canvasCrosshair"></canvas>
+  <canvas id="canvasInteract"></canvas>
+  <canvas id="canvasRSI"></canvas>
+  <div id="info-tooltip"></div>
+  <div id="context-menu">
+    <div id="cmDelete">🗑 Delete</div>
+    <div id="cmColor">🎨 Color</div>
+  </div>
 </div>
-</div>
-<div id="bg"></div><div id="sh">Selected - Del key or Del button</div>
-<div id="cd" style="display:none"><div id="cdt">60</div><div id="cdr"></div></div>
+
 <script>
-var WU="https://trx-apl.warwar-zc.workers.dev/";
-var DN="TRX_CF_V15";var ST="results";var HR=12;var PL=5000;var PG=40;
+// ===== CONSTANTS & STATE =====
+const API_URL = 'https://trx-apl.warwar-zc.workers.dev/';
+const DB_NAME = 'TRXChartDB';
+const DB_STORE = 'drawings';
+const COLORS = {
+  bg: '#0a0a1a', grid: '#1a1a3a', gridText: '#555',
+  up: '#00c853', down: '#ff1744', wick: '#888',
+  ema9: '#ffab00', ema21: '#00b0ff',
+  rsiLine: '#e040fb', rsiSignal: '#00e5ff',
+  rsiOB: 'rgba(255,23,68,0.3)', rsiOS: 'rgba(0,200,83,0.3)',
+  crosshair: 'rgba(255,255,255,0.25)', selection: '#00e5ff',
+  trendline: '#00e5ff', hline: '#ffab00', rect: 'rgba(0,229,255,0.15)',
+  rectBorder: '#00e5ff', fib: '#e040fb', text: '#ffffff'
+};
+const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 
-var pb=document.getElementById("pb"),lt=document.getElementById("lt");
-var ldE=document.getElementById("ld"),apE=document.getElementById("app");
-var bgE=document.getElementById("bg"),ciE=document.getElementById("ci");
-var cvs=document.getElementById("cv"),ctx=cvs.getContext("2d");
-var shE=document.getElementById("sh");
-var cdE=document.getElementById("cd"),cdtE=document.getElementById("cdt"),cdrE=document.getElementById("cdr");
-var mcE=document.getElementById("main-chart"),rcE=document.getElementById("rsi-chart");
+let W, H, mainH, rsiH = 100;
+let canvases = {}, ctx = {};
+let rawCandles = [], candles = [], visibleCandles = [];
+let candleW = 10, gap = 3, scrollX = 0, maxScrollX = 0;
+let priceMin, priceMax, priceRange;
+let indicators = { ema9: true, ema21: true, rsi: true };
+let emaData9 = [], emaData21 = [], rsiData = [], rsiSignalData = [];
 
-var mc=LightweightCharts.createChart(mcE,{
-layout:{background:{color:"#0f172a"},textColor:"#94a3b8",fontSize:11},
-grid:{vertLines:{color:"#1e293b"},horzLines:{color:"#1e293b"}},
-crosshair:{mode:LightweightCharts.CrosshairMode.Normal,vertLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"},horzLine:{color:"rgba(148,163,184,.35)",labelBackgroundColor:"#334155"}},
-timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#334155",barSpacing:8,minBarSpacing:3,rightOffset:10},
-rightPriceScale:{borderColor:"#334155",scaleMargins:{top:.1,bottom:.1}},
-handleScroll:{mouseWheel:true,pressedMouseMove:true},handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:true}
+// Drawing state
+let currentTool = 'pointer';
+let drawings = [];
+let drawingInProgress = null;
+let selectedDrawing = null;
+let dragState = null; // {type:'move'|'endpoint', drawingId, endpointIdx, startX, startY, origPoints}
+let isDrawing = false;
+let blockAutoScroll = false;
+
+// Mouse/touch state
+let mouseX = -1, mouseY = -1;
+let longPressTimer = null;
+let longPressTriggered = false;
+const LONG_PRESS_MS = 500;
+const ENDPOINT_RADIUS = 8;
+
+// Countdown
+let countdownValue = 60;
+let lastPeriod = '';
+
+// ===== INIT =====
+function init() {
+  setupCanvases();
+  setupToolbar();
+  setupInteraction();
+  loadDrawingsFromDB();
+  fetchData();
+  setInterval(fetchDataSilent, 5000);
+  setInterval(updateCountdown, 1000);
+  updateCountdown();
+  requestAnimationFrame(renderLoop);
+}
+
+function setupCanvases() {
+  const wrap = document.getElementById('chart-wrap');
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  mainH = H - rsiH;
+  ['Main','Overlay','Drawing','UI','Crosshair','Interact','RSI'].forEach(name => {
+    const c = document.getElementById('canvas' + name);
+    canvases[name] = c;
+    ctx[name] = c.getContext('2d');
+    if (name === 'RSI') {
+      c.width = W; c.height = rsiH;
+      c.style.top = mainH + 'px';
+      c.style.width = W + 'px'; c.style.height = rsiH + 'px';
+    } else {
+      c.width = W; c.height = H;
+      c.style.width = W + 'px'; c.style.height = H + 'px';
+    }
+  });
+  window.addEventListener('resize', () => {
+    W = wrap.clientWidth; H = wrap.clientHeight; mainH = H - rsiH;
+    ['Main','Overlay','Drawing','UI','Crosshair','Interact','RSI'].forEach(name => {
+      const c = canvases[name];
+      if (name === 'RSI') {
+        c.width = W; c.height = rsiH;
+        c.style.top = mainH + 'px';
+        c.style.width = W + 'px'; c.style.height = rsiH + 'px';
+      } else {
+        c.width = W; c.height = H;
+        c.style.width = W + 'px'; c.style.height = H + 'px';
+      }
+    });
+    renderAll();
+  });
+}
+
+// ===== TOOLBAR =====
+function setupToolbar() {
+  document.querySelectorAll('#toolbar button[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTool = btn.dataset.tool;
+      document.querySelectorAll('#toolbar button[data-tool]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      cancelDrawing();
+      deselectAll();
+      canvases.Interact.style.cursor = currentTool === 'pointer' ? 'default' : 'crosshair';
+    });
+  });
+  document.querySelectorAll('#toolbar button[data-ind]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ind = btn.dataset.ind;
+      indicators[ind] = !indicators[ind];
+      btn.classList.toggle('active', indicators[ind]);
+      renderAll();
+    });
+    btn.classList.toggle('active', indicators[btn.dataset.ind]);
+  });
+  document.getElementById('btnDelAll').addEventListener('click', () => {
+    drawings = []; selectedDrawing = null; saveDrawingsToDB(); renderAll();
+  });
+  document.getElementById('cmDelete').addEventListener('click', () => {
+    if (selectedDrawing) {
+      drawings = drawings.filter(d => d.id !== selectedDrawing.id);
+      selectedDrawing = null; saveDrawingsToDB(); renderAll();
+    }
+    hideContextMenu();
+  });
+  document.getElementById('cmColor').addEventListener('click', () => {
+    if (selectedDrawing) {
+      const colors = ['#00e5ff','#ffab00','#ff1744','#00c853','#e040fb','#ffffff','#ff6d00'];
+      const ci = (colors.indexOf(selectedDrawing.color) + 1) % colors.length;
+      selectedDrawing.color = colors[ci];
+      saveDrawingsToDB(); renderAll();
+    }
+    hideContextMenu();
+  });
+  document.getElementById('tfSelect').addEventListener('change', () => { fetchData(); });
+}
+
+// ===== DATA FETCH =====
+async function fetchData() {
+  try {
+    const tf = document.getElementById('tfSelect').value;
+    const res = await fetch(API_URL + '?tf=' + tf + '&limit=500');
+    const data = await res.json();
+    if (data && data.candles) {
+      rawCandles = data.candles.map(c => ({
+        time: c.time || c.t,
+        open: parseFloat(c.open || c.o),
+        high: parseFloat(c.high || c.h),
+        low: parseFloat(c.low || c.l),
+        close: parseFloat(c.close || c.c),
+        volume: parseFloat(c.volume || c.v || 0),
+        period: c.period || c.p || ''
+      }));
+      processData();
+      if (!blockAutoScroll) scrollToEnd();
+      renderAll();
+      updateResult();
+    }
+  } catch(e) { console.error('Fetch error:', e); }
+}
+
+async function fetchDataSilent() {
+  try {
+    const tf = document.getElementById('tfSelect').value;
+    const res = await fetch(API_URL + '?tf=' + tf + '&limit=500');
+    const data = await res.json();
+    if (data && data.candles) {
+      rawCandles = data.candles.map(c => ({
+        time: c.time || c.t,
+        open: parseFloat(c.open || c.o),
+        high: parseFloat(c.high || c.h),
+        low: parseFloat(c.low || c.l),
+        close: parseFloat(c.close || c.c),
+        volume: parseFloat(c.volume || c.v || 0),
+        period: c.period || c.p || ''
+      }));
+      processData();
+      if (!blockAutoScroll && !isDrawing && !dragState) scrollToEnd();
+      renderAll();
+      updateResult();
+    }
+  } catch(e) {}
+}
+
+function processData() {
+  candles = rawCandles.slice().sort((a,b) => a.time - b.time);
+  calcEMA(9, emaData9);
+  calcEMA(21, emaData21);
+  calcRSI(14);
+}
+
+function scrollToEnd() {
+  const totalW = candles.length * (candleW + gap);
+  scrollX = Math.max(0, totalW - W + 60);
+  maxScrollX = Math.max(0, totalW - W + 60);
+}
+
+function updateResult() {
+  if (candles.length < 2) return;
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2];
+  const dir = last.close >= last.open ? '🟢 Big' : '🔴 Small';
+  const resultEl = document.getElementById('result-text');
+  resultEl.textContent = `${dir} | C: ${last.close.toFixed(4)}`;
+  if (last.period && last.period !== lastPeriod) {
+    lastPeriod = last.period;
+  }
+}
+
+// ===== INDICATORS =====
+function calcEMA(period, out) {
+  out.length = 0;
+  if (candles.length === 0) return;
+  const k = 2 / (period + 1);
+  let ema = candles[0].close;
+  out.push(ema);
+  for (let i = 1; i < candles.length; i++) {
+    ema = candles[i].close * k + ema * (1 - k);
+    out.push(ema);
+  }
+}
+
+function calcRSI(period) {
+  rsiData.length = 0;
+  rsiSignalData.length = 0;
+  if (candles.length < period + 1) return;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = candles[i].close - candles[i-1].close;
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  for (let i = 0; i < period; i++) rsiData.push(null);
+  let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  rsiData.push(100 - 100 / (1 + rs));
+  for (let i = period + 1; i < candles.length; i++) {
+    const diff = candles[i].close - candles[i-1].close;
+    avgGain = (avgGain * (period - 1) + (diff > 0 ? diff : 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + (diff < 0 ? -diff : 0)) / period;
+    rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsiData.push(100 - 100 / (1 + rs));
+  }
+  // Signal line (EMA 9 of RSI)
+  const sigPeriod = 9;
+  const k = 2 / (sigPeriod + 1);
+  let started = false, ema = 0;
+  for (let i = 0; i < rsiData.length; i++) {
+    if (rsiData[i] === null) { rsiSignalData.push(null); continue; }
+    if (!started) { ema = rsiData[i]; started = true; rsiSignalData.push(ema); continue; }
+    ema = rsiData[i] * k + ema * (1 - k);
+    rsiSignalData.push(ema);
+  }
+}
+
+// ===== COORDINATE HELPERS =====
+function getVisibleRange() {
+  const startIdx = Math.floor(scrollX / (candleW + gap));
+  const endIdx = Math.min(candles.length - 1, startIdx + Math.ceil(W / (candleW + gap)) + 1);
+  return { startIdx: Math.max(0, startIdx), endIdx };
+}
+
+function calcPriceRange() {
+  const { startIdx, endIdx } = getVisibleRange();
+  if (startIdx > endIdx || candles.length === 0) {
+    priceMin = 0; priceMax = 1; priceRange = 1; return;
+  }
+  let min = Infinity, max = -Infinity;
+  for (let i = startIdx; i <= endIdx; i++) {
+    if (candles[i].low < min) min = candles[i].low;
+    if (candles[i].high > max) max = candles[i].high;
+  }
+  // Include EMA in range
+  if (indicators.ema9) {
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (emaData9[i] !== undefined) {
+        if (emaData9[i] < min) min = emaData9[i];
+        if (emaData9[i] > max) max = emaData9[i];
+      }
+    }
+  }
+  if (indicators.ema21) {
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (emaData21[i] !== undefined) {
+        if (emaData21[i] < min) min = emaData21[i];
+        if (emaData21[i] > max) max = emaData21[i];
+      }
+    }
+  }
+  const pad = (max - min) * 0.08 || 0.0001;
+  priceMin = min - pad;
+  priceMax = max + pad;
+  priceRange = priceMax - priceMin;
+}
+
+function priceToY(price) {
+  return mainH - ((price - priceMin) / priceRange) * (mainH - 30) - 15;
+}
+function yToPrice(y) {
+  return priceMin + ((mainH - y - 15) / (mainH - 30)) * priceRange;
+}
+function indexToX(idx) {
+  return idx * (candleW + gap) - scrollX + gap;
+}
+function xToIndex(x) {
+  return (x + scrollX - gap) / (candleW + gap);
+}
+function xToExactIndex(x) {
+  return (x + scrollX - gap) / (candleW + gap);
+}
+function rsiToY(val) {
+  return rsiH - (val / 100) * (rsiH - 10) - 5;
+}
+
+// ===== COUNTDOWN =====
+function updateCountdown() {
+  const now = Math.floor(Date.now() / 1000);
+  countdownValue = 60 - (now % 60);
+  if (countdownValue === 60) countdownValue = 0;
+  const el = document.getElementById('countdown');
+  el.textContent = countdownValue;
+  el.style.color = countdownValue <= 10 ? '#ff1744' : '#ffab00';
+}
+
+// ===== RENDER =====
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+}
+
+function renderAll() {
+  if (candles.length === 0) return;
+  calcPriceRange();
+  drawMain();
+  drawOverlay();
+  drawDrawings();
+  drawRSI();
+}
+
+function drawMain() {
+  const c = ctx.Main;
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = COLORS.bg;
+  c.fillRect(0, 0, W, H);
+
+  // Grid
+  drawGrid(c);
+
+  // Candles
+  const { startIdx, endIdx } = getVisibleRange();
+  for (let i = startIdx; i <= endIdx; i++) {
+    const candle = candles[i];
+    const x = indexToX(i);
+    const isUp = candle.close >= candle.open;
+    const color = isUp ? COLORS.up : COLORS.down;
+    const bodyTop = priceToY(Math.max(candle.open, candle.close));
+    const bodyBot = priceToY(Math.min(candle.open, candle.close));
+    const bodyH = Math.max(1, bodyBot - bodyTop);
+    const wickTop = priceToY(candle.high);
+    const wickBot = priceToY(candle.low);
+    const cx = x + candleW / 2;
+
+    // Wick
+    c.strokeStyle = color;
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(cx, wickTop);
+    c.lineTo(cx, wickBot);
+    c.stroke();
+
+    // Body
+    c.fillStyle = color;
+    if (candleW >= 3) {
+      c.fillRect(x, bodyTop, candleW, bodyH);
+    } else {
+      c.fillRect(cx, bodyTop, 1, bodyH);
+    }
+  }
+}
+
+function drawGrid(c) {
+  c.strokeStyle = COLORS.grid;
+  c.lineWidth = 0.5;
+  c.fillStyle = COLORS.gridText;
+  c.font = '10px monospace';
+
+  // Horizontal price lines
+  const nLines = 8;
+  const step = priceRange / nLines;
+  for (let i = 0; i <= nLines; i++) {
+    const price = priceMin + step * i;
+    const y = priceToY(price);
+    if (y < 0 || y > mainH) continue;
+    c.beginPath();
+    c.setLineDash([2, 4]);
+    c.moveTo(0, y);
+    c.lineTo(W, y);
+    c.stroke();
+    c.setLineDash([]);
+    c.fillText(price.toFixed(4), W - 65, y - 3);
+  }
+
+  // Vertical time lines
+  const { startIdx, endIdx } = getVisibleRange();
+  const vStep = Math.max(1, Math.floor((endIdx - startIdx) / 6));
+  for (let i = startIdx; i <= endIdx; i += vStep) {
+    const x = indexToX(i);
+    c.beginPath();
+    c.setLineDash([2, 4]);
+    c.moveTo(x, 0);
+    c.lineTo(x, mainH);
+    c.stroke();
+    c.setLineDash([]);
+    if (candles[i]) {
+      const d = new Date(candles[i].time * 1000);
+      const ts = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+      c.fillText(ts, x - 14, mainH - 3);
+    }
+  }
+
+  // RSI separator
+  c.strokeStyle = '#2a2a4a';
+  c.lineWidth = 1;
+  c.setLineDash([]);
+  c.beginPath();
+  c.moveTo(0, mainH);
+  c.lineTo(W, mainH);
+  c.stroke();
+}
+
+function drawOverlay() {
+  const c = ctx.Overlay;
+  c.clearRect(0, 0, W, H);
+  const { startIdx, endIdx } = getVisibleRange();
+
+  // EMA 9
+  if (indicators.ema9 && emaData9.length > 0) {
+    c.strokeStyle = COLORS.ema9;
+    c.lineWidth = 1.5;
+    c.beginPath();
+    let started = false;
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (emaData9[i] === undefined) continue;
+      const x = indexToX(i) + candleW / 2;
+      const y = priceToY(emaData9[i]);
+      if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
+    }
+    c.stroke();
+  }
+
+  // EMA 21
+  if (indicators.ema21 && emaData21.length > 0) {
+    c.strokeStyle = COLORS.ema21;
+    c.lineWidth = 1.5;
+    c.beginPath();
+    let started = false;
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (emaData21[i] === undefined) continue;
+      const x = indexToX(i) + candleW / 2;
+      const y = priceToY(emaData21[i]);
+      if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
+    }
+    c.stroke();
+  }
+
+  // Current price line
+  if (candles.length > 0) {
+    const last = candles[candles.length - 1];
+    const y = priceToY(last.close);
+    const isUp = last.close >= last.open;
+    c.strokeStyle = isUp ? COLORS.up : COLORS.down;
+    c.lineWidth = 1;
+    c.setLineDash([4, 4]);
+    c.beginPath();
+    c.moveTo(0, y);
+    c.lineTo(W, y);
+    c.stroke();
+    c.setLineDash([]);
+    // Price label
+    c.fillStyle = isUp ? COLORS.up : COLORS.down;
+    c.fillRect(W - 68, y - 9, 68, 18);
+    c.fillStyle = '#000';
+    c.font = 'bold 11px monospace';
+    c.fillText(last.close.toFixed(4), W - 64, y + 4);
+  }
+}
+
+function drawRSI() {
+  const c = ctx.RSI;
+  c.clearRect(0, 0, W, rsiH);
+  if (!indicators.rsi || rsiData.length === 0) return;
+
+  c.fillStyle = '#0a0a1a';
+  c.fillRect(0, 0, W, rsiH);
+
+  // OB/OS zones
+  const ob = rsiToY(70), os = rsiToY(30);
+  c.fillStyle = COLORS.rsiOB;
+  c.fillRect(0, 0, W, ob);
+  c.fillStyle = COLORS.rsiOS;
+  c.fillRect(0, os, W, rsiH - os);
+
+  // 50 line
+  c.strokeStyle = '#333';
+  c.lineWidth = 0.5;
+  c.setLineDash([3, 3]);
+  c.beginPath();
+  const y50 = rsiToY(50);
+  c.moveTo(0, y50); c.lineTo(W, y50);
+  c.stroke();
+  c.setLineDash([]);
+
+  // OB/OS lines
+  c.strokeStyle = '#444';
+  c.beginPath(); c.moveTo(0, ob); c.lineTo(W, ob); c.stroke();
+  c.beginPath(); c.moveTo(0, os); c.lineTo(W, os); c.stroke();
+
+  const { startIdx, endIdx } = getVisibleRange();
+
+  // RSI line
+  c.strokeStyle = COLORS.rsiLine;
+  c.lineWidth = 1.5;
+  c.beginPath();
+  let started = false;
+  for (let i = startIdx; i <= endIdx; i++) {
+    if (rsiData[i] === null || rsiData[i] === undefined) continue;
+    const x = indexToX(i) + candleW / 2;
+    const y = rsiToY(rsiData[i]);
+    if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
+  }
+  c.stroke();
+
+  // Signal line
+  c.strokeStyle = COLORS.rsiSignal;
+  c.lineWidth = 1;
+  c.beginPath();
+  started = false;
+  for (let i = startIdx; i <= endIdx; i++) {
+    if (rsiSignalData[i] === null || rsiSignalData[i] === undefined) continue;
+    const x = indexToX(i) + candleW / 2;
+    const y = rsiToY(rsiSignalData[i]);
+    if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
+  }
+  c.stroke();
+
+  // Labels
+  c.fillStyle = '#666';
+  c.font = '9px monospace';
+  c.fillText('70', 2, ob + 10);
+  c.fillText('30', 2, os - 3);
+  c.fillText('RSI', W - 28, 12);
+}
+
+// ===== DRAWINGS =====
+function drawDrawings() {
+  const c = ctx.Drawing;
+  c.clearRect(0, 0, W, H);
+
+  drawings.forEach(d => {
+    const isSel = selectedDrawing && selectedDrawing.id === d.id;
+    switch(d.type) {
+      case 'trendline': drawTrendline(c, d, isSel); break;
+      case 'hline': drawHLine(c, d, isSel); break;
+      case 'rect': drawRectangle(c, d, isSel); break;
+      case 'fib': drawFibonacci(c, d, isSel); break;
+      case 'text': drawTextAnnotation(c, d, isSel); break;
+    }
+  });
+
+  // Drawing in progress
+  if (drawingInProgress) {
+    switch(drawingInProgress.type) {
+      case 'trendline': drawTrendline(c, drawingInProgress, false); break;
+      case 'hline': drawHLine(c, drawingInProgress, false); break;
+      case 'rect': drawRectangle(c, drawingInProgress, false); break;
+      case 'fib': drawFibonacci(c, drawingInProgress, false); break;
+    }
+  }
+}
+
+function drawTrendline(c, d, selected) {
+  const x1 = indexToX(d.x1) + candleW / 2;
+  const y1 = priceToY(d.y1);
+  const x2 = indexToX(d.x2) + candleW / 2;
+  const y2 = priceToY(d.y2);
+  c.strokeStyle = d.color || COLORS.trendline;
+  c.lineWidth = selected ? 2.5 : 1.5;
+  if (selected) c.setLineDash([6, 3]); else c.setLineDash([]);
+  c.beginPath();
+  c.moveTo(x1, y1);
+  c.lineTo(x2, y2);
+  c.stroke();
+  c.setLineDash([]);
+  if (selected) {
+    drawEndpoint(c, x1, y1);
+    drawEndpoint(c, x2, y2);
+  }
+}
+
+function drawHLine(c, d, selected) {
+  const y = priceToY(d.y1);
+  c.strokeStyle = d.color || COLORS.hline;
+  c.lineWidth = selected ? 2 : 1;
+  c.setLineDash([6, 4]);
+  c.beginPath();
+  c.moveTo(0, y);
+  c.lineTo(W, y);
+  c.stroke();
+  c.setLineDash([]);
+  // Price label
+  c.fillStyle = d.color || COLORS.hline;
+  c.font = '10px monospace';
+  c.fillText(d.y1.toFixed(4), 5, y - 4);
+  if (selected) {
+    drawEndpoint(c, W / 2, y);
+  }
+}
+
+function drawRectangle(c, d, selected) {
+  const x1 = indexToX(d.x1) + candleW / 2;
+  const y1 = priceToY(d.y1);
+  const x2 = indexToX(d.x2) + candleW / 2;
+  const y2 = priceToY(d.y2);
+  const rx = Math.min(x1, x2), ry = Math.min(y1, y2);
+  const rw = Math.abs(x2 - x1), rh = Math.abs(y2 - y1);
+  c.fillStyle = d.fillColor || COLORS.rect;
+  c.fillRect(rx, ry, rw, rh);
+  c.strokeStyle = d.color || COLORS.rectBorder;
+  c.lineWidth = selected ? 2 : 1;
+  if (selected) c.setLineDash([4, 3]); else c.setLineDash([]);
+  c.strokeRect(rx, ry, rw, rh);
+  c.setLineDash([]);
+  if (selected) {
+    drawEndpoint(c, x1, y1);
+    drawEndpoint(c, x2, y2);
+    drawEndpoint(c, x1, y2);
+    drawEndpoint(c, x2, y1);
+  }
+}
+
+function drawFibonacci(c, d, selected) {
+  const x1 = indexToX(d.x1) + candleW / 2;
+  const x2 = indexToX(d.x2) + candleW / 2;
+  const high = Math.max(d.y1, d.y2);
+  const low = Math.min(d.y1, d.y2);
+  const range = high - low;
+  const fibColors = ['#ff1744','#ff6d00','#ffab00','#ffffff','#00e5ff','#00c853','#e040fb'];
+  FIB_LEVELS.forEach((level, i) => {
+    const price = high - range * level;
+    const y = priceToY(price);
+    c.strokeStyle = fibColors[i] || COLORS.fib;
+    c.lineWidth = selected ? 1.5 : 1;
+    c.setLineDash(level === 0 || level === 1 ? [] : [4, 3]);
+    c.beginPath();
+    c.moveTo(Math.min(x1, x2) - 20, y);
+    c.lineTo(Math.max(x1, x2) + 20, y);
+    c.stroke();
+    c.setLineDash([]);
+    c.fillStyle = fibColors[i];
+    c.font = '10px monospace';
+    c.fillText(`${(level * 100).toFixed(1)}% ${price.toFixed(4)}`, Math.min(x1, x2) - 20, y - 3);
+  });
+  if (selected) {
+    drawEndpoint(c, x1, priceToY(d.y1));
+    drawEndpoint(c, x2, priceToY(d.y2));
+  }
+}
+
+function drawTextAnnotation(c, d, selected) {
+  const x = indexToX(d.x1) + candleW / 2;
+  const y = priceToY(d.y1);
+  c.fillStyle = d.color || COLORS.text;
+  c.font = 'bold 13px sans-serif';
+  c.fillText(d.text || 'Text', x, y);
+  if (selected) {
+    const m = c.measureText(d.text || 'Text');
+    c.strokeStyle = COLORS.selection;
+    c.lineWidth = 1;
+    c.setLineDash([3, 3]);
+    c.strokeRect(x - 3, y - 14, m.width + 6, 18);
+    c.setLineDash([]);
+  }
+}
+
+function drawEndpoint(c, x, y) {
+  c.fillStyle = COLORS.selection;
+  c.strokeStyle = '#fff';
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.arc(x, y, ENDPOINT_RADIUS - 2, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+}
+
+// ===== CROSSHAIR =====
+function drawCrosshair(mx, my) {
+  const c = ctx.Crosshair;
+  c.clearRect(0, 0, W, H);
+  if (mx < 0 || my < 0 || mx > W || my > H) return;
+
+  c.strokeStyle = COLORS.crosshair;
+  c.lineWidth = 0.5;
+  c.setLineDash([4, 4]);
+  c.beginPath();
+  c.moveTo(mx, 0); c.lineTo(mx, mainH);
+  c.moveTo(0, my); c.lineTo(W, my);
+  c.stroke();
+  c.setLineDash([]);
+
+  // Price label
+  if (my < mainH) {
+    const price = yToPrice(my);
+    c.fillStyle = '#1a1a3a';
+    c.fillRect(W - 68, my - 9, 68, 18);
+    c.strokeStyle = '#555';
+    c.strokeRect(W - 68, my - 9, 68, 18);
+    c.fillStyle = '#ddd';
+    c.font = '10px monospace';
+    c.fillText(price.toFixed(4), W - 64, my + 4);
+  }
+
+  // Time label
+  const idx = Math.round(xToIndex(mx));
+  if (idx >= 0 && idx < candles.length) {
+    const d = new Date(candles[idx].time * 1000);
+    const ts = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    c.fillStyle = '#1a1a3a';
+    c.fillRect(mx - 20, mainH - 16, 40, 16);
+    c.fillStyle = '#ddd';
+    c.font = '10px monospace';
+    c.fillText(ts, mx - 14, mainH - 4);
+  }
+}
+
+// ===== INTERACTION =====
+function setupInteraction() {
+  const el = canvases.Interact;
+
+  // --- MOUSE ---
+  el.addEventListener('mousedown', e => { onPointerDown(e.offsetX, e.offsetY, e); });
+  el.addEventListener('mousemove', e => { onPointerMove(e.offsetX, e.offsetY, e); });
+  el.addEventListener('mouseup', e => { onPointerUp(e.offsetX, e.offsetY, e); });
+  el.addEventListener('mouseleave', () => { mouseX = -1; mouseY = -1; drawCrosshair(-1, -1); });
+  el.addEventListener('dblclick', e => { onDoubleClick(e.offsetX, e.offsetY); });
+  el.addEventListener('wheel', e => { e.preventDefault(); onWheel(e); }, { passive: false });
+
+  // --- TOUCH ---
+  let touchStartX = 0, touchStartY = 0, touchStartScrollX = 0;
+  let pinchDist = 0;
+  let isTouching = false;
+
+  el.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      pinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      return;
+    }
+    const touch = e.touches[0];
+    const rect = el.getBoundingClientRect();
+    const tx = touch.clientX - rect.left;
+    const ty = touch.clientY - rect.top;
+    isTouching = true;
+    touchStartX = tx;
+    touchStartY = ty;
+    touchStartScrollX = scrollX;
+    longPressTriggered = false;
+    longPressTimer = setTimeout(() => {
+      longPressTriggered = true;
+      onDoubleClick(tx, ty);
+    }, LONG_PRESS_MS);
+    onPointerDown(tx, ty, null);
+  }, { passive: false });
+
+  el.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const nd = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = nd / pinchDist;
+      if (scale > 1.03) { zoomIn(); pinchDist = nd; }
+      else if (scale < 0.97) { zoomOut(); pinchDist = nd; }
+      return;
+    }
+    clearTimeout(longPressTimer);
+    const touch = e.touches[0];
+    const rect = el.getBoundingClientRect();
+    const tx = touch.clientX - rect.left;
+    const ty = touch.clientY - rect.top;
+    onPointerMove(tx, ty, null);
+  }, { passive: false });
+
+  el.addEventListener('touchend', e => {
+    e.preventDefault();
+    clearTimeout(longPressTimer);
+    if (isTouching) {
+      const rect = el.getBoundingClientRect();
+      let tx = touchStartX, ty = touchStartY;
+      if (e.changedTouches.length > 0) {
+        tx = e.changedTouches[0].clientX - rect.left;
+        ty = e.changedTouches[0].clientY - rect.top;
+      }
+      if (!longPressTriggered) {
+        onPointerUp(tx, ty, null);
+      }
+      isTouching = false;
+    }
+    mouseX = -1; mouseY = -1;
+    drawCrosshair(-1, -1);
+  }, { passive: false });
+
+  // Context menu prevention
+  el.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (selectedDrawing) {
+        drawings = drawings.filter(d => d.id !== selectedDrawing.id);
+        selectedDrawing = null;
+        saveDrawingsToDB();
+        renderAll();
+      }
+    }
+    if (e.key === 'Escape') {
+      cancelDrawing();
+      deselectAll();
+      currentTool = 'pointer';
+      document.querySelectorAll('#toolbar button[data-tool]').forEach(b => b.classList.remove('active'));
+      document.getElementById('btnPointer').classList.add('active');
+      canvases.Interact.style.cursor = 'default';
+    }
+  });
+}
+
+// ===== POINTER HANDLERS =====
+let panState = null;
+
+function onPointerDown(x, y, e) {
+  mouseX = x; mouseY = y;
+
+  // If we have a selected drawing, check for endpoint drag
+  if (selectedDrawing && currentTool === 'pointer') {
+    const ep = findEndpoint(selectedDrawing, x, y);
+    if (ep !== null) {
+      dragState = {
+        type: 'endpoint',
+        drawingId: selectedDrawing.id,
+        endpointIdx: ep,
+        startX: x, startY: y
+      };
+      blockAutoScroll = true;
+      return;
+    }
+    // Check for body drag on selected
+    if (hitTestDrawing(selectedDrawing, x, y)) {
+      dragState = {
+        type: 'move',
+        drawingId: selectedDrawing.id,
+        startX: x, startY: y,
+        origX1: selectedDrawing.x1, origY1: selectedDrawing.y1,
+        origX2: selectedDrawing.x2, origY2: selectedDrawing.y2
+      };
+      blockAutoScroll = true;
+      return;
+    }
+  }
+
+  // Drawing tools
+  if (currentTool !== 'pointer') {
+    blockAutoScroll = true;
+    const idx = xToExactIndex(x);
+    const price = yToPrice(y);
+    if (currentTool === 'text') {
+      const txt = prompt('Enter text:', 'Label');
+      if (txt) {
+        const d = {
+          id: genId(), type: 'text',
+          x1: idx, y1: price,
+          text: txt, color: COLORS.text
+        };
+        drawings.push(d);
+        saveDrawingsToDB();
+        renderAll();
+      }
+      blockAutoScroll = false;
+      return;
+    }
+    if (currentTool === 'hline') {
+      const d = {
+        id: genId(), type: 'hline',
+        y1: price, color: COLORS.hline
+      };
+      drawings.push(d);
+      saveDrawingsToDB();
+      renderAll();
+      blockAutoScroll = false;
+      return;
+    }
+    // Trendline, Rect, Fib: need two points
+    if (!drawingInProgress) {
+      drawingInProgress = {
+        id: genId(), type: currentTool,
+        x1: idx, y1: price,
+        x2: idx, y2: price,
+        color: currentTool === 'trendline' ? COLORS.trendline :
+               currentTool === 'rect' ? COLORS.rectBorder :
+               currentTool === 'fib' ? COLORS.fib : COLORS.trendline,
+        fillColor: currentTool === 'rect' ? COLORS.rect : undefined
+      };
+      isDrawing = true;
+    }
+    return;
+  }
+
+  // Pointer tool: start panning
+  panState = { startX: x, startY: y, startScrollX: scrollX };
+}
+
+function onPointerMove(x, y, e) {
+  mouseX = x; mouseY = y;
+  drawCrosshair(x, y);
+
+  // Endpoint drag
+  if (dragState && dragState.type === 'endpoint') {
+    const d = drawings.find(dd => dd.id === dragState.drawingId);
+    if (d) {
+      const idx = xToExactIndex(x);
+      const price = yToPrice(y);
+      if (d.type === 'trendline' || d.type === 'fib') {
+        if (dragState.endpointIdx === 0) { d.x1 = idx; d.y1 = price; }
+        else { d.x2 = idx; d.y2 = price; }
+      } else if (d.type === 'rect') {
+        if (dragState.endpointIdx === 0) { d.x1 = idx; d.y1 = price; }
+        else if (dragState.endpointIdx === 1) { d.x2 = idx; d.y2 = price; }
+        else if (dragState.endpointIdx === 2) { d.x1 = idx; d.y2 = price; }
+        else { d.x2 = idx; d.y1 = price; }
+      } else if (d.type === 'hline') {
+        d.y1 = price;
+      }
+      selectedDrawing = d;
+      renderAll();
+    }
+    return;
+  }
+
+  // Move drag
+  if (dragState && dragState.type === 'move') {
+    const d = drawings.find(dd => dd.id === dragState.drawingId);
+    if (d) {
+      const dxPx = x - dragState.startX;
+      const dyPx = y - dragState.startY;
+      const dIdx = dxPx / (candleW + gap);
+      const dPrice = -dyPx / (mainH - 30) * priceRange;
+      if (d.type === 'trendline' || d.type === 'rect' || d.type === 'fib') {
+        d.x1 = dragState.origX1 + dIdx;
+        d.y1 = dragState.origY1 + dPrice;
+        d.x2 = dragState.origX2 + dIdx;
+        d.y2 = dragState.origY2 + dPrice;
+      } else if (d.type === 'hline') {
+        d.y1 = dragState.origY1 + dPrice;
+      } else if (d.type === 'text') {
+        d.x1 = dragState.origX1 + dIdx;
+        d.y1 = dragState.origY1 + dPrice;
+      }
+      selectedDrawing = d;
+      renderAll();
+    }
+    return;
+  }
+
+  // Drawing in progress
+  if (isDrawing && drawingInProgress) {
+    drawingInProgress.x2 = xToExactIndex(x);
+    drawingInProgress.y2 = yToPrice(y);
+    renderAll();
+    return;
+  }
+
+  // Panning
+  if (panState && currentTool === 'pointer') {
+    const dx = panState.startX - x;
+    scrollX = Math.max(0, panState.startScrollX + dx);
+    const totalW = candles.length * (candleW + gap);
+    maxScrollX = Math.max(0, totalW - W + 60);
+    scrollX = Math.min(scrollX, maxScrollX);
+    renderAll();
+  }
+}
+
+function onPointerUp(x, y, e) {
+  mouseX = x; mouseY = y;
+
+  // Finish endpoint/move drag
+  if (dragState) {
+    dragState = null;
+    blockAutoScroll = false;
+    saveDrawingsToDB();
+    renderAll();
+    return;
+  }
+
+  // Finish drawing
+  if (isDrawing && drawingInProgress) {
+    drawingInProgress.x2 = xToExactIndex(x);
+    drawingInProgress.y2 = yToPrice(y);
+    // Validate minimum distance
+    const dx = Math.abs(indexToX(drawingInProgress.x2) - indexToX(drawingInProgress.x1));
+    const dy = Math.abs(priceToY(drawingInProgress.y2) - priceToY(drawingInProgress.y1));
+    if (dx > 5 || dy > 5) {
+      drawings.push({...drawingInProgress});
+      saveDrawingsToDB();
+    }
+    drawingInProgress = null;
+    isDrawing = false;
+    blockAutoScroll = false;
+    renderAll();
+    return;
+  }
+
+  panState = null;
+}
+
+function onDoubleClick(x, y) {
+  // Select drawing under cursor
+  deselectAll();
+  hideContextMenu();
+  for (let i = drawings.length - 1; i >= 0; i--) {
+    if (hitTestDrawing(drawings[i], x, y)) {
+      selectedDrawing = drawings[i];
+      renderAll();
+      showContextMenu(x, y);
+      return;
+    }
+  }
+  deselectAll();
+  renderAll();
+}
+
+function onWheel(e) {
+  if (e.deltaY < 0) zoomIn(); else zoomOut();
+}
+
+function zoomIn() {
+  if (candleW < 40) {
+    candleW = Math.min(40, candleW + 2);
+    gap = Math.max(1, Math.round(candleW * 0.3));
+    adjustScrollAfterZoom();
+    renderAll();
+  }
+}
+
+function zoomOut() {
+  if (candleW > 2) {
+    candleW = Math.max(2, candleW - 2);
+    gap = Math.max(1, Math.round(candleW * 0.3));
+    adjustScrollAfterZoom();
+    renderAll();
+  }
+}
+
+function adjustScrollAfterZoom() {
+  const totalW = candles.length * (candleW + gap);
+  maxScrollX = Math.max(0, totalW - W + 60);
+  scrollX = Math.min(scrollX, maxScrollX);
+}
+
+// ===== HIT TESTING =====
+function hitTestDrawing(d, x, y) {
+  switch(d.type) {
+    case 'trendline': return hitTestLine(d, x, y);
+    case 'hline': return hitTestHLine(d, x, y);
+    case 'rect': return hitTestRect(d, x, y);
+    case 'fib': return hitTestFib(d, x, y);
+    case 'text': return hitTestText(d, x, y);
+  }
+  return false;
+}
+
+function hitTestLine(d, px, py) {
+  const x1 = indexToX(d.x1) + candleW / 2;
+  const y1 = priceToY(d.y1);
+  const x2 = indexToX(d.x2) + candleW / 2;
+  const y2 = priceToY(d.y2);
+  return distToSegment(px, py, x1, y1, x2, y2) < 10;
+}
+
+function hitTestHLine(d, px, py) {
+  const y = priceToY(d.y1);
+  return Math.abs(py - y) < 8;
+}
+
+function hitTestRect(d, px, py) {
+  const x1 = indexToX(d.x1) + candleW / 2;
+  const y1 = priceToY(d.y1);
+  const x2 = indexToX(d.x2) + candleW / 2;
+  const y2 = priceToY(d.y2);
+  const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+  const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+  // Hit on border (within 8px of edges)
+  if (px >= minX - 8 && px <= maxX + 8 && py >= minY - 8 && py <= maxY + 8) {
+    if (px < minX + 8 || px > maxX - 8 || py < minY + 8 || py > maxY - 8) return true;
+    // Also hit inside for move
+    return true;
+  }
+  return false;
+}
+
+function hitTestFib(d, px, py) {
+  const high = Math.max(d.y1, d.y2);
+  const low = Math.min(d.y1, d.y2);
+  const range = high - low;
+  for (const level of FIB_LEVELS) {
+    const price = high - range * level;
+    const y = priceToY(price);
+    if (Math.abs(py - y) < 8) return true;
+  }
+  return false;
+}
+
+function hitTestText(d, px, py) {
+  const x = indexToX(d.x1) + candleW / 2;
+  const y = priceToY(d.y1);
+  return px >= x - 5 && px <= x + 100 && py >= y - 16 && py <= y + 4;
+}
+
+function findEndpoint(d, px, py) {
+  const r = ENDPOINT_RADIUS + 4;
+  if (d.type === 'trendline' || d.type === 'fib') {
+    const x1 = indexToX(d.x1) + candleW / 2, y1 = priceToY(d.y1);
+    const x2 = indexToX(d.x2) + candleW / 2, y2 = priceToY(d.y2);
+    if (Math.hypot(px - x1, py - y1) < r) return 0;
+    if (Math.hypot(px - x2, py - y2) < r) return 1;
+  } else if (d.type === 'rect') {
+    const x1 = indexToX(d.x1) + candleW / 2, y1 = priceToY(d.y1);
+    const x2 = indexToX(d.x2) + candleW / 2, y2 = priceToY(d.y2);
+    if (Math.hypot(px - x1, py - y1) < r) return 0;
+    if (Math.hypot(px - x2, py - y2) < r) return 1;
+    if (Math.hypot(px - x1, py - y2) < r) return 2;
+    if (Math.hypot(px - x2, py - y1) < r) return 3;
+  } else if (d.type === 'hline') {
+    const hy = priceToY(d.y1);
+    if (Math.abs(py - hy) < r) return 0;
+  }
+  return null;
+}
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
+  const dot = A * C + B * D;
+  const len2 = C * C + D * D;
+  let t = len2 !== 0 ? dot / len2 : -1;
+  t = Math.max(0, Math.min(1, t));
+  const xx = x1 + t * C, yy = y1 + t * D;
+  return Math.hypot(px - xx, py - yy);
+}
+
+function cancelDrawing() {
+  drawingInProgress = null;
+  isDrawing = false;
+  blockAutoScroll = false;
+  renderAll();
+}
+
+function deselectAll() {
+  selectedDrawing = null;
+  renderAll();
+}
+
+function showContextMenu(x, y) {
+  const cm = document.getElementById('context-menu');
+  cm.style.display = 'block';
+  cm.style.left = Math.min(x, W - 130) + 'px';
+  cm.style.top = Math.min(y, H - 80) + 'px';
+}
+
+function hideContextMenu() {
+  document.getElementById('context-menu').style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#context-menu')) hideContextMenu();
 });
-var cs=mc.addCandlestickSeries({upColor:"#10b981",downColor:"#ef4444",borderUpColor:"#10b981",borderDownColor:"#ef4444",wickUpColor:"#10b981",wickDownColor:"#ef4444"});
-var e9s=null,e21s=null,e9=false,e21=false;
-var rc=LightweightCharts.createChart(rcE,{
-layout:{background:{color:"#0f172a"},textColor:"#94a3b8",fontSize:10},
-grid:{vertLines:{color:"#1e293b"},horzLines:{color:"#1e293b"}},
-timeScale:{timeVisible:false,borderColor:"#334155",barSpacing:8,minBarSpacing:3,rightOffset:10},
-rightPriceScale:{borderColor:"#334155",scaleMargins:{top:.1,bottom:.1}},
-handleScroll:{mouseWheel:true,pressedMouseMove:true},handleScale:{mouseWheel:true,pinch:true}
-});
-var rsiS=null,rsiSig=null,rsiOn=false,r70=null,r30=null;
 
-mc.timeScale().subscribeVisibleLogicalRangeChange(function(r){if(r)rc.timeScale().setVisibleLogicalRange(r)});
-rc.timeScale().subscribeVisibleLogicalRangeChange(function(r){if(r)mc.timeScale().setVisibleLogicalRange(r)});
-mc.timeScale().subscribeVisibleLogicalRangeChange(function(){drawAll()});
-
-mc.subscribeCrosshairMove(function(p){
-if(tool!=="crosshair"||!p||!p.time){ciE.style.display="none";return}
-var a=Array.from(rm.values()).sort(function(a,b){return a.period.localeCompare(b.period)});
-var f=null;for(var i=0;i<a.length;i++){if(p2u(a[i].period)===p.time){f=a[i];break}}
-if(!f){ciE.style.display="none";return}
-ciE.innerHTML='<div><span class="cl">Period: </span><span class="cv">'+f.period+'</span></div><div><span class="cl">Block: </span><span class="cv">'+f.blockHeight+'</span></div><div><span class="cl">Time: </span><span class="cv">'+f.blockTime+'</span></div><div><span class="cl">Result: </span><span class="cv">'+f.result+'</span></div><div><span class="cl">Size: </span><span class="'+(f.bigSmall==="Big"?"cb":"cs")+'">'+f.bigSmall+'</span></div>';
-ciE.style.display="block";
-});
-
-function rsz(){
-var a=document.getElementById("chart-area");var w=a.clientWidth,h=a.clientHeight;
-var rh=rsiOn?Math.floor(h*0.25):0;var mh=h-rh;
-mcE.style.height=mh+"px";rcE.style.height=rh+"px";rcE.style.display=rsiOn?"block":"none";
-mc.applyOptions({width:w,height:mh});if(rsiOn)rc.applyOptions({width:w,height:rh});
-cvs.width=w;cvs.height=mh;cvs.style.height=mh+"px";drawAll();
-}
-window.addEventListener("resize",rsz);
-
-function cEMA(d,p){var e=[];if(d.length<p)return e;var k=2/(p+1),s=0;for(var i=0;i<p;i++)s+=d[i].value;var v=s/p;e.push({time:d[p-1].time,value:Math.round(v*100)/100});for(var j=p;j<d.length;j++){v=d[j].value*k+v*(1-k);e.push({time:d[j].time,value:Math.round(v*100)/100})}return e}
-function cSMA(d,p){var s=[];if(d.length<p)return s;for(var i=p-1;i<d.length;i++){var v=0;for(var j=i-p+1;j<=i;j++)v+=d[j].value;s.push({time:d[i].time,value:Math.round((v/p)*100)/100})}return s}
-function cRSI(d,p){var r=[];if(d.length<p+1)return r;var g=0,l=0;for(var i=1;i<=p;i++){var x=d[i].value-d[i-1].value;if(x>0)g+=x;else l-=x}var ag=g/p,al=l/p;var rs=al===0?100:ag/al;r.push({time:d[p].time,value:Math.round((100-100/(1+rs))*100)/100});for(var j=p+1;j<d.length;j++){var x=d[j].value-d[j-1].value;var gg=x>0?x:0,ll=x<0?-x:0;ag=(ag*(p-1)+gg)/p;al=(al*(p-1)+ll)/p;rs=al===0?100:ag/al;r.push({time:d[j].time,value:Math.round((100-100/(1+rs))*100)/100})}return r}
-
-function toggleEma(p){if(p===9){e9=!e9;document.getElementById("bE9").classList.toggle("on",e9);if(!e9&&e9s){mc.removeSeries(e9s);e9s=null}}else{e21=!e21;document.getElementById("bE21").classList.toggle("on",e21);if(!e21&&e21s){mc.removeSeries(e21s);e21s=null}}uInd()}
-function toggleRsi(){rsiOn=!rsiOn;document.getElementById("bRSI").classList.toggle("on",rsiOn);if(!rsiOn){if(rsiS){rc.removeSeries(rsiS);rsiS=null}if(rsiSig){rc.removeSeries(rsiSig);rsiSig=null}if(r70){rc.removeSeries(r70);r70=null}if(r30){rc.removeSeries(r30);r30=null}}rsz();uInd()}
-
-function gPD(){var a=Array.from(rm.values()).sort(function(a,b){return a.period.localeCompare(b.period)});var c=Date.now()-HR*3600000;var v=a.filter(function(r){return r.timestamp>=c});var pd=[];var pr=100;var pv=null;for(var i=0;i<v.length;i++){var row=v[i];var s=row.bigSmall==="Big"?"big":"small";if(s==="big"){if(pv==="big")pr+=1}else{if(pv==="small")pr-=1}pd.push({time:p2u(row.period),value:s==="big"?pr+1:pr});pv=s}return pd}
-
-function uInd(){var pd=gPD();if(e9){var d=cEMA(pd,9);if(!e9s)e9s=mc.addLineSeries({color:"#f59e0b",lineWidth:1,lastValueVisible:false,priceLineVisible:false});e9s.setData(d)}if(e21){var d=cEMA(pd,21);if(!e21s)e21s=mc.addLineSeries({color:"#8b5cf6",lineWidth:1,lastValueVisible:false,priceLineVisible:false});e21s.setData(d)}if(rsiOn){var rd=cRSI(pd,14);var rs=cSMA(rd,9);if(!rsiS){rsiS=rc.addLineSeries({color:"#06b6d4",lineWidth:1.5,lastValueVisible:true,priceLineVisible:false});rsiSig=rc.addLineSeries({color:"#f59e0b",lineWidth:1,lastValueVisible:true,priceLineVisible:false});r70=rc.addLineSeries({color:"rgba(239,68,68,.3)",lineWidth:1,lineStyle:2,lastValueVisible:false,priceLineVisible:false});r30=rc.addLineSeries({color:"rgba(16,185,129,.3)",lineWidth:1,lineStyle:2,lastValueVisible:false,priceLineVisible:false})}rsiS.setData(rd);rsiSig.setData(rs);if(rd.length>0){r70.setData([{time:rd[0].time,value:70},{time:rd[rd.length-1].time,value:70}]);r30.setData([{time:rd[0].time,value:30},{time:rd[rd.length-1].time,value:30}])}}}var tool="crosshair";
-var drs=[];
-var ds=null;
-var drag=null;
-var epd=null;
-var selM=false;
-var lpt=null;
-
-function gp(e){var r=cvs.getBoundingClientRect();if(e.touches&&e.touches.length)return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};return{x:e.clientX-r.left,y:e.clientY-r.top}}
-
-function setTool(t){
-tool=t;selM=false;
-for(var i=0;i<drs.length;i++)drs[i].sel=false;
-shE.style.display="none";document.getElementById("bDel").classList.remove("da");
-document.querySelectorAll("#toolbar .tb").forEach(function(b){
-var id=b.id;if(id&&id!=="bDel"&&id!=="bE9"&&id!=="bE21"&&id!=="bRSI")b.classList.remove("on");
-});
-if(t==="crosshair")document.getElementById("bCH").classList.add("on");
-else if(t==="trendline")document.getElementById("bTL").classList.add("on");
-else if(t==="hline")document.getElementById("bHL").classList.add("on");
-else if(t==="rect")document.getElementById("bRC").classList.add("on");
-else if(t==="fib")document.getElementById("bFB").classList.add("on");
-else if(t==="text")document.getElementById("bTX").classList.add("on");
-if(t==="crosshair"){
-cvs.classList.remove("on");cvs.style.cursor="";
-mc.applyOptions({handleScroll:{mouseWheel:true,pressedMouseMove:true},handleScale:{mouseWheel:true,pinch:true}});
-ciE.style.display="block";
-}else{
-cvs.classList.add("on");cvs.style.cursor="crosshair";
-mc.applyOptions({handleScroll:{mouseWheel:true,pressedMouseMove:false},handleScale:{mouseWheel:true,pinch:true}});
-ciE.style.display="none";
-}
-ds=null;drag=null;epd=null;drawAll();
+function genId() {
+  return 'd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 }
 
-function enterSel(mx,my){
-selM=true;cvs.classList.add("on");cvs.style.cursor="pointer";
-mc.applyOptions({handleScroll:{mouseWheel:true,pressedMouseMove:false}});
-doSel(mx,my);
+// ===== IndexedDB =====
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e);
+  });
 }
 
-function exitSel(){
-selM=false;
-for(var i=0;i<drs.length;i++)drs[i].sel=false;
-shE.style.display="none";document.getElementById("bDel").classList.remove("da");
-if(tool==="crosshair"){cvs.classList.remove("on");cvs.style.cursor="";mc.applyOptions({handleScroll:{mouseWheel:true,pressedMouseMove:true}})}
-drawAll();
+async function saveDrawingsToDB() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    store.clear();
+    drawings.forEach(d => store.put(JSON.parse(JSON.stringify(d))));
+  } catch(e) { console.error('DB save error:', e); }
 }
 
-function doSel(mx,my){
-var found=false;
-for(var i=drs.length-1;i>=0;i--){
-drs[i].sel=false;
-if(!found&&ht(drs[i],mx,my)){drs[i].sel=true;found=true}
-}
-drawAll();
-shE.style.display=found?"block":"none";
-document.getElementById("bDel").classList.toggle("da",found);
-return found;
-}
-
-function ht(d,mx,my){
-var T=14;
-var x1=t2x(d.t1),y1=p2y(d.p1);
-if(x1<-9000||y1<-9000)return false;
-if(d.tp==="text")return Math.abs(mx-x1)<50&&Math.abs(my-y1)<20;
-if(d.tp==="hline")return Math.abs(my-y1)<T;
-var x2=t2x(d.t2),y2=p2y(d.p2);
-if(x2<-9000||y2<-9000)return false;
-if(d.tp==="trendline"){
-var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
-if(len<2)return false;
-var dist=Math.abs(dy*mx-dx*my+x2*y1-y2*x1)/len;
-return dist<T&&mx>=Math.min(x1,x2)-T&&mx<=Math.max(x1,x2)+T;
-}
-if(d.tp==="rect"){
-var ax=Math.min(x1,x2),bx=Math.max(x1,x2),ay=Math.min(y1,y2),by=Math.max(y1,y2);
-if(mx>=ax-T&&mx<=bx+T&&(Math.abs(my-ay)<T||Math.abs(my-by)<T))return true;
-if(my>=ay-T&&my<=by+T&&(Math.abs(mx-ax)<T||Math.abs(mx-bx)<T))return true;
-return false;
-}
-if(d.tp==="fib")return my>=Math.min(y1,y2)-T&&my<=Math.max(y1,y2)+T;
-return false;
+async function loadDrawingsFromDB() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const store = tx.objectStore(DB_STORE);
+    const req = store.getAll();
+    req.onsuccess = () => {
+      drawings = req.result || [];
+      renderAll();
+    };
+  } catch(e) { console.error('DB load error:', e); }
 }
 
-function fEP(d,mx,my){
-var T=25;
-if(d.tp==="hline"||d.tp==="text")return null;
-var x1=t2x(d.t1),y1=p2y(d.p1);
-var x2=t2x(d.t2),y2=p2y(d.p2);
-if(x1>-9000&&y1>-9000&&Math.abs(mx-x1)<T&&Math.abs(my-y1)<T)return 1;
-if(x2>-9000&&y2>-9000&&Math.abs(mx-x2)<T&&Math.abs(my-y2)<T)return 2;
-return null;
-}
-
-function t2x(t){try{var v=mc.timeScale().timeToCoordinate(t);return(v===null||v===undefined)?-9999:v}catch(e){return -9999}}
-function p2y(p){try{var v=cs.priceToCoordinate(p);return(v===null||v===undefined)?-9999:v}catch(e){return -9999}}
-function x2t(x){try{return mc.timeScale().coordinateToTime(x)}catch(e){return null}}
-function y2p(y){try{return cs.coordinateToPrice(y)}catch(e){return null}}
-
-cvs.addEventListener("mousedown",function(e){onS(e)});
-cvs.addEventListener("mousemove",function(e){onM(e)});
-cvs.addEventListener("mouseup",function(e){onE(e)});
-cvs.addEventListener("touchstart",function(e){e.preventDefault();clearTimeout(lpt);var pos=gp(e);lpt=setTimeout(function(){if(tool==="crosshair"){for(var i=0;i<drs.length;i++){if(ht(drs[i],pos.x,pos.y)){enterSel(pos.x,pos.y);return}}}},500);onS(e)},{passive:false});
-cvs.addEventListener("touchmove",function(e){e.preventDefault();clearTimeout(lpt);onM(e)},{passive:false});
-cvs.addEventListener("touchend",function(e){e.preventDefault();clearTimeout(lpt);onE(e)},{passive:false});
-
-mcE.addEventListener("dblclick",function(e){
-if(tool!=="crosshair")return;
-var rect=cvs.getBoundingClientRect();
-var mx=e.clientX-rect.left,my=e.clientY-rect.top;
-for(var i=0;i<drs.length;i++){if(ht(drs[i],mx,my)){enterSel(mx,my);return}}
-});
-
-function onS(e){
-var pos=gp(e);
-
-if(selM){
-var sel=null;
-for(var i=0;i<drs.length;i++){if(drs[i].sel){sel=drs[i];break}}
-if(sel){
-var ep=fEP(sel,pos.x,pos.y);
-if(ep){epd={d:sel,ep:ep};return}
-if(ht(sel,pos.x,pos.y)){
-drag={d:sel,sx:pos.x,sy:pos.y,ot1:sel.t1,op1:sel.p1,ot2:sel.t2,op2:sel.p2};
-return;
-}
-}
-if(!doSel(pos.x,pos.y))exitSel();
-return;
-}
-
-if(tool==="crosshair")return;
-
-if(tool==="text"){
-var label=prompt("Enter text:");
-if(label){
-var t=x2t(pos.x),p=y2p(pos.y);
-if(t!==null&&p!==null){drs.push({tp:"text",t1:t,p1:p,t2:t,p2:p,tx:label,sel:false});drawAll()}
-}
-return;
-}
-
-ds={tp:tool,sx:pos.x,sy:pos.y,cx:pos.x,cy:pos.y};
-}
-
-function onM(e){
-clearTimeout(lpt);
-var pos=gp(e);
-
-if(epd){
-var d=epd.d;
-var t=x2t(pos.x),p=y2p(pos.y);
-if(epd.ep===1){if(t!==null)d.t1=t;if(p!==null)d.p1=p}
-else{if(t!==null)d.t2=t;if(p!==null)d.p2=p}
-drawAll();return;
-}
-
-if(drag){
-var d=drag.d;
-var dx=pos.x-drag.sx,dy=pos.y-drag.sy;
-var nx1=t2x(drag.ot1)+dx,ny1=p2y(drag.op1)+dy;
-var nt1=x2t(nx1),np1=y2p(ny1);
-if(nt1!==null)d.t1=nt1;if(np1!==null)d.p1=np1;
-if(d.tp!=="hline"&&d.tp!=="text"){
-var nx2=t2x(drag.ot2)+dx,ny2=p2y(drag.op2)+dy;
-var nt2=x2t(nx2),np2=y2p(ny2);
-if(nt2!==null)d.t2=nt2;if(np2!==null)d.p2=np2;
-}
-drawAll();return;
-}
-
-if(!ds)return;
-ds.cx=pos.x;ds.cy=pos.y;
-drawAll();
-
-ctx.save();ctx.strokeStyle="#fbbf24";ctx.lineWidth=1;ctx.setLineDash([4,4]);
-if(ds.tp==="trendline"){ctx.beginPath();ctx.moveTo(ds.sx,ds.sy);ctx.lineTo(ds.cx,ds.cy);ctx.stroke()}
-else if(ds.tp==="hline"){ctx.beginPath();ctx.moveTo(0,ds.sy);ctx.lineTo(cvs.width,ds.sy);ctx.stroke()}
-else if(ds.tp==="rect"){ctx.strokeRect(ds.sx,ds.sy,ds.cx-ds.sx,ds.cy-ds.sy)}
-else if(ds.tp==="fib"){ctx.beginPath();ctx.moveTo(ds.sx,ds.sy);ctx.lineTo(ds.cx,ds.cy);ctx.stroke()}
-ctx.restore();
-}
-
-function onE(e){
-clearTimeout(lpt);
-if(epd){epd=null;drawAll();return}
-if(drag){drag=null;drawAll();return}
-if(!ds)return;
-
-var t1=x2t(ds.sx),p1=y2p(ds.sy);
-var t2=x2t(ds.cx),p2=y2p(ds.cy);
-if(t1===null||p1===null){ds=null;return}
-if(ds.tp!=="hline"&&(t2===null||p2===null)){ds=null;return}
-if(ds.tp==="hline"){t2=t1;p2=p1}
-
-drs.push({tp:ds.tp,t1:t1,p1:p1,t2:t2,p2:p2,sel:false});
-ds=null;drawAll();
-}
-
-function drawAll(){
-ctx.clearRect(0,0,cvs.width,cvs.height);
-for(var i=0;i<drs.length;i++){
-var d=drs[i];
-var x1=t2x(d.t1),y1=p2y(d.p1);
-if(x1<-9000||y1<-9000)continue;
-var c=d.sel?"#22d3ee":"#fbbf24";
-ctx.save();ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=d.sel?2:1;ctx.setLineDash([]);
-
-if(d.tp==="text"){
-ctx.font="12px Arial";ctx.fillText(d.tx,x1,y1);
-if(d.sel){ctx.strokeStyle="#22d3ee";ctx.lineWidth=1;ctx.strokeRect(x1-2,y1-14,ctx.measureText(d.tx).width+4,18)}
-ctx.restore();continue;
-}
-if(d.tp==="hline"){
-ctx.beginPath();ctx.moveTo(0,y1);ctx.lineTo(cvs.width,y1);ctx.stroke();
-ctx.font="10px Arial";ctx.fillText(d.p1.toFixed(1),cvs.width-50,y1-4);
-if(d.sel){ctx.fillStyle="#22d3ee";ctx.beginPath();ctx.arc(cvs.width/2,y1,5,0,Math.PI*2);ctx.fill()}
-ctx.restore();continue;
-}
-var x2=t2x(d.t2),y2=p2y(d.p2);
-if(x2<-9000||y2<-9000){ctx.restore();continue}
-if(d.tp==="trendline"){
-ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
-if(d.sel){ctx.fillStyle="#22d3ee";ctx.beginPath();ctx.arc(x1,y1,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x2,y2,6,0,Math.PI*2);ctx.fill()}
-}else if(d.tp==="rect"){
-ctx.strokeRect(x1,y1,x2-x1,y2-y1);
-ctx.fillStyle=d.sel?"rgba(34,211,238,.06)":"rgba(251,191,36,.06)";
-ctx.fillRect(x1,y1,x2-x1,y2-y1);
-if(d.sel){ctx.fillStyle="#22d3ee";[{a:x1,b:y1},{a:x2,b:y1},{a:x1,b:y2},{a:x2,b:y2}].forEach(function(pt){ctx.beginPath();ctx.arc(pt.a,pt.b,5,0,Math.PI*2);ctx.fill()})}
-}else if(d.tp==="fib"){
-var levels=[0,0.236,0.382,0.5,0.618,0.786,1];
-var colors=["#ef4444","#f59e0b","#eab308","#22c55e","#06b6d4","#8b5cf6","#ef4444"];
-var dy=y2-y1;
-for(var j=0;j<levels.length;j++){
-var fy=y1+dy*levels[j];
-ctx.strokeStyle=d.sel?"#22d3ee":colors[j];ctx.lineWidth=1;ctx.setLineDash([2,2]);
-ctx.beginPath();ctx.moveTo(0,fy);ctx.lineTo(cvs.width,fy);ctx.stroke();
-ctx.fillStyle=d.sel?"#22d3ee":colors[j];ctx.font="10px Arial";ctx.fillText((levels[j]*100).toFixed(1)+"%",4,fy-3);
-}
-}
-ctx.restore();
-}
-}
-
-function delSel(){var b=drs.length;drs=drs.filter(function(d){return!d.sel});if(drs.length<b){shE.style.display="none";document.getElementById("bDel").classList.remove("da")}drawAll()}
-function clrAll(){if(!drs.length)return;if(confirm("Clear all drawings?")){drs=[];shE.style.display="none";document.getElementById("bDel").classList.remove("da");drawAll()}}
-
-document.addEventListener("keydown",function(e){
-if(e.key==="Delete"||e.key==="Backspace"){if(drs.some(function(d){return d.sel})){delSel();e.preventDefault()}}
-if(e.key==="Escape")exitSel();
-});
-
-function oDB(){return new Promise(function(ok,no){var r=indexedDB.open(DN,1);r.onupgradeneeded=function(e){var d=e.target.result;if(!d.objectStoreNames.contains(ST))d.createObjectStore(ST,{keyPath:"period"})};r.onsuccess=function(e){ok(e.target.result)};r.onerror=function(e){no(e.target.error)}})}
-function dPM(db,recs){return new Promise(function(ok,no){var tx=db.transaction(ST,"readwrite");var st=tx.objectStore(ST);recs.forEach(function(r){st.put(r)});tx.oncomplete=ok;tx.onerror=function(e){no(e.target.error)}})}
-function dGA(db){return new Promise(function(ok,no){var tx=db.transaction(ST,"readonly");var r=tx.objectStore(ST).getAll();r.onsuccess=function(){ok(r.result||[])};r.onerror=function(e){no(e.target.error)}})}
-
-function wt(ms){return new Promise(function(r){setTimeout(r,ms)})}
-function sP(p,t){pb.style.width=p+"%";lt.textContent=t}
-function sUI(){ldE.style.display="none";apE.style.display="flex";rsz();setTool("crosshair");cdE.style.display="block";sCD()}
-function p2u(p){return Math.floor(Date.UTC(+p.slice(0,4),+p.slice(4,6)-1,+p.slice(6,8),+p.slice(8,10),+p.slice(10,12),0)/1000)}
-function sBg(rec){bgE.textContent=rec.bigSmall.toUpperCase()+"  "+rec.result;bgE.className=rec.bigSmall==="Big"?"big":"small";bgE.style.display="block";setTimeout(function(){bgE.style.display="none"},4000)}
-
-function fHP(start){return fetch(WU+"?mode=page&start="+(start||0)+"&limit="+PG+"&_="+Date.now()+"_"+Math.random()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})}
-function fLR(){return fetch(WU+"?mode=latest&_="+Date.now()+"_"+Math.random()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})}
-
-var db;var rm=new Map();var fv=false;var llp=null;
-function uR(rec){var old=rm.get(rec.period);if(!old||rec.timestamp>old.timestamp){rm.set(rec.period,rec);return true}return false}
-
-function render(){
-var all=Array.from(rm.values()).sort(function(a,b){return a.period.localeCompare(b.period)});
-var cut=Date.now()-HR*3600000;var vis=all.filter(function(r){return r.timestamp>=cut});
-var candles=[];var pr=100;var pv=null;
-for(var i=0;i<vis.length;i++){var row=vis[i];var s=row.bigSmall==="Big"?"big":"small";var t=p2u(row.period);
-if(s==="big"){if(pv==="big")pr+=1;candles.push({time:t,open:pr,high:pr+1,low:pr,close:pr+1})}
-else{if(pv==="small")pr-=1;candles.push({time:t,open:pr+1,high:pr+1,low:pr,close:pr})}
-pv=s}
-cs.setData(candles);uInd();drawAll();
-}
-
-async function lH(){
-var cached=await dGA(db);
-if(cached.length>0){cached.forEach(function(r){rm.set(r.period,r)});render();sUI();fv=true;mc.timeScale().fitContent()}
-sAP();
-sP(5,"Scanning blockchain...");
-var now=Date.now();var target=now-HR*3600000;var start=0;var done=false;
-while(!done){var payload;try{payload=await fHP(start)}catch(e){console.error(e);await wt(2000);continue}
-var records=Array.isArray(payload.records)?payload.records:[];var oldestTs=payload.oldestTs||now;
-if(records.length){for(var i=0;i<records.length;i++)uR(records[i]);await dPM(db,records)}
-var covered=((now-oldestTs)/3600000).toFixed(1);var pct=Math.min(95,Math.floor(((now-oldestTs)/(now-target))*100));
-sP(pct,"Scanning... "+covered+"h covered");
-if(!fv&&rm.size>=20){render();sUI();fv=true;mc.timeScale().fitContent()}
-else if(fv)render();
-if(oldestTs<=target||payload.rowCount===0)done=true;else start+=PG;await wt(150)}
-render();if(!fv){sUI();mc.timeScale().fitContent();fv=true}
-}
-
-async function lP(){
-try{var payload=await fLR();var rec=payload.record;if(!rec)return;
-var changed=uR(rec);
-if(changed){await dPM(db,[rec]);render();
-if(rec.period!==llp){llp=rec.period;sBg(rec);sRC(rec)}
-}}catch(e){console.error(e)}
-}
-
-function sAP(){clearInterval(window.__tp);window.__tp=setInterval(function(){lP().catch(function(e){console.error(e)})},PL);lP()}
-document.addEventListener("visibilitychange",function(){if(!document.hidden)lP().catch(function(){})});
-window.addEventListener("focus",function(){lP().catch(function(){})});
-
-var cdI=null;
-function sCD(){
-clearInterval(cdI);
-cdI=setInterval(function(){
-var sec=new Date().getUTCSeconds();
-var rem=54-sec;if(rem<0)rem=60+rem;
-if(rem<=0){cdtE.textContent="...";cdtE.style.color="#10b981"}
-else if(rem<=5){cdtE.textContent=rem+"s";cdtE.style.color="#ef4444"}
-else if(rem<=15){cdtE.textContent=rem+"s";cdtE.style.color="#f59e0b"}
-else{cdtE.textContent=rem+"s";cdtE.style.color="#fbbf24"}
-},1000);
-}
-
-function sRC(rec){
-cdrE.textContent=rec.bigSmall.toUpperCase()+" "+rec.result;
-cdrE.className=rec.bigSmall==="Big"?"big":"small";
-}
-
-(async function(){
-try{db=await oDB();sP(3,"Database ready...");await wt(200);
-await lH();sP(100,"Done!");await wt(400);sUI();
-}catch(e){console.error(e);lt.textContent="Error: "+e.message}
-})();
+// ===== START =====
+window.addEventListener('load', init);
 </script>
 </body>
 </html>
