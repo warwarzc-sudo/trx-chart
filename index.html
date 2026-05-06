@@ -41,8 +41,10 @@ canvas{position:absolute;top:0;left:0;}
 #dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
 #dbgBox.hide{display:none;}
 #dbgToggle{position:fixed;bottom:4px;right:4px;z-index:10000;background:#1a1a3a;color:#0f0;border:1px solid #0f0;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;}
-#loadOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,30,0.95);border:2px solid #00e5ff;border-radius:8px;padding:20px 30px;z-index:5000;color:#fff;font-size:14px;display:none;text-align:center;box-shadow:0 4px 20px rgba(0,229,255,0.3);}
+#loadOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,30,0.95);border:2px solid #00e5ff;border-radius:8px;padding:20px 30px;z-index:5000;color:#fff;font-size:14px;display:none;text-align:center;box-shadow:0 4px 20px rgba(0,229,255,0.3);min-width:280px;}
 #loadOverlay.show{display:block;}
+#loadProg{margin-top:10px;background:#222;border-radius:4px;height:8px;overflow:hidden;}
+#loadProgBar{background:linear-gradient(90deg,#00e5ff,#00e676);height:100%;width:0%;transition:width 0.3s;}
 @media(max-width:600px){
 #header{padding:4px 8px;height:42px;}
 #header .title{font-size:13px;}
@@ -83,14 +85,14 @@ canvas{position:absolute;top:0;left:0;}
 <button id="togH">📊</button>
 <div id="histP"><div class="ht">📋 History (<span id="hCount">0</span>)</div><div id="hList"></div></div>
 </div>
-<div id="loadOverlay"><div id="loadMsg">Loading history...</div></div>
+<div id="loadOverlay"><div id="loadMsg">Loading...</div><div id="loadProg"><div id="loadProgBar"></div></div></div>
 <div id="dbgBox" class="hide"></div>
 <button id="dbgToggle">🔧Debug</button>
 
 <script>
 const dbgEl=document.getElementById('dbgBox');
 const dbgLines=[];
-function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>80)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
+function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>100)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
 document.getElementById('dbgToggle').addEventListener('click',()=>{dbgEl.classList.toggle('hide');});
 
 const API='https://trx-apl.warwar-zc.workers.dev/';
@@ -113,19 +115,19 @@ let priceZoom=1,pzAct=false,pzSY=0,pzSZ=1,pzMan=false;
 let rsiDrg=false,rsiDSY=0,rsiDSH=0;
 let isLoading=false;
 
-function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-1000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
+function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){D('📂 No saved data');return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length+' records');return a;}catch(e){D('❌ LOAD: '+e.message);return[];}}
 function drawSave(){try{localStorage.setItem(DRAW_KEY,JSON.stringify(draws));}catch(e){}}
 function drawLoad(){try{const r=localStorage.getItem(DRAW_KEY);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return[];}
 
-function showOverlay(msg){
+function showOverlay(msg,prog){
   const el=document.getElementById('loadOverlay');
   document.getElementById('loadMsg').innerHTML=msg;
+  if(prog!==undefined)document.getElementById('loadProgBar').style.width=prog+'%';
   el.classList.add('show');
 }
 function hideOverlay(){document.getElementById('loadOverlay').classList.remove('show');}
 
-// ===== MERGE results - dedupe by period, sort by timestamp =====
 function mergeResults(newRecords){
   const map=new Map();
   for(const r of results)map.set(r.period,r);
@@ -145,85 +147,75 @@ function mergeResults(newRecords){
   return added;
 }
 
-// ===== BULK HISTORY FETCH =====
-async function loadHistory(pages=10){
+// ===== BULK LOAD - Multi hour fetch =====
+async function loadBulkHistory(totalHours){
   if(isLoading)return;
   isLoading=true;
   const btn=document.getElementById('btnLoad');
   btn.classList.add('loading');
-  btn.textContent='⏳ Loading...';
-  showOverlay('Loading history...<br><small>Fetching '+pages+' pages from blockchain</small>');
 
-  try{
-    D('📥 Fetching history: '+pages+' pages...');
-    const r=await fetch(API+'?mode=history&pages='+pages);
-    const data=await r.json();
-    if(!data.records||!Array.isArray(data.records)){
-      D('❌ Invalid history response');
-      showOverlay('❌ No history data received');
-      setTimeout(hideOverlay,2000);
-      return;
+  D('📥 Bulk loading '+totalHours+' hours...');
+
+  let totalAdded=0;
+  let totalLoaded=0;
+
+  for(let h=0;h<totalHours;h++){
+    btn.textContent='⏳ '+(h+1)+'/'+totalHours+'h';
+    const prog=Math.round((h/totalHours)*100);
+    showOverlay('Loading hour '+(h+1)+' of '+totalHours+
+      '<br><small>Records so far: '+results.length+' | New: '+totalAdded+'</small>',prog);
+
+    try{
+      // Each hour back = 1200 blocks offset
+      const startBlock=h*1200;
+      const r=await fetch(API+'?mode=range&start='+startBlock+'&pages=20');
+      const data=await r.json();
+      if(data.records&&Array.isArray(data.records)){
+        const added=mergeResults(data.records);
+        totalAdded+=added;
+        totalLoaded+=data.records.length;
+        D('  Hour '+(h+1)+': fetched '+data.records.length+', added '+added+' new');
+      }else{
+        D('  Hour '+(h+1)+': no data');
+      }
+      // Small delay to avoid rate limit
+      await new Promise(r=>setTimeout(r,400));
+    }catch(e){
+      D('❌ Hour '+(h+1)+' error: '+e.message);
     }
-    D('📦 Got '+data.records.length+' records ('+data.blocksScanned+' blocks)');
-    const added=mergeResults(data.records);
-    D('➕ Added '+added+' new (total: '+results.length+')');
-    storeSave();
-    buildCandles();
-    scrollEnd();
-    renderAll();
-    renderHistory();
-    showOverlay('✅ Loaded '+data.records.length+' records<br><small>Added '+added+' new | Total: '+results.length+'</small>');
-    setTimeout(hideOverlay,1800);
-  }catch(e){
-    D('❌ History error: '+e.message);
-    showOverlay('❌ Error: '+e.message);
-    setTimeout(hideOverlay,2500);
-  }finally{
-    isLoading=false;
-    btn.classList.remove('loading');
-    btn.textContent='⬇️ Load History';
   }
+
+  storeSave();
+  buildCandles();
+  scrollEnd();
+  renderAll();
+  renderHistory();
+
+  showOverlay('✅ Done!<br><small>Fetched '+totalLoaded+' | Added '+totalAdded+' new<br>Total history: '+results.length+'</small>',100);
+  setTimeout(hideOverlay,3500);
+  D('✅ Bulk done: '+totalAdded+' new added, total: '+results.length);
+
+  isLoading=false;
+  btn.classList.remove('loading');
+  btn.textContent='⬇️ Load History';
 }
 
-// ===== LOAD MORE OLDER (range mode) =====
-async function loadMoreHistory(){
-  if(isLoading)return;
-  isLoading=true;
-  const btn=document.getElementById('btnLoad');
-  btn.classList.add('loading');
-  btn.textContent='⏳ Loading...';
-  // Calculate offset: how many blocks back to skip (already have)
-  // Each page = 60 blocks ≈ 3 mins. We want to go further back.
-  // results length × 20 blocks ≈ how many blocks we cover
-  const startBlock=Math.max(600,results.length*20);
-  showOverlay('Loading older data...<br><small>Going back ~'+Math.round(startBlock/20)+' minutes</small>');
-
-  try{
-    D('📥 Loading older from block '+startBlock);
-    const r=await fetch(API+'?mode=range&start='+startBlock+'&pages=15');
-    const data=await r.json();
-    if(!data.records||!Array.isArray(data.records)){
-      D('❌ Invalid range response');
-      showOverlay('❌ No older data');
-      setTimeout(hideOverlay,2000);
-      return;
-    }
-    const added=mergeResults(data.records);
-    D('➕ Added '+added+' older records (total: '+results.length+')');
-    storeSave();
-    buildCandles();
-    renderAll();
-    renderHistory();
-    showOverlay('✅ Got '+data.records.length+' older<br><small>Added '+added+' new | Total: '+results.length+'</small>');
-    setTimeout(hideOverlay,1800);
-  }catch(e){
-    D('❌ Range error: '+e.message);
-    showOverlay('❌ Error: '+e.message);
-    setTimeout(hideOverlay,2500);
-  }finally{
-    isLoading=false;
-    btn.classList.remove('loading');
-    btn.textContent='⬇️ Load History';
+// Show menu to choose hours
+function showLoadMenu(){
+  const choice=prompt(
+    '📥 Load History - choose hours:\n\n'+
+    '1  = 1 hour (~60 records)\n'+
+    '3  = 3 hours (~180 records)\n'+
+    '6  = 6 hours (~360 records)\n'+
+    '12 = 12 hours (~720 records)\n'+
+    '24 = 1 day (~1440 records)\n\n'+
+    'Enter number:','3');
+  if(!choice)return;
+  const hours=parseInt(choice);
+  if(hours&&hours>0&&hours<=48){
+    loadBulkHistory(hours);
+  }else{
+    alert('Invalid: please enter 1-48');
   }
 }
 
@@ -236,10 +228,10 @@ window.addEventListener('load',async()=>{
   szAll();setupTB();setupIn();setupRD();
   scrollEnd();renderAll();renderHistory();
 
-  // Auto-load history on first launch (if no data)
+  // Auto-load on first visit (no data)
   if(results.length<5){
-    D('📊 Few records - auto loading history...');
-    await loadHistory(15);  // ~45 minutes
+    D('📊 Auto-loading 3 hours of history...');
+    await loadBulkHistory(3);
   }
 
   doFetch();
@@ -293,7 +285,6 @@ async function doFetch(){
     D('🆕 '+rec.period+' '+rec.bigSmall+' '+rec.result);
     lastPeriod=rec.period;
     results.push({period:rec.period,result:rec.result,bigSmall:rec.bigSmall,timestamp:rec.timestamp||Date.now(),second:rec.second||0});
-    // Keep sorted
     results.sort((a,b)=>{const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;return ta-tb;});
     storeSave();
     buildCandles();
@@ -331,7 +322,7 @@ function scrollEnd(){
 function renderHistory(){
   document.getElementById('hCount').textContent=results.length;
   const list=document.getElementById('hList');let h='';
-  const show=results.slice(-100).reverse();
+  const show=results.slice(-200).reverse();
   for(const r of show){
     const cls=r.bigSmall==='Big'?'big':'small';
     const ic=r.bigSmall==='Big'?'🟢':'🔴';
@@ -401,17 +392,9 @@ function setupTB(){
   document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>{b.addEventListener('click',()=>{tool=b.dataset.tool;document.querySelectorAll('#toolbar button[data-tool]').forEach(bb=>bb.classList.remove('active'));b.classList.add('active');canDr();desel();uCur();});});
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
 
-  // ===== LOAD HISTORY BUTTON =====
-  // Single click = load 15 pages (45 min)
-  // Double click = load older 15 pages (older 45 min)
-  document.getElementById('btnLoad').addEventListener('click',e=>{
-    if(e.detail===2)return; // wait for dblclick
-    setTimeout(()=>{
-      if(!isLoading)loadHistory(15);
-    },200);
-  });
-  document.getElementById('btnLoad').addEventListener('dblclick',()=>{
-    if(!isLoading)loadMoreHistory();
+  // Load History button - opens prompt menu
+  document.getElementById('btnLoad').addEventListener('click',()=>{
+    if(!isLoading)showLoadMenu();
   });
 
   document.getElementById('btnClear').addEventListener('click',()=>{
