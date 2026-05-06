@@ -146,59 +146,88 @@ function mergeResults(newRecords){
   if(results.length>0)lastPeriod=results[results.length-1].period;
   return added;
 }
-
 async function loadBulkHistory(totalHours){
   if(isLoading)return;
   isLoading=true;
   const btn=document.getElementById('btnLoad');
   btn.classList.add('loading');
 
-  D('📥 Bulk loading '+totalHours+' hours...');
+  D('📥 Bulk loading '+totalHours+' hours via block range...');
 
-  const totalPagesNeeded=totalHours*20;
-  const pagesPerCall=20;
-  const totalCalls=Math.ceil(totalPagesNeeded/pagesPerCall);
+  // Step 1: Get current block number
+  showOverlay('Fetching current block info...',5);
+  let currentBlock=null;
+  try{
+    const r=await fetch(API+'?mode=info');
+    const data=await r.json();
+    currentBlock=data.currentBlock;
+    D('Current block: '+currentBlock);
+  }catch(e){
+    D('❌ Failed to get current block: '+e.message);
+    showOverlay('❌ Failed to get current block');
+    setTimeout(hideOverlay,2000);
+    isLoading=false;
+    btn.classList.remove('loading');
+    btn.textContent='⬇️ Load History';
+    return;
+  }
+
+  if(!currentBlock){
+    D('❌ No current block info');
+    isLoading=false;
+    btn.classList.remove('loading');
+    btn.textContent='⬇️ Load History';
+    return;
+  }
+
+  // Step 2: Calculate block range
+  // 1 hour = 1200 blocks (3 sec/block)
+  const totalBlocks=totalHours*1200;
+  const oldestBlock=currentBlock-totalBlocks;
+  const newestBlock=currentBlock;
+
+  // Fetch in chunks of 1200 blocks (1 hour each)
+  const chunkSize=1200;
+  const totalChunks=Math.ceil(totalBlocks/chunkSize);
 
   let totalAdded=0;
   let totalLoaded=0;
   let consecutiveFails=0;
 
-  for(let call=0;call<totalCalls;call++){
-    const offset=call*pagesPerCall*60;
-    const prog=Math.round((call/totalCalls)*100);
-    btn.textContent='⏳ '+(call+1)+'/'+totalCalls;
-    showOverlay('Loading batch '+(call+1)+' of '+totalCalls+
-      '<br><small>Offset: '+offset+' blocks back<br>'+
-      'Total records: '+results.length+' | New: '+totalAdded+'</small>',prog);
+  for(let i=0;i<totalChunks;i++){
+    const chunkEnd=newestBlock-(i*chunkSize);
+    const chunkStart=Math.max(oldestBlock,chunkEnd-chunkSize);
+    const prog=Math.round((i/totalChunks)*100);
+    btn.textContent='⏳ '+(i+1)+'/'+totalChunks;
+
+    showOverlay('Loading hour '+(i+1)+' of '+totalChunks+
+      '<br><small>Block '+chunkStart+' → '+chunkEnd+
+      '<br>Total records: '+results.length+' | New: '+totalAdded+'</small>',prog);
 
     try{
-      const r=await fetch(API+'?mode=range&start='+offset+'&pages='+pagesPerCall);
+      const r=await fetch(API+'?mode=blocks&from='+chunkStart+'&to='+chunkEnd);
       const data=await r.json();
       if(data.records&&Array.isArray(data.records)&&data.records.length>0){
         const added=mergeResults(data.records);
         totalAdded+=added;
         totalLoaded+=data.records.length;
-        D('  Batch '+(call+1)+' (offset '+offset+'): fetched '+data.records.length+
-          ' records (blocks '+data.blocksScanned+'), added '+added+' new');
+        D('  Hour '+(i+1)+': blocks '+chunkStart+'-'+chunkEnd+
+          ', fetched '+data.records.length+' records, added '+added+' new');
         consecutiveFails=0;
-
-        if(data.blocksScanned<300){
-          D('⚠️ Low block count - API may be throttling, stopping');
-          break;
-        }
       }else{
         consecutiveFails++;
-        D('  Batch '+(call+1)+': no records');
-        if(consecutiveFails>=2){
-          D('⚠️ 2 consecutive empty - stopping');
+        D('  Hour '+(i+1)+': no records (blocks scanned: '+(data.blocksScanned||0)+')');
+        if(consecutiveFails>=3){
+          D('⚠️ 3 consecutive empty - stopping');
           break;
         }
       }
-      await new Promise(r=>setTimeout(r,800));
+      // Small delay
+      await new Promise(r=>setTimeout(r,600));
     }catch(e){
-      D('❌ Batch '+(call+1)+' error: '+e.message);
+      D('❌ Hour '+(i+1)+' error: '+e.message);
       consecutiveFails++;
-      if(consecutiveFails>=2)break;
+      if(consecutiveFails>=3)break;
     }
   }
 
@@ -217,6 +246,7 @@ async function loadBulkHistory(totalHours){
   isLoading=false;
   btn.classList.remove('loading');
   btn.textContent='⬇️ Load History';
+}
 }
 
 function showLoadMenu(){
