@@ -23,6 +23,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 #btnLoad:hover{background:#2a5a2a !important;}
 #btnLoad.loading{background:#3a3a1a !important;color:#ff0 !important;border-color:#ff0 !important;cursor:wait;}
 #btnReset{background:#3a1a1a !important;color:#f55 !important;border-color:#f55 !important;}
+#btnFit{background:#1a2a3a !important;color:#0bf !important;border-color:#0bf !important;}
 #wrap{position:relative;width:100%;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;}
 #cMain{z-index:1;}#cOver{z-index:2;}#cDraw{z-index:3;}#cCross{z-index:4;pointer-events:none;}#cAct{z-index:10;}
@@ -77,6 +78,7 @@ canvas{position:absolute;top:0;left:0;}
 <button data-ind="ema21">EMA21</button>
 <button data-ind="rsi">RSI</button><div class="sep"></div>
 <button id="btnLoad">⬇️ Load History</button>
+<button id="btnFit">📐 Fit</button>
 <button id="btnClear">🗑Clear</button>
 <button id="btnReset">⚠️Reset All</button>
 </div>
@@ -113,7 +115,7 @@ const DRAW_KEY='TRX_DRAW_V3';
 let W,H,mH,rH=120,hW=130;
 let cv={},cc={};
 let cds=[],e9=[],e21=[],rsi=[],rsig=[];
-let cW=20,cG=6,sx=0,pN,pX,pR;
+let cW=8,cG=2,sx=0,pN,pX,pR;
 let ind={ema9:0,ema21:0,rsi:0};
 let tool='pointer',draws=[],sel=null,dip=null;
 let isDr=false,drg=null,pan=null,blk=false;
@@ -124,6 +126,7 @@ let rsiDrg=false,rsiDSY=0,rsiDSH=0;
 let isLoading=false;
 let cancelLoading=false;
 let currentBlockHeight=null;
+let userZoomed=false; // Track if user manually zoomed
 
 function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){D('📂 No saved data');return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length+' records');return a;}catch(e){D('❌ LOAD: '+e.message);return[];}}
@@ -156,6 +159,33 @@ function mergeResults(newRecords){
   if(results.length>0)lastPeriod=results[results.length-1].period;
   return added;
 }
+
+// AUTO-FIT candle size based on data count and screen width
+function autoFitCandles(){
+  if(!cds.length)return;
+  const visW=chW();
+  // Show last ~150 candles by default
+  const targetVisible=Math.min(cds.length, 150);
+  const totalGapRatio=0.3; // gap = 30% of candle width
+  // Total width per candle = cW + cG = cW * 1.3
+  // visW = targetVisible * cW * 1.3
+  let idealW=Math.floor((visW-PAW-30) / (targetVisible*1.3));
+  
+  if(cds.length>800){
+    cW=Math.max(2,Math.min(5,idealW));
+  }else if(cds.length>400){
+    cW=Math.max(3,Math.min(7,idealW));
+  }else if(cds.length>200){
+    cW=Math.max(5,Math.min(10,idealW));
+  }else if(cds.length>50){
+    cW=Math.max(8,Math.min(15,idealW));
+  }else{
+    cW=Math.max(15,Math.min(25,idealW));
+  }
+  cG=Math.max(1,Math.round(cW*0.3));
+  D('📐 Auto-fit: '+cds.length+' candles, cW='+cW+', cG='+cG);
+}
+
 async function loadBulkHistory(totalHours){
   if(isLoading)return;
   isLoading=true;
@@ -165,7 +195,6 @@ async function loadBulkHistory(totalHours){
 
   D('📥 Bulk loading '+totalHours+' hours via block range...');
 
-  // Step 1: Get current block
   showOverlay('Fetching current block...',2);
   let currentBlock=null;
   try{
@@ -195,9 +224,7 @@ async function loadBulkHistory(totalHours){
     return;
   }
 
-  // Optimized: 800 blocks per chunk (40 min) to match Worker's 40-target limit
-  // 1 hour = 1200 blocks = 60 candidates, but Worker fetches max 40
-  // 800 blocks = 40 candidates, all fetched = 95% success
+  // 800 blocks per chunk = 40 candidates = matches Worker's 40 limit (95% success)
   const blocksPerChunk=800;
   const totalBlocks=totalHours*1200;
   const totalChunks=Math.ceil(totalBlocks/blocksPerChunk);
@@ -207,7 +234,7 @@ async function loadBulkHistory(totalHours){
   let totalLoaded=0;
   let consecutiveFails=0;
 
-  D('Strategy: '+totalChunks+' chunks of '+blocksPerChunk+' blocks (~40 min each)');
+  D('Strategy: '+totalChunks+' chunks of '+blocksPerChunk+' blocks');
 
   for(let i=0;i<totalChunks;i++){
     if(cancelLoading){
@@ -237,9 +264,9 @@ async function loadBulkHistory(totalHours){
           ' (success '+(data.successes||'?')+'/'+(data.attempts||'?')+')');
         consecutiveFails=0;
 
-        // Save & render incrementally
         storeSave();
         buildCandles();
+        if(!userZoomed)autoFitCandles();
         renderAll();
         renderHistory();
       }else{
@@ -250,7 +277,6 @@ async function loadBulkHistory(totalHours){
           break;
         }
       }
-      // Delay between calls (longer = safer, less rate limit)
       await new Promise(r=>setTimeout(r,1000));
     }catch(e){
       D('❌ Chunk '+(i+1)+' error: '+e.message);
@@ -261,6 +287,7 @@ async function loadBulkHistory(totalHours){
 
   storeSave();
   buildCandles();
+  if(!userZoomed)autoFitCandles();
   scrollEnd();
   renderAll();
   renderHistory();
@@ -280,11 +307,11 @@ async function loadBulkHistory(totalHours){
 function showLoadMenu(){
   const choice=prompt(
     '📥 Load History - choose hours:\n\n'+
-    '1  = 1 hour (~45 records, ~15 sec)\n'+
-    '3  = 3 hours (~135 records, ~45 sec)\n'+
-    '6  = 6 hours (~270 records, ~90 sec)\n'+
-    '12 = 12 hours (~540 records, ~3 min)\n'+
-    '24 = 1 day (~1080 records, ~6 min)\n\n'+
+    '1  = 1 hour (~60 records)\n'+
+    '3  = 3 hours (~180 records)\n'+
+    '6  = 6 hours (~360 records)\n'+
+    '12 = 12 hours (~720 records)\n'+
+    '24 = 1 day (~1440 records)\n\n'+
     'Enter number:','3');
   if(!choice)return;
   const hours=parseInt(choice);
@@ -297,7 +324,6 @@ function showLoadMenu(){
 
 window.addEventListener('load',()=>{
   D('🚀 App starting...');
-  // Load saved data SYNCHRONOUSLY - no network call
   const saved=storeLoad();
   if(saved.length>0){
     results=saved;
@@ -306,20 +332,19 @@ window.addEventListener('load',()=>{
   draws=drawLoad();
   buildCandles();
   szAll();setupTB();setupIn();setupRD();
+  // Auto-fit on first load
+  autoFitCandles();
   scrollEnd();renderAll();renderHistory();
 
-  // Start countdown IMMEDIATELY (independent of API)
   setInterval(tickCD,1000);
   tickCD();
 
-  // Start fetch for latest result (non-blocking)
   doFetch();
   setInterval(doFetch,5000);
 
-  // NO auto-load history - let user click button manually
   D('💡 Click "Load History" to fetch past data');
 });
-window.addEventListener('resize',()=>{szAll();renderAll();});
+window.addEventListener('resize',()=>{szAll();if(!userZoomed)autoFitCandles();renderAll();});
 
 function szAll(){
   const wr=document.getElementById('wrap'),hdr=document.getElementById('header'),tb=document.getElementById('toolbar');
@@ -445,14 +470,14 @@ function rM(){
   c.fillStyle='#0d0d22';c.fillRect(ch,0,PAW,mH);c.strokeStyle='#333';c.lineWidth=1;c.beginPath();c.moveTo(ch,0);c.lineTo(ch,mH);c.stroke();
   c.strokeStyle=COL.grid;c.lineWidth=0.5;const nl=8,st=pR/nl;
   for(let i=0;i<=nl;i++){const p=pN+st*i,y=p2y(p);if(y<5||y>mH-5)continue;c.setLineDash([2,4]);c.beginPath();c.moveTo(0,y);c.lineTo(ch,y);c.stroke();c.setLineDash([]);c.fillStyle=COL.gtP;c.font='10px monospace';c.fillText(p.toFixed(1),ch+4,y+4);}
-  const{s,e}=vr();const vs=Math.max(1,Math.floor((e-s)/6));
+  const{s,e}=vr();const vs=Math.max(1,Math.floor((e-s)/8));
   for(let i=s;i<=e;i+=vs){const x=i2x(i)+cW/2;if(x<0||x>ch)continue;c.setLineDash([2,4]);c.strokeStyle=COL.grid;c.beginPath();c.moveTo(x,0);c.lineTo(x,mH);c.stroke();c.setLineDash([]);if(cds[i]){const d=new Date(cds[i].time*1000);c.fillStyle=COL.gtT;c.font='10px monospace';c.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),x-14,mH-4);}}
   c.strokeStyle='#333';c.lineWidth=1;c.setLineDash([]);c.beginPath();c.moveTo(0,mH);c.lineTo(cw,mH);c.stroke();
   c.save();c.beginPath();c.rect(0,0,ch,mH);c.clip();
-  for(let i=s;i<=e;i++){const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(2,bot-top);c.fillStyle=col;c.fillRect(x,top,cW,bh);c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);if(cW>=8){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'12':'10')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}}
+  for(let i=s;i<=e;i++){const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(2,bot-top);c.fillStyle=col;c.fillRect(x,top,cW,bh);if(cW>=4){c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);}if(cW>=10){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'12':'10')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}}
   c.restore();
   if(pzMan){c.fillStyle='rgba(0,229,255,0.08)';c.fillRect(ch,0,PAW,mH);c.fillStyle='#00e5ff';c.font='bold 9px sans-serif';c.fillText('x'+priceZoom.toFixed(2),ch+4,14);}
-  c.fillStyle='#444';c.font='10px monospace';c.fillText('Candles: '+cds.length,8,H-8);
+  c.fillStyle='#444';c.font='10px monospace';c.fillText('Candles: '+cds.length+' | View: '+(e-s+1)+' | cW='+cW+'px',8,H-8);
 }
 
 function rO(){
@@ -481,6 +506,13 @@ function setupTB(){
   document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>{b.addEventListener('click',()=>{tool=b.dataset.tool;document.querySelectorAll('#toolbar button[data-tool]').forEach(bb=>bb.classList.remove('active'));b.classList.add('active');canDr();desel();uCur();});});
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
   document.getElementById('btnLoad').addEventListener('click',()=>{if(!isLoading)showLoadMenu();});
+  document.getElementById('btnFit').addEventListener('click',()=>{
+    userZoomed=false;
+    autoFitCandles();
+    scrollEnd();
+    renderAll();
+    D('📐 Auto-fit applied');
+  });
   document.getElementById('btnClear').addEventListener('click',()=>{if(confirm('Clear all drawings? (history မပျောက်ပါ)')){draws=[];sel=null;drawSave();renderAll();}});
   document.getElementById('btnReset').addEventListener('click',()=>{
     if(confirm('⚠️ Reset all data?\n\nDelete all history + drawings + cancel any loading?')){
@@ -501,7 +533,7 @@ function setupTB(){
   });
   document.getElementById('cmDel').addEventListener('click',()=>{if(sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}hideCM();});
   document.getElementById('cmCol').addEventListener('click',()=>{if(sel){const cs=['#00e5ff','#ffab00','#ff5252','#00e676','#e040fb','#ffff00','#ff6d00','#fff'];sel.color=cs[(cs.indexOf(sel.color)+1)%cs.length];drawSave();renderAll();}hideCM();});
-  document.getElementById('togH').addEventListener('click',()=>{showH=!showH;szAll();renderAll();renderHistory();});
+  document.getElementById('togH').addEventListener('click',()=>{showH=!showH;szAll();if(!userZoomed)autoFitCandles();renderAll();renderHistory();});
 }
 function uCur(){cv.Act.style.cursor=tool==='pointer'?'default':'crosshair';}
 function bkPtr(){tool='pointer';document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>b.classList.remove('active'));document.querySelector('[data-tool="pointer"]').classList.add('active');uCur();}
@@ -531,8 +563,8 @@ function hUp(x,y){mx=x;my=y;if(pzAct){pzAct=false;uCur();return;}if(drg){drg=nul
 
 function hDb(x,y){if(inPA(x)&&y<mH){priceZoom=1;pzMan=false;renderAll();return;}desel();hideCM();for(let i=draws.length-1;i>=0;i--){if(hT(draws[i],x,y)){sel=draws[i];renderAll();showCM(x,y);return;}}desel();renderAll();}
 
-function zI(){if(cW<60){cW=Math.min(60,cW+3);cG=Math.max(2,Math.round(cW*0.3));renderAll();}}
-function zO(){if(cW>3){cW=Math.max(3,cW-3);cG=Math.max(1,Math.round(cW*0.3));renderAll();}}
+function zI(){if(cW<60){userZoomed=true;cW=Math.min(60,cW+2);cG=Math.max(1,Math.round(cW*0.3));renderAll();}}
+function zO(){if(cW>2){userZoomed=true;cW=Math.max(2,cW-2);cG=Math.max(1,Math.round(cW*0.3));renderAll();}}
 
 function hT(d,x,y){switch(d.type){case'trendline':return dSg(x,y,i2x(d.x1)+cW/2,p2y(d.y1),i2x(d.x2)+cW/2,p2y(d.y2))<10;case'hline':return Math.abs(y-p2y(d.y1))<8;case'rect':const x1=i2x(d.x1)+cW/2,y1=p2y(d.y1),x2=i2x(d.x2)+cW/2,y2=p2y(d.y2);return x>=Math.min(x1,x2)-8&&x<=Math.max(x1,x2)+8&&y>=Math.min(y1,y2)-8&&y<=Math.max(y1,y2)+8;case'fib':const hi=Math.max(d.y1,d.y2),lo=Math.min(d.y1,d.y2),rng=hi-lo;for(const lv of FIBLV){if(Math.abs(y-p2y(hi-rng*lv))<8)return true;}return false;case'text':const tx2=i2x(d.x1)+cW/2,ty2=p2y(d.y1);return x>=tx2-5&&x<=tx2+120&&y>=ty2-18&&y<=ty2+6;}return false;}
 function fEP(d,px,py){const R=14;if(d.type==='trendline'||d.type==='fib'){if(Math.hypot(px-i2x(d.x1)-cW/2,py-p2y(d.y1))<R)return 0;if(Math.hypot(px-i2x(d.x2)-cW/2,py-p2y(d.y2))<R)return 1;}else if(d.type==='rect'){const x1=i2x(d.x1)+cW/2,y1=p2y(d.y1),x2=i2x(d.x2)+cW/2,y2=p2y(d.y2);if(Math.hypot(px-x1,py-y1)<R)return 0;if(Math.hypot(px-x2,py-y2)<R)return 1;if(Math.hypot(px-x1,py-y2)<R)return 2;if(Math.hypot(px-x2,py-y1)<R)return 3;}else if(d.type==='hline'){if(Math.abs(py-p2y(d.y1))<R)return 0;}return null;}
