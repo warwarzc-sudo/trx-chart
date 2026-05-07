@@ -126,7 +126,7 @@ let rsiDrg=false,rsiDSY=0,rsiDSH=0;
 let isLoading=false;
 let cancelLoading=false;
 let currentBlockHeight=null;
-let userZoomed=false; // Track if user manually zoomed
+let userZoomed=false;
 
 function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length+' records');}catch(e){D('❌ SAVE: '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){D('📂 No saved data');return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length+' records');return a;}catch(e){D('❌ LOAD: '+e.message);return[];}}
@@ -160,15 +160,10 @@ function mergeResults(newRecords){
   return added;
 }
 
-// AUTO-FIT candle size based on data count and screen width
 function autoFitCandles(){
   if(!cds.length)return;
   const visW=chW();
-  // Show last ~150 candles by default
   const targetVisible=Math.min(cds.length, 150);
-  const totalGapRatio=0.3; // gap = 30% of candle width
-  // Total width per candle = cW + cG = cW * 1.3
-  // visW = targetVisible * cW * 1.3
   let idealW=Math.floor((visW-PAW-30) / (targetVisible*1.3));
   
   if(cds.length>800){
@@ -224,7 +219,6 @@ async function loadBulkHistory(totalHours){
     return;
   }
 
-  // 800 blocks per chunk = 40 candidates = matches Worker's 40 limit (95% success)
   const blocksPerChunk=800;
   const totalBlocks=totalHours*1200;
   const totalChunks=Math.ceil(totalBlocks/blocksPerChunk);
@@ -332,7 +326,6 @@ window.addEventListener('load',()=>{
   draws=drawLoad();
   buildCandles();
   szAll();setupTB();setupIn();setupRD();
-  // Auto-fit on first load
   autoFitCandles();
   scrollEnd();renderAll();renderHistory();
 
@@ -545,11 +538,11 @@ function setupIn(){
   el.addEventListener('mouseup',ev=>{hUp(ev.offsetX,ev.offsetY);});
   el.addEventListener('mouseleave',()=>{mx=-1;my=-1;rCr(-1,-1);pzAct=false;});
   el.addEventListener('dblclick',ev=>{hDb(ev.offsetX,ev.offsetY);});
-  el.addEventListener('wheel',ev=>{ev.preventDefault();ev.deltaY<0?zI():zO();},{passive:false});
+  el.addEventListener('wheel',ev=>{ev.preventDefault();const r=el.getBoundingClientRect();const wx=ev.clientX-r.left;const wy=ev.clientY-r.top;ev.deltaY<0?zIAt(wx,wy):zOAt(wx,wy);},{passive:false});
   el.addEventListener('contextmenu',ev=>ev.preventDefault());
-  let tsx=0,tsy=0,pD2=0,tch=false;
-  el.addEventListener('touchstart',ev=>{ev.preventDefault();if(ev.touches.length===2){pD2=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);return;}const t=ev.touches[0],r=el.getBoundingClientRect(),tx=t.clientX-r.left,ty=t.clientY-r.top;tch=true;tsx=tx;tsy=ty;lfr=false;ltm=setTimeout(()=>{lfr=true;hDb(tx,ty);},500);hDn(tx,ty);},{passive:false});
-  el.addEventListener('touchmove',ev=>{ev.preventDefault();if(ev.touches.length===2){const nd=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);if(nd/pD2>1.04){zI();pD2=nd;}else if(nd/pD2<0.96){zO();pD2=nd;}return;}clearTimeout(ltm);const t=ev.touches[0],r=el.getBoundingClientRect();hMv(t.clientX-r.left,t.clientY-r.top);},{passive:false});
+  let tsx=0,tsy=0,pD2=0,pCx=0,pCy=0,tch=false;
+  el.addEventListener('touchstart',ev=>{ev.preventDefault();if(ev.touches.length===2){pD2=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);const r=el.getBoundingClientRect();pCx=(ev.touches[0].clientX+ev.touches[1].clientX)/2-r.left;pCy=(ev.touches[0].clientY+ev.touches[1].clientY)/2-r.top;return;}const t=ev.touches[0],r=el.getBoundingClientRect(),tx=t.clientX-r.left,ty=t.clientY-r.top;tch=true;tsx=tx;tsy=ty;lfr=false;ltm=setTimeout(()=>{lfr=true;hDb(tx,ty);},500);hDn(tx,ty);},{passive:false});
+  el.addEventListener('touchmove',ev=>{ev.preventDefault();if(ev.touches.length===2){const nd=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);if(nd/pD2>1.04){zIAt(pCx,pCy);pD2=nd;}else if(nd/pD2<0.96){zOAt(pCx,pCy);pD2=nd;}return;}clearTimeout(ltm);const t=ev.touches[0],r=el.getBoundingClientRect();hMv(t.clientX-r.left,t.clientY-r.top);},{passive:false});
   el.addEventListener('touchend',ev=>{ev.preventDefault();clearTimeout(ltm);if(tch&&!lfr){const r=el.getBoundingClientRect();let tx=tsx,ty=tsy;if(ev.changedTouches.length){tx=ev.changedTouches[0].clientX-r.left;ty=ev.changedTouches[0].clientY-r.top;}hUp(tx,ty);}tch=false;mx=-1;my=-1;rCr(-1,-1);pzAct=false;},{passive:false});
   document.addEventListener('keydown',ev=>{if((ev.key==='Delete'||ev.key==='Backspace')&&sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}if(ev.key==='Escape'){canDr();desel();bkPtr();}});
   document.addEventListener('click',ev=>{if(!ev.target.closest('#cmenu'))hideCM();});
@@ -563,8 +556,40 @@ function hUp(x,y){mx=x;my=y;if(pzAct){pzAct=false;uCur();return;}if(drg){drg=nul
 
 function hDb(x,y){if(inPA(x)&&y<mH){priceZoom=1;pzMan=false;renderAll();return;}desel();hideCM();for(let i=draws.length-1;i>=0;i--){if(hT(draws[i],x,y)){sel=draws[i];renderAll();showCM(x,y);return;}}desel();renderAll();}
 
-function zI(){if(cW<60){userZoomed=true;cW=Math.min(60,cW+2);cG=Math.max(1,Math.round(cW*0.3));renderAll();}}
-function zO(){if(cW>2){userZoomed=true;cW=Math.max(2,cW-2);cG=Math.max(1,Math.round(cW*0.3));renderAll();}}
+// ★★★ FIXED: Zoom centered on mouse position
+function zIAt(mouseX, mouseY){
+  if(cW>=60)return;
+  // Index at mouse position (BEFORE zoom)
+  const idxAtMouse = x2i(mouseX);
+  // New candle width
+  const newCW = Math.min(60, cW+2);
+  const newCG = Math.max(1, Math.round(newCW*0.3));
+  // Calculate new sx so that idxAtMouse stays at mouseX
+  // x = idx*(cW+cG) - sx + cG  =>  sx = idx*(cW+cG) + cG - x
+  const newSx = idxAtMouse*(newCW+newCG) + newCG - mouseX;
+  cW = newCW;
+  cG = newCG;
+  sx = newSx;
+  userZoomed=true;
+  renderAll();
+}
+
+function zOAt(mouseX, mouseY){
+  if(cW<=2)return;
+  const idxAtMouse = x2i(mouseX);
+  const newCW = Math.max(2, cW-2);
+  const newCG = Math.max(1, Math.round(newCW*0.3));
+  const newSx = idxAtMouse*(newCW+newCG) + newCG - mouseX;
+  cW = newCW;
+  cG = newCG;
+  sx = newSx;
+  userZoomed=true;
+  renderAll();
+}
+
+// Old functions kept for compatibility (default to right edge)
+function zI(){zIAt(chW()-100, mH/2);}
+function zO(){zOAt(chW()-100, mH/2);}
 
 function hT(d,x,y){switch(d.type){case'trendline':return dSg(x,y,i2x(d.x1)+cW/2,p2y(d.y1),i2x(d.x2)+cW/2,p2y(d.y2))<10;case'hline':return Math.abs(y-p2y(d.y1))<8;case'rect':const x1=i2x(d.x1)+cW/2,y1=p2y(d.y1),x2=i2x(d.x2)+cW/2,y2=p2y(d.y2);return x>=Math.min(x1,x2)-8&&x<=Math.max(x1,x2)+8&&y>=Math.min(y1,y2)-8&&y<=Math.max(y1,y2)+8;case'fib':const hi=Math.max(d.y1,d.y2),lo=Math.min(d.y1,d.y2),rng=hi-lo;for(const lv of FIBLV){if(Math.abs(y-p2y(hi-rng*lv))<8)return true;}return false;case'text':const tx2=i2x(d.x1)+cW/2,ty2=p2y(d.y1);return x>=tx2-5&&x<=tx2+120&&y>=ty2-18&&y<=ty2+6;}return false;}
 function fEP(d,px,py){const R=14;if(d.type==='trendline'||d.type==='fib'){if(Math.hypot(px-i2x(d.x1)-cW/2,py-p2y(d.y1))<R)return 0;if(Math.hypot(px-i2x(d.x2)-cW/2,py-p2y(d.y2))<R)return 1;}else if(d.type==='rect'){const x1=i2x(d.x1)+cW/2,y1=p2y(d.y1),x2=i2x(d.x2)+cW/2,y2=p2y(d.y2);if(Math.hypot(px-x1,py-y1)<R)return 0;if(Math.hypot(px-x2,py-y2)<R)return 1;if(Math.hypot(px-x1,py-y2)<R)return 2;if(Math.hypot(px-x2,py-y1)<R)return 3;}else if(d.type==='hline'){if(Math.abs(py-p2y(d.y1))<R)return 0;}return null;}
