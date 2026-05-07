@@ -26,6 +26,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 #btnFit{background:#1a2a3a !important;color:#0bf !important;border-color:#0bf !important;}
 #btnGame{background:#3a1a3a !important;color:#f0f !important;border-color:#f0f !important;font-weight:700 !important;}
 #btnGame.active{background:#f0f !important;color:#000 !important;}
+#btnHide{background:#1a1a3a !important;color:#888 !important;}
 #wrap{position:relative;width:100%;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;}
 #cMain{z-index:1;}#cOver{z-index:2;}#cDraw{z-index:3;}#cCross{z-index:4;pointer-events:none;}#cAct{z-index:10;}
@@ -37,9 +38,10 @@ canvas{position:absolute;top:0;left:0;}
 #cmenu div{padding:8px 16px;font-size:12px;cursor:pointer;color:#eee;}
 #cmenu div:hover{background:#2a2a5a;}
 
-/* ===== HISTORY/GAME PANEL (right side) ===== */
-#sidePanel{position:absolute;top:0;right:0;height:100%;background:#0a0a1a;border-left:1px solid #2a2a4a;z-index:20;overflow:hidden;display:flex;flex-direction:column;}
-#sideTabs{display:flex;background:#0e0e24;border-bottom:1px solid #222;height:32px;}
+/* SIDE PANEL */
+#sidePanel{position:absolute;top:0;right:0;height:100%;background:#0a0a1a;border-left:1px solid #2a2a4a;z-index:20;display:flex;flex-direction:column;}
+#sidePanel.hide{display:none;}
+#sideTabs{display:flex;background:#0e0e24;border-bottom:1px solid #222;height:34px;flex-shrink:0;}
 #sideTabs button{flex:1;background:transparent;color:#888;border:none;cursor:pointer;font-size:11px;font-weight:600;padding:6px;border-bottom:2px solid transparent;}
 #sideTabs button.active{color:#00e5ff;border-bottom-color:#00e5ff;background:#12122a;}
 #sideTabs button:hover{color:#fff;}
@@ -54,13 +56,13 @@ canvas{position:absolute;top:0;left:0;}
 #gameP{flex:1;display:none;position:relative;background:#000;}
 #gameP.show{display:block;}
 #gameFrame{width:100%;height:100%;border:none;background:#fff;}
-#gameToolbar{position:absolute;top:4px;right:4px;z-index:10;display:flex;gap:4px;}
-#gameToolbar button{background:rgba(26,26,58,0.9);color:#fff;border:1px solid #555;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer;}
-#gameToolbar button:hover{background:rgba(42,42,90,0.95);}
-#gameLoading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:12px;text-align:center;z-index:5;}
+#gameToolbar{position:absolute;top:6px;right:6px;z-index:10;display:flex;gap:4px;}
+#gameToolbar button{background:rgba(26,26,58,0.95);color:#fff;border:1px solid #555;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700;}
+#gameToolbar button:hover{background:rgba(60,60,120,0.95);border-color:#00e5ff;}
+#gameLoading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:13px;text-align:center;z-index:5;background:#000;padding:20px;border-radius:8px;}
 
 #sideResize{position:absolute;left:-3px;top:0;width:6px;height:100%;cursor:ew-resize;z-index:25;background:transparent;}
-#sideResize:hover{background:rgba(0,229,255,0.4);}
+#sideResize:hover{background:rgba(0,229,255,0.5);}
 
 #dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
 #dbgBox.hide{display:none;}
@@ -101,6 +103,7 @@ canvas{position:absolute;top:0;left:0;}
 <button id="btnLoad">⬇️ Load History</button>
 <button id="btnFit">📐 Fit</button>
 <button id="btnGame">🎮 Toggle Game</button>
+<button id="btnHide">👁 Hide Panel</button>
 <button id="btnClear">🗑Clear</button>
 <button id="btnReset">⚠️Reset</button>
 </div>
@@ -111,24 +114,30 @@ canvas{position:absolute;top:0;left:0;}
 <div id="rsiW"><canvas id="cRSI"></canvas></div>
 <div id="cmenu"><div id="cmDel">🗑 Delete</div><div id="cmCol">🎨 Color</div></div>
 
-<!-- Side panel with tabs -->
 <div id="sidePanel">
   <div id="sideResize"></div>
   <div id="sideTabs">
-    <button id="tabHist" class="active">📋 History</button>
+    <button id="tabHist" class="active">📋 History (<span id="hCount">0</span>)</button>
     <button id="tabGame">🎮 Game</button>
   </div>
   <div id="histP" class="show">
-    <div class="ht">History (<span id="hCount">0</span>)</div>
     <div id="hList"></div>
   </div>
   <div id="gameP">
     <div id="gameToolbar">
-      <button id="gameReload" title="Reload">🔄</button>
-      <button id="gamePopup" title="Open in popup window">↗️</button>
+      <button id="gameReload" title="Reload">🔄 Reload</button>
+      <button id="gamePopup" title="Open in popup">↗️ Popup</button>
     </div>
-    <div id="gameLoading">Loading game...<br><small>If blank, click ↗️ to open in popup</small></div>
-    <iframe id="gameFrame" src="about:blank" allow="autoplay; fullscreen; payment; clipboard-write" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-storage-access-by-user-activation"></iframe>
+    <div id="gameLoading">
+      <div style="font-size:18px;margin-bottom:10px">🎮</div>
+      <div>Loading 6win598...</div>
+      <small style="color:#666;display:block;margin-top:8px">If blank, click ↗️ Popup</small>
+    </div>
+    <iframe id="gameFrame" src="about:blank" 
+      allow="autoplay; fullscreen; payment; clipboard-write; geolocation; camera; microphone"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-storage-access-by-user-activation allow-presentation"
+      referrerpolicy="no-referrer">
+    </iframe>
   </div>
 </div>
 
@@ -155,6 +164,7 @@ const PAW=55,BODY_H=2;
 const STORE_KEY='TRX_HIST_V3';
 const DRAW_KEY='TRX_DRAW_V3';
 const SIDE_KEY='TRX_SIDE_V3';
+const TAB_KEY='TRX_TAB_V3';
 
 let W,H,mH,rH=120,sideW=350;
 let cv={},cc={};
@@ -164,8 +174,9 @@ let ind={ema9:0,ema21:0,rsi:0};
 let tool='pointer',draws=[],sel=null,dip=null;
 let isDr=false,drg=null,pan=null,blk=false;
 let mx=-1,my=-1,ltm=null,lfr=false;
-let results=[],lastPeriod='',sideShow=true;
-let activeTab='hist';  // 'hist' or 'game'
+let results=[],lastPeriod='';
+let sideShow=true;       // Side panel visible
+let activeTab='hist';    // 'hist' or 'game'
 let gameLoaded=false;
 let priceZoom=1,pzAct=false,pzSY=0,pzSZ=1,pzMan=false;
 let rsiDrg=false,rsiDSY=0,rsiDSH=0;
@@ -176,14 +187,18 @@ let userZoomed=false;
 let sideResizing=false,sideResizeStartX=0,sideResizeStartW=0;
 let gameWindow=null;
 
-// Load saved sideW
-try{const s=localStorage.getItem(SIDE_KEY);if(s){const v=parseInt(s);if(v>=200&&v<=800)sideW=v;}}catch(e){}
+// Load saved settings
+try{
+  const s=localStorage.getItem(SIDE_KEY);if(s){const v=parseInt(s);if(v>=200&&v<=800)sideW=v;}
+  const t=localStorage.getItem(TAB_KEY);if(t==='hist'||t==='game')activeTab=t;
+}catch(e){}
 
 function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length);}catch(e){D('❌ '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length);return a;}catch(e){return[];}}
 function drawSave(){try{localStorage.setItem(DRAW_KEY,JSON.stringify(draws));}catch(e){}}
 function drawLoad(){try{const r=localStorage.getItem(DRAW_KEY);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return[];}
 function sideSave(){try{localStorage.setItem(SIDE_KEY,String(sideW));}catch(e){}}
+function tabSave(){try{localStorage.setItem(TAB_KEY,activeTab);}catch(e){}}
 
 function showOverlay(msg,prog){const el=document.getElementById('loadOverlay');document.getElementById('loadMsg').innerHTML=msg;if(prog!==undefined)document.getElementById('loadProgBar').style.width=prog+'%';el.classList.add('show');}
 function hideOverlay(){document.getElementById('loadOverlay').classList.remove('show');}
@@ -207,7 +222,7 @@ async function loadBulkHistory(totalHours){
     if(cancelLoading){D('⛔');break;}
     const chunkEnd=currentBlock-(i*blocksPerChunk);const chunkStart=Math.max(oldestBlock,chunkEnd-blocksPerChunk);
     const prog=Math.round((i/totalChunks)*100);btn.textContent='⏳ '+(i+1)+'/'+totalChunks;
-    showOverlay('Loading '+(i+1)+'/'+totalChunks+'<br><small>Block '+chunkStart+'→'+chunkEnd+'<br>Total: '+results.length+' | New: +'+totalAdded+'</small>',prog);
+    showOverlay('Loading '+(i+1)+'/'+totalChunks+'<br><small>Total: '+results.length+' | New: +'+totalAdded+'</small>',prog);
     try{
       const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),30000);
       const r=await fetch(API+'?mode=blocks&from='+chunkStart+'&to='+chunkEnd,{signal:ctrl.signal});
@@ -227,58 +242,97 @@ async function loadBulkHistory(totalHours){
 }
 
 function showLoadMenu(){
-  const choice=prompt('📥 Load History (hours):\n\n1, 3, 6, 12, 24\n\nEnter number:','3');
+  const choice=prompt('📥 Load History (hours):\n\n1, 3, 6, 12, 24\n\nEnter:','3');
   if(!choice)return;
   const hours=parseInt(choice);
   if(hours&&hours>0&&hours<=48)loadBulkHistory(hours);
   else alert('Invalid: 1-48');
 }
 
-// ===== TAB SWITCHING =====
+// ========== TAB & SIDE PANEL CONTROL ==========
 function switchTab(tab){
   activeTab=tab;
+  tabSave();
   document.getElementById('tabHist').classList.toggle('active',tab==='hist');
   document.getElementById('tabGame').classList.toggle('active',tab==='game');
   document.getElementById('histP').classList.toggle('show',tab==='hist');
   document.getElementById('gameP').classList.toggle('show',tab==='game');
+  document.getElementById('btnGame').classList.toggle('active',tab==='game');
   
   if(tab==='game' && !gameLoaded){
-    D('🎮 Loading game iframe...');
-    const f=document.getElementById('gameFrame');
-    f.src=GAME_URL;
-    gameLoaded=true;
-    
-    // Hide loading message after 3s
+    loadGameIframe();
+  }
+  D('📑 Switched to: '+tab);
+}
+
+function loadGameIframe(){
+  D('🎮 Loading game iframe...');
+  const f=document.getElementById('gameFrame');
+  const loading=document.getElementById('gameLoading');
+  loading.style.display='block';
+  loading.innerHTML='<div style="font-size:18px;margin-bottom:10px">🎮</div><div>Loading 6win598...</div><small style="color:#666;display:block;margin-top:8px">Please wait...</small>';
+  
+  f.src=GAME_URL;
+  gameLoaded=true;
+  
+  // Show loading until iframe loads
+  f.onload=function(){
+    D('✅ Game iframe onload fired');
     setTimeout(()=>{
       try{
         const doc=f.contentDocument||f.contentWindow?.document;
-        if(doc && doc.body && doc.body.innerHTML.length>100){
-          document.getElementById('gameLoading').style.display='none';
-          D('✅ Game iframe loaded');
+        if(doc===null){
+          // Cross-origin = good, means content loaded
+          loading.style.display='none';
+          D('✅ Game loaded (cross-origin OK)');
+        }else if(doc.body && doc.body.innerHTML.length>100){
+          loading.style.display='none';
+          D('✅ Game loaded');
         }else{
-          D('⚠️ Game iframe blocked or empty');
-          document.getElementById('gameLoading').innerHTML='⚠️ Site blocks iframe<br><small>Click ↗️ to open in popup window</small>';
+          showIframeBlocked();
         }
       }catch(e){
-        // Cross-origin - that's actually OK, means it loaded
-        document.getElementById('gameLoading').style.display='none';
-        D('✅ Game loaded (cross-origin)');
+        // Cross-origin error = actually means it loaded successfully
+        loading.style.display='none';
+        D('✅ Game loaded (CORS): '+e.message);
       }
-    },3000);
-  }
+    },1500);
+  };
+  
+  // Fallback timeout
+  setTimeout(()=>{
+    try{
+      const doc=f.contentDocument;
+      if(doc===null||doc.body.innerHTML.length<100){
+        // Could be blocked, but might be cross-origin
+        // Check if loading is still showing
+        if(loading.style.display!=='none'){
+          // Try to detect if we can interact
+          showIframeBlocked();
+        }
+      }
+    }catch(e){
+      // Cross-origin = OK
+      loading.style.display='none';
+    }
+  },5000);
+}
+
+function showIframeBlocked(){
+  const loading=document.getElementById('gameLoading');
+  loading.style.display='block';
+  loading.innerHTML='<div style="font-size:24px;margin-bottom:10px">⚠️</div>'+
+    '<div>Site may block iframe</div>'+
+    '<small style="color:#888;display:block;margin-top:8px">Try clicking ↗️ Popup button above</small>'+
+    '<button onclick="openGamePopup()" style="margin-top:12px;background:#3a1a3a;color:#f0f;border:1px solid #f0f;border-radius:4px;padding:8px 16px;cursor:pointer;font-weight:700">↗️ Open in Popup</button>';
 }
 
 function reloadGame(){
+  D('🔄 Reloading game');
+  gameLoaded=false;
   const f=document.getElementById('gameFrame');
   f.src='about:blank';
-  document.getElementById('gameLoading').style.display='block';
-  document.getElementById('gameLoading').innerHTML='Reloading...';
-  setTimeout(()=>{
-    f.src=GAME_URL;
-    setTimeout(()=>{
-      document.getElementById('gameLoading').style.display='none';
-    },3000);
-  },200);
+  setTimeout(()=>{loadGameIframe();},200);
 }
 
 function openGamePopup(){
@@ -292,16 +346,16 @@ function openGamePopup(){
   const features='width='+w+',height='+h+',left='+left+',top=20,resizable=yes,scrollbars=yes';
   gameWindow=window.open(GAME_URL,'TRXGame',features);
   if(!gameWindow){
-    alert('⚠️ Popup blocked! Please allow popups.');
+    alert('⚠️ Popup blocked!\n\nPlease allow popups for this site.');
   }else{
-    D('🎮 Game popup opened');
+    D('🎮 Popup opened');
   }
 }
 
-// ===== TOGGLE SIDE PANEL =====
-function toggleSide(){
+function toggleSidePanel(){
   sideShow=!sideShow;
-  document.getElementById('sidePanel').style.display=sideShow?'flex':'none';
+  document.getElementById('sidePanel').classList.toggle('hide',!sideShow);
+  document.getElementById('btnHide').textContent=sideShow?'👁 Hide Panel':'👁 Show Panel';
   szAll();if(!userZoomed)autoFitCandles();renderAll();
 }
 
@@ -312,9 +366,13 @@ window.addEventListener('load',()=>{
   draws=drawLoad();
   buildCandles();szAll();setupTB();setupIn();setupRD();setupSideResize();
   autoFitCandles();scrollEnd();renderAll();renderHistory();
+  
+  // Restore active tab on load
+  switchTab(activeTab);
+  
   setInterval(tickCD,1000);tickCD();
   doFetch();setInterval(doFetch,5000);
-  D('💡 Click Game tab to load betting site');
+  D('💡 Click 🎮 Game tab to load betting site');
 });
 window.addEventListener('resize',()=>{szAll();if(!userZoomed)autoFitCandles();renderAll();});
 
@@ -329,7 +387,6 @@ function szAll(){
   const rc=document.getElementById('cRSI');rc.width=cw;rc.height=rH;rc.style.width=cw+'px';rc.style.height=rH+'px';cv.RSI=rc;cc.RSI=rc.getContext('2d');
   const sp=document.getElementById('sidePanel');
   sp.style.width=sideW+'px';
-  sp.style.display=sideShow?'flex':'none';
 }
 
 function setupSideResize(){
@@ -433,10 +490,23 @@ function setupTB(){
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
   document.getElementById('btnLoad').addEventListener('click',()=>{if(!isLoading)showLoadMenu();});
   document.getElementById('btnFit').addEventListener('click',()=>{userZoomed=false;autoFitCandles();scrollEnd();renderAll();});
+  
+  // GAME TOGGLE - switch between History and Game tabs (does NOT hide panel)
   document.getElementById('btnGame').addEventListener('click',()=>{
-    toggleSide();
-    document.getElementById('btnGame').classList.toggle('active',sideShow);
+    if(!sideShow){
+      // If panel hidden, show it first
+      sideShow=true;
+      document.getElementById('sidePanel').classList.remove('hide');
+      document.getElementById('btnHide').textContent='👁 Hide Panel';
+      szAll();if(!userZoomed)autoFitCandles();renderAll();
+    }
+    // Toggle between hist and game tabs
+    switchTab(activeTab==='game'?'hist':'game');
   });
+  
+  // HIDE/SHOW entire side panel
+  document.getElementById('btnHide').addEventListener('click',toggleSidePanel);
+  
   document.getElementById('btnClear').addEventListener('click',()=>{if(confirm('Clear drawings?')){draws=[];sel=null;drawSave();renderAll();}});
   document.getElementById('btnReset').addEventListener('click',()=>{
     if(confirm('⚠️ Reset all data?')){
@@ -449,11 +519,11 @@ function setupTB(){
   document.getElementById('cmDel').addEventListener('click',()=>{if(sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}hideCM();});
   document.getElementById('cmCol').addEventListener('click',()=>{if(sel){const cs=['#00e5ff','#ffab00','#ff5252','#00e676','#e040fb','#ffeb3b','#ff6d00','#fff'];sel.color=cs[(cs.indexOf(sel.color)+1)%cs.length];drawSave();renderAll();}hideCM();});
   
-  // Tab switching
+  // TAB SWITCHING
   document.getElementById('tabHist').addEventListener('click',()=>switchTab('hist'));
   document.getElementById('tabGame').addEventListener('click',()=>switchTab('game'));
   
-  // Game controls
+  // GAME CONTROLS
   document.getElementById('gameReload').addEventListener('click',reloadGame);
   document.getElementById('gamePopup').addEventListener('click',openGamePopup);
 }
