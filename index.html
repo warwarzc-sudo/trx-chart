@@ -156,7 +156,6 @@ function mergeResults(newRecords){
   if(results.length>0)lastPeriod=results[results.length-1].period;
   return added;
 }
-
 async function loadBulkHistory(totalHours){
   if(isLoading)return;
   isLoading=true;
@@ -196,32 +195,35 @@ async function loadBulkHistory(totalHours){
     return;
   }
 
-  // Step 2: Calculate block range
+  // Optimized: 800 blocks per chunk (40 min) to match Worker's 40-target limit
+  // 1 hour = 1200 blocks = 60 candidates, but Worker fetches max 40
+  // 800 blocks = 40 candidates, all fetched = 95% success
+  const blocksPerChunk=800;
   const totalBlocks=totalHours*1200;
+  const totalChunks=Math.ceil(totalBlocks/blocksPerChunk);
   const oldestBlock=currentBlock-totalBlocks;
-  const chunkSize=1200;
-  const totalChunks=Math.ceil(totalBlocks/chunkSize);
 
   let totalAdded=0;
   let totalLoaded=0;
   let consecutiveFails=0;
+
+  D('Strategy: '+totalChunks+' chunks of '+blocksPerChunk+' blocks (~40 min each)');
 
   for(let i=0;i<totalChunks;i++){
     if(cancelLoading){
       D('⛔ User cancelled');
       break;
     }
-    const chunkEnd=currentBlock-(i*chunkSize);
-    const chunkStart=Math.max(oldestBlock,chunkEnd-chunkSize);
+    const chunkEnd=currentBlock-(i*blocksPerChunk);
+    const chunkStart=Math.max(oldestBlock,chunkEnd-blocksPerChunk);
     const prog=Math.round((i/totalChunks)*100);
     btn.textContent='⏳ '+(i+1)+'/'+totalChunks;
 
-    showOverlay('Loading hour '+(i+1)+' of '+totalChunks+
+    showOverlay('Loading chunk '+(i+1)+' of '+totalChunks+
       '<br><small>Block '+chunkStart+' → '+chunkEnd+
       '<br>Total: '+results.length+' records | New: +'+totalAdded+'</small>',prog);
 
     try{
-      // 30 sec timeout per call
       const ctrl=new AbortController();
       const timeoutId=setTimeout(()=>ctrl.abort(),30000);
       const r=await fetch(API+'?mode=blocks&from='+chunkStart+'&to='+chunkEnd,{signal:ctrl.signal});
@@ -231,27 +233,27 @@ async function loadBulkHistory(totalHours){
         const added=mergeResults(data.records);
         totalAdded+=added;
         totalLoaded+=data.records.length;
-        D('  Hour '+(i+1)+': fetched '+data.records.length+', added '+added+
+        D('  Chunk '+(i+1)+': fetched '+data.records.length+', added '+added+
           ' (success '+(data.successes||'?')+'/'+(data.attempts||'?')+')');
         consecutiveFails=0;
 
-        // Save progress incrementally
+        // Save & render incrementally
         storeSave();
         buildCandles();
         renderAll();
         renderHistory();
       }else{
         consecutiveFails++;
-        D('  Hour '+(i+1)+': no records');
+        D('  Chunk '+(i+1)+': no records');
         if(consecutiveFails>=3){
           D('⚠️ 3 consecutive empty - stopping');
           break;
         }
       }
-      // Delay between calls
-      await new Promise(r=>setTimeout(r,800));
+      // Delay between calls (longer = safer, less rate limit)
+      await new Promise(r=>setTimeout(r,1000));
     }catch(e){
-      D('❌ Hour '+(i+1)+' error: '+e.message);
+      D('❌ Chunk '+(i+1)+' error: '+e.message);
       consecutiveFails++;
       if(consecutiveFails>=3)break;
     }
