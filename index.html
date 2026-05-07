@@ -61,7 +61,7 @@ canvas{position:absolute;top:0;left:0;}
 #gameToolbar button:hover{background:rgba(60,60,120,0.95);border-color:#00e5ff;}
 #gameLoading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:13px;text-align:center;z-index:5;background:#000;padding:20px;border-radius:8px;}
 
-/* RESIZE HANDLE - now on chart side, not panel */
+/* RESIZE HANDLE */
 #sideResize{position:absolute;top:0;width:8px;height:100%;cursor:ew-resize;z-index:50;background:rgba(0,229,255,0.15);transition:background 0.2s;}
 #sideResize:hover,#sideResize.active{background:rgba(0,229,255,0.6);}
 #sideResize::before{content:'⋮⋮';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#00e5ff;font-size:14px;font-weight:bold;letter-spacing:-2px;}
@@ -69,8 +69,7 @@ canvas{position:absolute;top:0;left:0;}
 
 #dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
 #dbgBox.hide{display:none;}
-#dbgToggle#dbgToggle{position:fixed;bottom:4px;left:4px;z-index:10000;background:#1a1a3a;color:#0f0;border:1px solid #0f0;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;opacity:0.5;}
-#dbgToggle:hover{opacity:1;}
+#dbgToggle{display:none;}
 #loadOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,30,0.95);border:2px solid #00e5ff;border-radius:8px;padding:20px 30px;z-index:5000;color:#fff;font-size:14px;display:none;text-align:center;box-shadow:0 4px 20px rgba(0,229,255,0.3);min-width:300px;}
 #loadOverlay.show{display:block;}
 #loadProg{margin-top:10px;background:#222;border-radius:4px;height:8px;overflow:hidden;}
@@ -119,7 +118,6 @@ canvas{position:absolute;top:0;left:0;}
 <div id="rsiW"><canvas id="cRSI"></canvas></div>
 <div id="cmenu"><div id="cmDel">🗑 Delete</div><div id="cmCol">🎨 Color</div></div>
 
-<!-- RESIZE HANDLE - separate element, always positioned at panel edge -->
 <div id="sideResize" title="Drag to resize panel"></div>
 
 <div id="sidePanel">
@@ -163,6 +161,14 @@ const dbgLines=[];
 function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>100)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
 document.getElementById('dbgToggle').addEventListener('click',()=>{dbgEl.classList.toggle('hide');});
 
+// Ctrl+D shortcut to toggle debug panel
+document.addEventListener('keydown',ev=>{
+  if(ev.ctrlKey && ev.key==='d'){
+    ev.preventDefault();
+    dbgEl.classList.toggle('hide');
+  }
+});
+
 const API='https://trx-apl.warwar-zc.workers.dev/';
 const GAME_URL='https://6win598.com/?pwa=1&fb_dynamic_pixel=0&invitationCode=S25R373749#/';
 const FIBLV=[0,0.236,0.382,0.5,0.618,0.786,1];
@@ -172,6 +178,7 @@ const STORE_KEY='TRX_HIST_V3';
 const DRAW_KEY='TRX_DRAW_V3';
 const SIDE_KEY='TRX_SIDE_V3';
 const TAB_KEY='TRX_TAB_V3';
+const IND_KEY='TRX_IND_V3';
 
 let W,H,mH,rH=120,sideW=350;
 let cv={},cc={};
@@ -194,7 +201,6 @@ let userZoomed=false;
 let sideResizing=false,sideResizeStartX=0,sideResizeStartW=0;
 let gameWindow=null;
 
-// Get max allowed side width
 function maxSideW(){return Math.floor(window.innerWidth*0.9);}
 function minSideW(){return 200;}
 
@@ -202,7 +208,19 @@ function minSideW(){return 200;}
 try{
   const s=localStorage.getItem(SIDE_KEY);if(s){const v=parseInt(s);if(v>=200)sideW=v;}
   const t=localStorage.getItem(TAB_KEY);if(t==='hist'||t==='game')activeTab=t;
+  const i=localStorage.getItem(IND_KEY);
+  if(i){
+    const o=JSON.parse(i);
+    if(o&&typeof o==='object'){
+      ind.ema9=o.ema9?1:0;
+      ind.ema21=o.ema21?1:0;
+      ind.rsi=o.rsi?1:0;
+      D('🔧 Restored indicators: EMA9='+ind.ema9+' EMA21='+ind.ema21+' RSI='+ind.rsi);
+    }
+  }
 }catch(e){}
+
+function indSave(){try{localStorage.setItem(IND_KEY,JSON.stringify(ind));}catch(e){}}
 
 function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length);}catch(e){D('❌ '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length);return a;}catch(e){return[];}}
@@ -260,7 +278,6 @@ function showLoadMenu(){
   else alert('Invalid: 1-48');
 }
 
-// ========== TAB & SIDE PANEL ==========
 function switchTab(tab){
   activeTab=tab;
   tabSave();
@@ -337,14 +354,12 @@ function toggleSidePanel(){
   szAll();if(!userZoomed)autoFitCandles();renderAll();
 }
 
-// ===== Quick panel size presets =====
 function cyclePanelSize(){
   const presets=[300,400,500,700,900];
   let next=presets[0];
   for(const p of presets){
     if(p>sideW){next=p;break;}
   }
-  // If sideW is already >= last preset, cycle to first
   if(sideW>=presets[presets.length-1])next=presets[0];
   sideW=Math.min(next,maxSideW());
   sideSave();
@@ -354,7 +369,6 @@ function cyclePanelSize(){
 
 window.addEventListener('load',()=>{
   D('🚀 Starting...');
-  // Clamp sideW to current screen
   sideW=Math.min(Math.max(sideW,minSideW()),maxSideW());
   const saved=storeLoad();
   if(saved.length>0){results=saved;lastPeriod=results[results.length-1].period;}
@@ -362,12 +376,23 @@ window.addEventListener('load',()=>{
   buildCandles();szAll();setupTB();setupIn();setupRD();setupSideResize();
   autoFitCandles();scrollEnd();renderAll();renderHistory();
   switchTab(activeTab);
+  
+  // Restore indicator button active states + recalculate
+  ['ema9','ema21','rsi'].forEach(k=>{
+    const btn=document.querySelector('[data-ind="'+k+'"]');
+    if(btn)btn.classList.toggle('active',ind[k]);
+  });
+  buildCandles();
+  szAll();
+  if(!userZoomed)autoFitCandles();
+  scrollEnd();
+  renderAll();
+  
   setInterval(tickCD,1000);tickCD();
   doFetch();setInterval(doFetch,5000);
   D('💡 Click 🎮 Game tab to load betting');
 });
 window.addEventListener('resize',()=>{
-  // Clamp sideW after window resize
   sideW=Math.min(sideW,maxSideW());
   szAll();if(!userZoomed)autoFitCandles();renderAll();
 });
@@ -381,12 +406,8 @@ function szAll(){
   const rw=document.getElementById('rsiW');rw.style.height=(ind.rsi?rH:0)+'px';rw.style.top=mH+'px';rw.style.display=ind.rsi?'block':'none';rw.style.width=cw+'px';
   const rd=document.getElementById('rsiDrag');rd.style.top=(mH-4)+'px';rd.style.width=cw+'px';rd.style.display=ind.rsi?'block':'none';
   const rc=document.getElementById('cRSI');rc.width=cw;rc.height=rH;rc.style.width=cw+'px';rc.style.height=rH+'px';cv.RSI=rc;cc.RSI=rc.getContext('2d');
-  
-  // Side panel
   const sp=document.getElementById('sidePanel');
   sp.style.width=sideW+'px';
-  
-  // Resize handle - position at panel left edge
   const rsz=document.getElementById('sideResize');
   if(sideShow){
     rsz.style.right=sideW+'px';
@@ -399,55 +420,29 @@ function szAll(){
 
 function setupSideResize(){
   const r=document.getElementById('sideResize');
-  
   const start=x=>{
-    sideResizing=true;
-    sideResizeStartX=x;
-    sideResizeStartW=sideW;
-    r.classList.add('active');
-    document.body.style.cursor='ew-resize';
-    document.body.style.userSelect='none';
+    sideResizing=true;sideResizeStartX=x;sideResizeStartW=sideW;
+    r.classList.add('active');document.body.style.cursor='ew-resize';document.body.style.userSelect='none';
   };
-  
   const move=x=>{
     if(!sideResizing)return;
     const dx=sideResizeStartX-x;
     const newW=sideResizeStartW+dx;
     sideW=Math.max(minSideW(),Math.min(maxSideW(),newW));
-    szAll();
-    if(!userZoomed)autoFitCandles();
-    renderAll();
+    szAll();if(!userZoomed)autoFitCandles();renderAll();
   };
-  
   const end=()=>{
-    if(sideResizing){
-      sideResizing=false;
-      r.classList.remove('active');
-      document.body.style.cursor='';
-      document.body.style.userSelect='';
-      sideSave();
-      D('Panel resized: '+sideW+'px');
-    }
+    if(sideResizing){sideResizing=false;r.classList.remove('active');document.body.style.cursor='';document.body.style.userSelect='';sideSave();D('Panel: '+sideW+'px');}
   };
-  
   r.addEventListener('mousedown',ev=>{ev.preventDefault();ev.stopPropagation();start(ev.clientX);});
   document.addEventListener('mousemove',ev=>{if(sideResizing){ev.preventDefault();move(ev.clientX);}});
   document.addEventListener('mouseup',end);
   document.addEventListener('mouseleave',end);
-  
   r.addEventListener('touchstart',ev=>{ev.preventDefault();start(ev.touches[0].clientX);},{passive:false});
   document.addEventListener('touchmove',ev=>{if(sideResizing){ev.preventDefault();move(ev.touches[0].clientX);}},{passive:false});
   document.addEventListener('touchend',end);
   document.addEventListener('touchcancel',end);
-  
-  // Double-click to reset
-  r.addEventListener('dblclick',ev=>{
-    ev.preventDefault();
-    sideW=350;
-    sideSave();
-    szAll();if(!userZoomed)autoFitCandles();renderAll();
-    D('Panel reset to 350px');
-  });
+  r.addEventListener('dblclick',ev=>{ev.preventDefault();sideW=350;sideSave();szAll();if(!userZoomed)autoFitCandles();renderAll();D('Panel reset');});
 }
 
 function setupRD(){
@@ -528,7 +523,19 @@ function rCr(x,y){const cw=CW(),ch=chW(),c=cc.Cross;c.clearRect(0,0,cw,H);if(x<0
 
 function setupTB(){
   document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>{b.addEventListener('click',()=>{tool=b.dataset.tool;document.querySelectorAll('#toolbar button[data-tool]').forEach(bb=>bb.classList.remove('active'));b.classList.add('active');canDr();desel();uCur();});});
-  document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
+  
+  // INDICATORS - save state to localStorage
+  document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const k=b.dataset.ind;
+      ind[k]=ind[k]?0:1;
+      b.classList.toggle('active',ind[k]);
+      indSave();
+      buildCandles();szAll();renderAll();
+      D('🔧 '+k+' = '+ind[k]);
+    });
+  });
+  
   document.getElementById('btnLoad').addEventListener('click',()=>{if(!isLoading)showLoadMenu();});
   document.getElementById('btnFit').addEventListener('click',()=>{userZoomed=false;autoFitCandles();scrollEnd();renderAll();});
   document.getElementById('btnGame').addEventListener('click',()=>{
