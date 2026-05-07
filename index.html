@@ -27,6 +27,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 #btnGame{background:#3a1a3a !important;color:#f0f !important;border-color:#f0f !important;font-weight:700 !important;}
 #btnGame.active{background:#f0f !important;color:#000 !important;}
 #btnHide{background:#1a1a3a !important;color:#888 !important;}
+#btnPanelSize{background:#1a1a3a !important;color:#0bf !important;border-color:#0bf !important;}
 #wrap{position:relative;width:100%;overflow:hidden;}
 canvas{position:absolute;top:0;left:0;}
 #cMain{z-index:1;}#cOver{z-index:2;}#cDraw{z-index:3;}#cCross{z-index:4;pointer-events:none;}#cAct{z-index:10;}
@@ -39,21 +40,20 @@ canvas{position:absolute;top:0;left:0;}
 #cmenu div:hover{background:#2a2a5a;}
 
 /* SIDE PANEL */
-#sidePanel{position:absolute;top:0;right:0;height:100%;background:#0a0a1a;border-left:1px solid #2a2a4a;z-index:20;display:flex;flex-direction:column;}
+#sidePanel{position:absolute;top:0;right:0;height:100%;background:#0a0a1a;z-index:20;display:flex;flex-direction:column;}
 #sidePanel.hide{display:none;}
-#sideTabs{display:flex;background:#0e0e24;border-bottom:1px solid #222;height:34px;flex-shrink:0;}
-#sideTabs button{flex:1;background:transparent;color:#888;border:none;cursor:pointer;font-size:11px;font-weight:600;padding:6px;border-bottom:2px solid transparent;}
+#sideTabs{display:flex;background:#0e0e24;border-bottom:1px solid #222;height:36px;flex-shrink:0;border-left:1px solid #2a2a4a;}
+#sideTabs button{flex:1;background:transparent;color:#888;border:none;cursor:pointer;font-size:12px;font-weight:600;padding:6px;border-bottom:2px solid transparent;}
 #sideTabs button.active{color:#00e5ff;border-bottom-color:#00e5ff;background:#12122a;}
 #sideTabs button:hover{color:#fff;}
 
-#histP{flex:1;overflow-y:auto;display:none;}
+#histP{flex:1;overflow-y:auto;display:none;border-left:1px solid #2a2a4a;}
 #histP.show{display:block;}
-#histP .ht{font-size:11px;color:#00e5ff;text-align:center;padding:6px;border-bottom:1px solid #222;background:#0e0e24;font-weight:700;position:sticky;top:0;z-index:1;}
-.hr{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;font-size:11px;border-bottom:1px solid #151530;}
+.hr{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;font-size:11px;border-bottom:1px solid #151530;}
 .hr.big{color:#00e676;}.hr.small{color:#ff5252;}
 .hr .rn{font-weight:700;font-size:14px;}
 
-#gameP{flex:1;display:none;position:relative;background:#000;}
+#gameP{flex:1;display:none;position:relative;background:#000;border-left:1px solid #2a2a4a;}
 #gameP.show{display:block;}
 #gameFrame{width:100%;height:100%;border:none;background:#fff;}
 #gameToolbar{position:absolute;top:6px;right:6px;z-index:10;display:flex;gap:4px;}
@@ -61,8 +61,11 @@ canvas{position:absolute;top:0;left:0;}
 #gameToolbar button:hover{background:rgba(60,60,120,0.95);border-color:#00e5ff;}
 #gameLoading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:13px;text-align:center;z-index:5;background:#000;padding:20px;border-radius:8px;}
 
-#sideResize{position:absolute;left:-3px;top:0;width:6px;height:100%;cursor:ew-resize;z-index:25;background:transparent;}
-#sideResize:hover{background:rgba(0,229,255,0.5);}
+/* RESIZE HANDLE - now on chart side, not panel */
+#sideResize{position:absolute;top:0;width:8px;height:100%;cursor:ew-resize;z-index:50;background:rgba(0,229,255,0.15);transition:background 0.2s;}
+#sideResize:hover,#sideResize.active{background:rgba(0,229,255,0.6);}
+#sideResize::before{content:'⋮⋮';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#00e5ff;font-size:14px;font-weight:bold;letter-spacing:-2px;}
+#sideResize.hide{display:none;}
 
 #dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
 #dbgBox.hide{display:none;}
@@ -103,6 +106,7 @@ canvas{position:absolute;top:0;left:0;}
 <button id="btnLoad">⬇️ Load History</button>
 <button id="btnFit">📐 Fit</button>
 <button id="btnGame">🎮 Toggle Game</button>
+<button id="btnPanelSize">↔ Panel Size</button>
 <button id="btnHide">👁 Hide Panel</button>
 <button id="btnClear">🗑Clear</button>
 <button id="btnReset">⚠️Reset</button>
@@ -114,8 +118,10 @@ canvas{position:absolute;top:0;left:0;}
 <div id="rsiW"><canvas id="cRSI"></canvas></div>
 <div id="cmenu"><div id="cmDel">🗑 Delete</div><div id="cmCol">🎨 Color</div></div>
 
+<!-- RESIZE HANDLE - separate element, always positioned at panel edge -->
+<div id="sideResize" title="Drag to resize panel"></div>
+
 <div id="sidePanel">
-  <div id="sideResize"></div>
   <div id="sideTabs">
     <button id="tabHist" class="active">📋 History (<span id="hCount">0</span>)</button>
     <button id="tabGame">🎮 Game</button>
@@ -175,8 +181,8 @@ let tool='pointer',draws=[],sel=null,dip=null;
 let isDr=false,drg=null,pan=null,blk=false;
 let mx=-1,my=-1,ltm=null,lfr=false;
 let results=[],lastPeriod='';
-let sideShow=true;       // Side panel visible
-let activeTab='hist';    // 'hist' or 'game'
+let sideShow=true;
+let activeTab='hist';
 let gameLoaded=false;
 let priceZoom=1,pzAct=false,pzSY=0,pzSZ=1,pzMan=false;
 let rsiDrg=false,rsiDSY=0,rsiDSH=0;
@@ -187,9 +193,13 @@ let userZoomed=false;
 let sideResizing=false,sideResizeStartX=0,sideResizeStartW=0;
 let gameWindow=null;
 
+// Get max allowed side width
+function maxSideW(){return Math.floor(window.innerWidth*0.9);}
+function minSideW(){return 200;}
+
 // Load saved settings
 try{
-  const s=localStorage.getItem(SIDE_KEY);if(s){const v=parseInt(s);if(v>=200&&v<=800)sideW=v;}
+  const s=localStorage.getItem(SIDE_KEY);if(s){const v=parseInt(s);if(v>=200)sideW=v;}
   const t=localStorage.getItem(TAB_KEY);if(t==='hist'||t==='game')activeTab=t;
 }catch(e){}
 
@@ -249,7 +259,7 @@ function showLoadMenu(){
   else alert('Invalid: 1-48');
 }
 
-// ========== TAB & SIDE PANEL CONTROL ==========
+// ========== TAB & SIDE PANEL ==========
 function switchTab(tab){
   activeTab=tab;
   tabSave();
@@ -258,63 +268,36 @@ function switchTab(tab){
   document.getElementById('histP').classList.toggle('show',tab==='hist');
   document.getElementById('gameP').classList.toggle('show',tab==='game');
   document.getElementById('btnGame').classList.toggle('active',tab==='game');
-  
-  if(tab==='game' && !gameLoaded){
-    loadGameIframe();
-  }
-  D('📑 Switched to: '+tab);
+  if(tab==='game' && !gameLoaded){loadGameIframe();}
+  D('📑 Tab: '+tab);
 }
 
 function loadGameIframe(){
-  D('🎮 Loading game iframe...');
+  D('🎮 Loading game...');
   const f=document.getElementById('gameFrame');
   const loading=document.getElementById('gameLoading');
   loading.style.display='block';
   loading.innerHTML='<div style="font-size:18px;margin-bottom:10px">🎮</div><div>Loading 6win598...</div><small style="color:#666;display:block;margin-top:8px">Please wait...</small>';
-  
   f.src=GAME_URL;
   gameLoaded=true;
-  
-  // Show loading until iframe loads
   f.onload=function(){
-    D('✅ Game iframe onload fired');
+    D('✅ onload fired');
     setTimeout(()=>{
       try{
         const doc=f.contentDocument||f.contentWindow?.document;
-        if(doc===null){
-          // Cross-origin = good, means content loaded
-          loading.style.display='none';
-          D('✅ Game loaded (cross-origin OK)');
-        }else if(doc.body && doc.body.innerHTML.length>100){
-          loading.style.display='none';
-          D('✅ Game loaded');
-        }else{
-          showIframeBlocked();
-        }
-      }catch(e){
-        // Cross-origin error = actually means it loaded successfully
-        loading.style.display='none';
-        D('✅ Game loaded (CORS): '+e.message);
-      }
+        if(doc===null){loading.style.display='none';D('✅ Loaded (CORS)');}
+        else if(doc.body && doc.body.innerHTML.length>100){loading.style.display='none';D('✅ Loaded');}
+        else{showIframeBlocked();}
+      }catch(e){loading.style.display='none';D('✅ Loaded (CORS)');}
     },1500);
   };
-  
-  // Fallback timeout
   setTimeout(()=>{
     try{
       const doc=f.contentDocument;
       if(doc===null||doc.body.innerHTML.length<100){
-        // Could be blocked, but might be cross-origin
-        // Check if loading is still showing
-        if(loading.style.display!=='none'){
-          // Try to detect if we can interact
-          showIframeBlocked();
-        }
+        if(loading.style.display!=='none')showIframeBlocked();
       }
-    }catch(e){
-      // Cross-origin = OK
-      loading.style.display='none';
-    }
+    }catch(e){loading.style.display='none';}
   },5000);
 }
 
@@ -323,58 +306,70 @@ function showIframeBlocked(){
   loading.style.display='block';
   loading.innerHTML='<div style="font-size:24px;margin-bottom:10px">⚠️</div>'+
     '<div>Site may block iframe</div>'+
-    '<small style="color:#888;display:block;margin-top:8px">Try clicking ↗️ Popup button above</small>'+
-    '<button onclick="openGamePopup()" style="margin-top:12px;background:#3a1a3a;color:#f0f;border:1px solid #f0f;border-radius:4px;padding:8px 16px;cursor:pointer;font-weight:700">↗️ Open in Popup</button>';
+    '<small style="color:#888;display:block;margin-top:8px">Try ↗️ Popup button</small>'+
+    '<button onclick="openGamePopup()" style="margin-top:12px;background:#3a1a3a;color:#f0f;border:1px solid #f0f;border-radius:4px;padding:8px 16px;cursor:pointer;font-weight:700">↗️ Open Popup</button>';
 }
 
 function reloadGame(){
-  D('🔄 Reloading game');
+  D('🔄 Reloading');
   gameLoaded=false;
   const f=document.getElementById('gameFrame');
   f.src='about:blank';
-  setTimeout(()=>{loadGameIframe();},200);
+  setTimeout(()=>loadGameIframe(),200);
 }
 
 function openGamePopup(){
-  if(gameWindow && !gameWindow.closed){
-    gameWindow.focus();
-    return;
-  }
+  if(gameWindow && !gameWindow.closed){gameWindow.focus();return;}
   const w=Math.min(500,Math.floor(window.screen.width*0.4));
   const h=Math.min(900,window.screen.height-80);
   const left=window.screen.width-w-30;
   const features='width='+w+',height='+h+',left='+left+',top=20,resizable=yes,scrollbars=yes';
   gameWindow=window.open(GAME_URL,'TRXGame',features);
-  if(!gameWindow){
-    alert('⚠️ Popup blocked!\n\nPlease allow popups for this site.');
-  }else{
-    D('🎮 Popup opened');
-  }
+  if(!gameWindow){alert('⚠️ Popup blocked!');}else{D('🎮 Popup opened');}
 }
 
 function toggleSidePanel(){
   sideShow=!sideShow;
   document.getElementById('sidePanel').classList.toggle('hide',!sideShow);
+  document.getElementById('sideResize').classList.toggle('hide',!sideShow);
   document.getElementById('btnHide').textContent=sideShow?'👁 Hide Panel':'👁 Show Panel';
   szAll();if(!userZoomed)autoFitCandles();renderAll();
 }
 
+// ===== Quick panel size presets =====
+function cyclePanelSize(){
+  const presets=[300,400,500,700,900];
+  let next=presets[0];
+  for(const p of presets){
+    if(p>sideW){next=p;break;}
+  }
+  // If sideW is already >= last preset, cycle to first
+  if(sideW>=presets[presets.length-1])next=presets[0];
+  sideW=Math.min(next,maxSideW());
+  sideSave();
+  szAll();if(!userZoomed)autoFitCandles();renderAll();
+  D('📏 Panel size: '+sideW+'px');
+}
+
 window.addEventListener('load',()=>{
   D('🚀 Starting...');
+  // Clamp sideW to current screen
+  sideW=Math.min(Math.max(sideW,minSideW()),maxSideW());
   const saved=storeLoad();
   if(saved.length>0){results=saved;lastPeriod=results[results.length-1].period;}
   draws=drawLoad();
   buildCandles();szAll();setupTB();setupIn();setupRD();setupSideResize();
   autoFitCandles();scrollEnd();renderAll();renderHistory();
-  
-  // Restore active tab on load
   switchTab(activeTab);
-  
   setInterval(tickCD,1000);tickCD();
   doFetch();setInterval(doFetch,5000);
-  D('💡 Click 🎮 Game tab to load betting site');
+  D('💡 Click 🎮 Game tab to load betting');
 });
-window.addEventListener('resize',()=>{szAll();if(!userZoomed)autoFitCandles();renderAll();});
+window.addEventListener('resize',()=>{
+  // Clamp sideW after window resize
+  sideW=Math.min(sideW,maxSideW());
+  szAll();if(!userZoomed)autoFitCandles();renderAll();
+});
 
 function szAll(){
   const wr=document.getElementById('wrap'),hdr=document.getElementById('header'),tb=document.getElementById('toolbar');
@@ -385,28 +380,73 @@ function szAll(){
   const rw=document.getElementById('rsiW');rw.style.height=(ind.rsi?rH:0)+'px';rw.style.top=mH+'px';rw.style.display=ind.rsi?'block':'none';rw.style.width=cw+'px';
   const rd=document.getElementById('rsiDrag');rd.style.top=(mH-4)+'px';rd.style.width=cw+'px';rd.style.display=ind.rsi?'block':'none';
   const rc=document.getElementById('cRSI');rc.width=cw;rc.height=rH;rc.style.width=cw+'px';rc.style.height=rH+'px';cv.RSI=rc;cc.RSI=rc.getContext('2d');
+  
+  // Side panel
   const sp=document.getElementById('sidePanel');
   sp.style.width=sideW+'px';
+  
+  // Resize handle - position at panel left edge
+  const rsz=document.getElementById('sideResize');
+  if(sideShow){
+    rsz.style.right=sideW+'px';
+    rsz.style.left='auto';
+    rsz.classList.remove('hide');
+  }else{
+    rsz.classList.add('hide');
+  }
 }
 
 function setupSideResize(){
   const r=document.getElementById('sideResize');
-  const start=x=>{sideResizing=true;sideResizeStartX=x;sideResizeStartW=sideW;};
+  
+  const start=x=>{
+    sideResizing=true;
+    sideResizeStartX=x;
+    sideResizeStartW=sideW;
+    r.classList.add('active');
+    document.body.style.cursor='ew-resize';
+    document.body.style.userSelect='none';
+  };
+  
   const move=x=>{
     if(!sideResizing)return;
     const dx=sideResizeStartX-x;
-    sideW=Math.max(200,Math.min(800,sideResizeStartW+dx));
-    szAll();if(!userZoomed)autoFitCandles();renderAll();
+    const newW=sideResizeStartW+dx;
+    sideW=Math.max(minSideW(),Math.min(maxSideW(),newW));
+    szAll();
+    if(!userZoomed)autoFitCandles();
+    renderAll();
   };
+  
   const end=()=>{
-    if(sideResizing){sideResizing=false;sideSave();}
+    if(sideResizing){
+      sideResizing=false;
+      r.classList.remove('active');
+      document.body.style.cursor='';
+      document.body.style.userSelect='';
+      sideSave();
+      D('Panel resized: '+sideW+'px');
+    }
   };
-  r.addEventListener('mousedown',ev=>{ev.preventDefault();start(ev.clientX);});
-  document.addEventListener('mousemove',ev=>{move(ev.clientX);});
+  
+  r.addEventListener('mousedown',ev=>{ev.preventDefault();ev.stopPropagation();start(ev.clientX);});
+  document.addEventListener('mousemove',ev=>{if(sideResizing){ev.preventDefault();move(ev.clientX);}});
   document.addEventListener('mouseup',end);
+  document.addEventListener('mouseleave',end);
+  
   r.addEventListener('touchstart',ev=>{ev.preventDefault();start(ev.touches[0].clientX);},{passive:false});
-  document.addEventListener('touchmove',ev=>{if(sideResizing)move(ev.touches[0].clientX);});
+  document.addEventListener('touchmove',ev=>{if(sideResizing){ev.preventDefault();move(ev.touches[0].clientX);}},{passive:false});
   document.addEventListener('touchend',end);
+  document.addEventListener('touchcancel',end);
+  
+  // Double-click to reset
+  r.addEventListener('dblclick',ev=>{
+    ev.preventDefault();
+    sideW=350;
+    sideSave();
+    szAll();if(!userZoomed)autoFitCandles();renderAll();
+    D('Panel reset to 350px');
+  });
 }
 
 function setupRD(){
@@ -490,23 +530,18 @@ function setupTB(){
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.ind;ind[k]=!ind[k];b.classList.toggle('active',ind[k]);buildCandles();szAll();renderAll();});});
   document.getElementById('btnLoad').addEventListener('click',()=>{if(!isLoading)showLoadMenu();});
   document.getElementById('btnFit').addEventListener('click',()=>{userZoomed=false;autoFitCandles();scrollEnd();renderAll();});
-  
-  // GAME TOGGLE - switch between History and Game tabs (does NOT hide panel)
   document.getElementById('btnGame').addEventListener('click',()=>{
     if(!sideShow){
-      // If panel hidden, show it first
       sideShow=true;
       document.getElementById('sidePanel').classList.remove('hide');
+      document.getElementById('sideResize').classList.remove('hide');
       document.getElementById('btnHide').textContent='👁 Hide Panel';
       szAll();if(!userZoomed)autoFitCandles();renderAll();
     }
-    // Toggle between hist and game tabs
     switchTab(activeTab==='game'?'hist':'game');
   });
-  
-  // HIDE/SHOW entire side panel
+  document.getElementById('btnPanelSize').addEventListener('click',cyclePanelSize);
   document.getElementById('btnHide').addEventListener('click',toggleSidePanel);
-  
   document.getElementById('btnClear').addEventListener('click',()=>{if(confirm('Clear drawings?')){draws=[];sel=null;drawSave();renderAll();}});
   document.getElementById('btnReset').addEventListener('click',()=>{
     if(confirm('⚠️ Reset all data?')){
@@ -518,12 +553,8 @@ function setupTB(){
   });
   document.getElementById('cmDel').addEventListener('click',()=>{if(sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}hideCM();});
   document.getElementById('cmCol').addEventListener('click',()=>{if(sel){const cs=['#00e5ff','#ffab00','#ff5252','#00e676','#e040fb','#ffeb3b','#ff6d00','#fff'];sel.color=cs[(cs.indexOf(sel.color)+1)%cs.length];drawSave();renderAll();}hideCM();});
-  
-  // TAB SWITCHING
   document.getElementById('tabHist').addEventListener('click',()=>switchTab('hist'));
   document.getElementById('tabGame').addEventListener('click',()=>switchTab('game'));
-  
-  // GAME CONTROLS
   document.getElementById('gameReload').addEventListener('click',reloadGame);
   document.getElementById('gamePopup').addEventListener('click',openGamePopup);
 }
