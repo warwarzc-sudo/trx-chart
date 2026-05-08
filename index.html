@@ -39,7 +39,6 @@ canvas{position:absolute;top:0;left:0;}
 #cmenu div{padding:8px 16px;font-size:12px;cursor:pointer;color:#eee;}
 #cmenu div:hover{background:#2a2a5a;}
 
-/* SIDE PANEL */
 #sidePanel{position:absolute;top:0;right:0;height:100%;background:#0a0a1a;z-index:20;display:flex;flex-direction:column;}
 #sidePanel.hide{display:none;}
 #sideTabs{display:flex;background:#0e0e24;border-bottom:1px solid #222;height:36px;flex-shrink:0;border-left:1px solid #2a2a4a;}
@@ -61,7 +60,6 @@ canvas{position:absolute;top:0;left:0;}
 #gameToolbar button:hover{background:rgba(60,60,120,0.95);border-color:#00e5ff;}
 #gameLoading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:13px;text-align:center;z-index:5;background:#000;padding:20px;border-radius:8px;}
 
-/* RESIZE HANDLE */
 #sideResize{position:absolute;top:0;width:8px;height:100%;cursor:ew-resize;z-index:50;background:rgba(0,229,255,0.15);transition:background 0.2s;}
 #sideResize:hover,#sideResize.active{background:rgba(0,229,255,0.6);}
 #sideResize::before{content:'⋮⋮';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#00e5ff;font-size:14px;font-weight:bold;letter-spacing:-2px;}
@@ -70,18 +68,24 @@ canvas{position:absolute;top:0;left:0;}
 #dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
 #dbgBox.hide{display:none;}
 #dbgToggle{display:none;}
+
 #loadOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,30,0.95);border:2px solid #00e5ff;border-radius:8px;padding:20px 30px;z-index:5000;color:#fff;font-size:14px;display:none;text-align:center;box-shadow:0 4px 20px rgba(0,229,255,0.3);min-width:300px;}
 #loadOverlay.show{display:block;}
 #loadProg{margin-top:10px;background:#222;border-radius:4px;height:8px;overflow:hidden;}
 #loadProgBar{background:linear-gradient(90deg,#00e5ff,#00e676);height:100%;width:0%;transition:width 0.3s;}
 #cancelBtn{margin-top:12px;background:#3a1a1a;color:#f55;border:1px solid #f55;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;}
 #cancelBtn:hover{background:#5a2a2a;}
+
 @media(max-width:600px){
 #header{padding:4px 8px;height:42px;}
 #header .title{font-size:13px;}
 #cnum{font-size:16px;}
 #cres{font-size:10px;max-width:140px;}
-#toolbar button{padding:3px 7px;font-size:11px;}
+#toolbar button{padding:4px 8px;font-size:11px;}
+#sideResize{width:14px;}
+}
+@media(max-width:900px){
+#sideResize{width:12px;}
 }
 </style>
 </head>
@@ -159,11 +163,10 @@ canvas{position:absolute;top:0;left:0;}
 const dbgEl=document.getElementById('dbgBox');
 const dbgLines=[];
 function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+msg;dbgLines.push(line);if(dbgLines.length>100)dbgLines.shift();dbgEl.innerHTML=dbgLines.map(l=>'<div>'+l+'</div>').join('');dbgEl.scrollTop=dbgEl.scrollHeight;console.log(line);}
-document.getElementById('dbgToggle').addEventListener('click',()=>{dbgEl.classList.toggle('hide');});
 
-// Ctrl+D shortcut to toggle debug panel
+// Ctrl+D toggles debug panel
 document.addEventListener('keydown',ev=>{
-  if(ev.ctrlKey && ev.key==='d'){
+  if(ev.ctrlKey && (ev.key==='d'||ev.key==='D')){
     ev.preventDefault();
     dbgEl.classList.toggle('hide');
   }
@@ -179,6 +182,7 @@ const DRAW_KEY='TRX_DRAW_V3';
 const SIDE_KEY='TRX_SIDE_V3';
 const TAB_KEY='TRX_TAB_V3';
 const IND_KEY='TRX_IND_V3';
+const RSI_H_KEY='TRX_RSIH_V3';
 
 let W,H,mH,rH=120,sideW=350;
 let cv={},cc={};
@@ -208,19 +212,12 @@ function minSideW(){return 200;}
 try{
   const s=localStorage.getItem(SIDE_KEY);if(s){const v=parseInt(s);if(v>=200)sideW=v;}
   const t=localStorage.getItem(TAB_KEY);if(t==='hist'||t==='game')activeTab=t;
-  const i=localStorage.getItem(IND_KEY);
-  if(i){
-    const o=JSON.parse(i);
-    if(o&&typeof o==='object'){
-      ind.ema9=o.ema9?1:0;
-      ind.ema21=o.ema21?1:0;
-      ind.rsi=o.rsi?1:0;
-      D('🔧 Restored indicators: EMA9='+ind.ema9+' EMA21='+ind.ema21+' RSI='+ind.rsi);
-    }
-  }
+  const i=localStorage.getItem(IND_KEY);if(i){const o=JSON.parse(i);if(o&&typeof o==='object'){ind.ema9=o.ema9?1:0;ind.ema21=o.ema21?1:0;ind.rsi=o.rsi?1:0;}}
+  const rh=localStorage.getItem(RSI_H_KEY);if(rh){const v=parseInt(rh);if(v>=40)rH=v;}
 }catch(e){}
 
 function indSave(){try{localStorage.setItem(IND_KEY,JSON.stringify(ind));}catch(e){}}
+function rsiHSave(){try{localStorage.setItem(RSI_H_KEY,String(rH));}catch(e){}}
 
 function storeSave(){try{const j=JSON.stringify(results);localStorage.setItem(STORE_KEY,j);D('💾 SAVED: '+results.length);}catch(e){D('❌ '+e.message);try{results=results.slice(-2000);localStorage.setItem(STORE_KEY,JSON.stringify(results));}catch(e2){}}}
 function storeLoad(){try{const r=localStorage.getItem(STORE_KEY);if(!r){return[];}const a=JSON.parse(r);if(!Array.isArray(a))return[];D('✅ LOADED: '+a.length);return a;}catch(e){return[];}}
@@ -299,14 +296,13 @@ function loadGameIframe(){
   f.src=GAME_URL;
   gameLoaded=true;
   f.onload=function(){
-    D('✅ onload fired');
     setTimeout(()=>{
       try{
         const doc=f.contentDocument||f.contentWindow?.document;
-        if(doc===null){loading.style.display='none';D('✅ Loaded (CORS)');}
-        else if(doc.body && doc.body.innerHTML.length>100){loading.style.display='none';D('✅ Loaded');}
+        if(doc===null){loading.style.display='none';}
+        else if(doc.body && doc.body.innerHTML.length>100){loading.style.display='none';}
         else{showIframeBlocked();}
-      }catch(e){loading.style.display='none';D('✅ Loaded (CORS)');}
+      }catch(e){loading.style.display='none';}
     },1500);
   };
   setTimeout(()=>{
@@ -357,14 +353,12 @@ function toggleSidePanel(){
 function cyclePanelSize(){
   const presets=[300,400,500,700,900];
   let next=presets[0];
-  for(const p of presets){
-    if(p>sideW){next=p;break;}
-  }
+  for(const p of presets){if(p>sideW){next=p;break;}}
   if(sideW>=presets[presets.length-1])next=presets[0];
   sideW=Math.min(next,maxSideW());
   sideSave();
   szAll();if(!userZoomed)autoFitCandles();renderAll();
-  D('📏 Panel size: '+sideW+'px');
+  D('📏 Panel: '+sideW);
 }
 
 window.addEventListener('load',()=>{
@@ -377,20 +371,26 @@ window.addEventListener('load',()=>{
   autoFitCandles();scrollEnd();renderAll();renderHistory();
   switchTab(activeTab);
   
-  // Restore indicator button active states + recalculate
+  // Restore indicator button states
   ['ema9','ema21','rsi'].forEach(k=>{
     const btn=document.querySelector('[data-ind="'+k+'"]');
     if(btn)btn.classList.toggle('active',ind[k]);
   });
-  buildCandles();
-  szAll();
-  if(!userZoomed)autoFitCandles();
-  scrollEnd();
-  renderAll();
+  // Re-render with indicators applied
+  buildCandles();szAll();renderAll();
+  
+  // Auto-prompt to load history if no data (mobile-friendly)
+  if(results.length===0){
+    setTimeout(()=>{
+      if(confirm('No history data found.\n\nLoad 24 hours of history now?\n(Recommended for first time)')){
+        loadBulkHistory(24);
+      }
+    },1500);
+  }
   
   setInterval(tickCD,1000);tickCD();
   doFetch();setInterval(doFetch,5000);
-  D('💡 Click 🎮 Game tab to load betting');
+  D('💡 Press Ctrl+D for debug log');
 });
 window.addEventListener('resize',()=>{
   sideW=Math.min(sideW,maxSideW());
@@ -406,34 +406,17 @@ function szAll(){
   const rw=document.getElementById('rsiW');rw.style.height=(ind.rsi?rH:0)+'px';rw.style.top=mH+'px';rw.style.display=ind.rsi?'block':'none';rw.style.width=cw+'px';
   const rd=document.getElementById('rsiDrag');rd.style.top=(mH-4)+'px';rd.style.width=cw+'px';rd.style.display=ind.rsi?'block':'none';
   const rc=document.getElementById('cRSI');rc.width=cw;rc.height=rH;rc.style.width=cw+'px';rc.style.height=rH+'px';cv.RSI=rc;cc.RSI=rc.getContext('2d');
-  const sp=document.getElementById('sidePanel');
-  sp.style.width=sideW+'px';
+  const sp=document.getElementById('sidePanel');sp.style.width=sideW+'px';
   const rsz=document.getElementById('sideResize');
-  if(sideShow){
-    rsz.style.right=sideW+'px';
-    rsz.style.left='auto';
-    rsz.classList.remove('hide');
-  }else{
-    rsz.classList.add('hide');
-  }
+  if(sideShow){rsz.style.right=sideW+'px';rsz.style.left='auto';rsz.classList.remove('hide');}
+  else{rsz.classList.add('hide');}
 }
 
 function setupSideResize(){
   const r=document.getElementById('sideResize');
-  const start=x=>{
-    sideResizing=true;sideResizeStartX=x;sideResizeStartW=sideW;
-    r.classList.add('active');document.body.style.cursor='ew-resize';document.body.style.userSelect='none';
-  };
-  const move=x=>{
-    if(!sideResizing)return;
-    const dx=sideResizeStartX-x;
-    const newW=sideResizeStartW+dx;
-    sideW=Math.max(minSideW(),Math.min(maxSideW(),newW));
-    szAll();if(!userZoomed)autoFitCandles();renderAll();
-  };
-  const end=()=>{
-    if(sideResizing){sideResizing=false;r.classList.remove('active');document.body.style.cursor='';document.body.style.userSelect='';sideSave();D('Panel: '+sideW+'px');}
-  };
+  const start=x=>{sideResizing=true;sideResizeStartX=x;sideResizeStartW=sideW;r.classList.add('active');document.body.style.cursor='ew-resize';document.body.style.userSelect='none';};
+  const move=x=>{if(!sideResizing)return;const dx=sideResizeStartX-x;sideW=Math.max(minSideW(),Math.min(maxSideW(),sideResizeStartW+dx));szAll();if(!userZoomed)autoFitCandles();renderAll();};
+  const end=()=>{if(sideResizing){sideResizing=false;r.classList.remove('active');document.body.style.cursor='';document.body.style.userSelect='';sideSave();}};
   r.addEventListener('mousedown',ev=>{ev.preventDefault();ev.stopPropagation();start(ev.clientX);});
   document.addEventListener('mousemove',ev=>{if(sideResizing){ev.preventDefault();move(ev.clientX);}});
   document.addEventListener('mouseup',end);
@@ -442,14 +425,14 @@ function setupSideResize(){
   document.addEventListener('touchmove',ev=>{if(sideResizing){ev.preventDefault();move(ev.touches[0].clientX);}},{passive:false});
   document.addEventListener('touchend',end);
   document.addEventListener('touchcancel',end);
-  r.addEventListener('dblclick',ev=>{ev.preventDefault();sideW=350;sideSave();szAll();if(!userZoomed)autoFitCandles();renderAll();D('Panel reset');});
+  r.addEventListener('dblclick',ev=>{ev.preventDefault();sideW=350;sideSave();szAll();if(!userZoomed)autoFitCandles();renderAll();});
 }
 
 function setupRD(){
   const rd=document.getElementById('rsiDrag');
   const s=y=>{rsiDrg=true;rsiDSY=y;rsiDSH=rH;};
   const m=y=>{if(!rsiDrg)return;rH=Math.max(40,Math.min(H-80,rsiDSH+(rsiDSY-y)));szAll();renderAll();};
-  const e2=()=>{rsiDrg=false;};
+  const e2=()=>{if(rsiDrg){rsiDrg=false;rsiHSave();}};
   rd.addEventListener('mousedown',ev=>{ev.preventDefault();s(ev.clientY);});
   document.addEventListener('mousemove',ev=>{m(ev.clientY);});
   document.addEventListener('mouseup',e2);
@@ -502,7 +485,7 @@ function r2y(v){return rH-(v/100)*(rH-14)-7;}
 function inPA(x){return x>=chW();}
 
 function renderAll(){if(!cds.length){clearAll();return;}cp();rM();rO();rD();rR();}
-function clearAll(){['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});if(cc.Main){cc.Main.fillStyle='#ddd';cc.Main.font='16px sans-serif';cc.Main.textAlign='center';cc.Main.fillText('Click "Load History"',CW()/2,H/2);cc.Main.textAlign='left';}}
+function clearAll(){['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});if(cc.Main){cc.Main.fillStyle='#ddd';cc.Main.font='16px sans-serif';cc.Main.textAlign='center';cc.Main.fillText('No data - Click "Load History"',CW()/2,H/2);cc.Main.textAlign='left';}}
 
 function rM(){const cw=CW(),ch=chW(),c=cc.Main;c.clearRect(0,0,cw,H);c.fillStyle=COL.bg;c.fillRect(0,0,cw,H);c.fillStyle='#13132d';c.fillRect(ch,0,PAW,mH);c.strokeStyle='#444';c.lineWidth=1;c.beginPath();c.moveTo(ch,0);c.lineTo(ch,mH);c.stroke();c.strokeStyle=COL.grid;c.lineWidth=0.5;const nl=8,st=pR/nl;for(let i=0;i<=nl;i++){const p=pN+st*i,y=p2y(p);if(y<5||y>mH-5)continue;c.setLineDash([2,4]);c.beginPath();c.moveTo(0,y);c.lineTo(ch,y);c.stroke();c.setLineDash([]);c.fillStyle=COL.gtP;c.font='bold 11px monospace';c.fillText(p.toFixed(1),ch+4,y+4);}const{s,e}=vr();const vs=Math.max(1,Math.floor((e-s)/8));for(let i=s;i<=e;i+=vs){const x=i2x(i)+cW/2;if(x<0||x>ch)continue;c.setLineDash([2,4]);c.strokeStyle=COL.grid;c.beginPath();c.moveTo(x,0);c.lineTo(x,mH);c.stroke();c.setLineDash([]);if(cds[i]){const d=new Date(cds[i].time*1000);c.fillStyle=COL.gtT;c.font='bold 11px monospace';c.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),x-16,mH-4);}}c.strokeStyle='#444';c.lineWidth=1;c.setLineDash([]);c.beginPath();c.moveTo(0,mH);c.lineTo(cw,mH);c.stroke();c.save();c.beginPath();c.rect(0,0,ch,mH);c.clip();for(let i=s;i<=e;i++){const d=cds[i],x=i2x(i),ib=d.bigSmall==='Big',col=ib?COL.up:COL.dn;const top=p2y(Math.max(d.open,d.close)),bot=p2y(Math.min(d.open,d.close)),bh=Math.max(2,bot-top);c.fillStyle=col;c.fillRect(x,top,cW,bh);if(cW>=4){c.strokeStyle=ib?COL.upB:COL.dnB;c.lineWidth=0.5;c.strokeRect(x,top,cW,bh);}if(cW>=10){c.fillStyle=COL.cNum;c.font='bold '+(cW>=14?'12':'10')+'px monospace';c.textAlign='center';c.fillText(d.result,x+cW/2,top-5);c.textAlign='left';}}c.restore();if(pzMan){c.fillStyle='rgba(0,229,255,0.08)';c.fillRect(ch,0,PAW,mH);c.fillStyle='#00e5ff';c.font='bold 9px sans-serif';c.fillText('x'+priceZoom.toFixed(2),ch+4,14);}c.fillStyle='#888';c.font='bold 10px monospace';c.fillText('Candles: '+cds.length,8,H-8);}
 
@@ -524,7 +507,7 @@ function rCr(x,y){const cw=CW(),ch=chW(),c=cc.Cross;c.clearRect(0,0,cw,H);if(x<0
 function setupTB(){
   document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>{b.addEventListener('click',()=>{tool=b.dataset.tool;document.querySelectorAll('#toolbar button[data-tool]').forEach(bb=>bb.classList.remove('active'));b.classList.add('active');canDr();desel();uCur();});});
   
-  // INDICATORS - save state to localStorage
+  // Indicator buttons - SAVE state to localStorage
   document.querySelectorAll('#toolbar button[data-ind]').forEach(b=>{
     b.addEventListener('click',()=>{
       const k=b.dataset.ind;
@@ -532,27 +515,20 @@ function setupTB(){
       b.classList.toggle('active',ind[k]);
       indSave();
       buildCandles();szAll();renderAll();
-      D('🔧 '+k+' = '+ind[k]);
     });
   });
   
   document.getElementById('btnLoad').addEventListener('click',()=>{if(!isLoading)showLoadMenu();});
   document.getElementById('btnFit').addEventListener('click',()=>{userZoomed=false;autoFitCandles();scrollEnd();renderAll();});
   document.getElementById('btnGame').addEventListener('click',()=>{
-    if(!sideShow){
-      sideShow=true;
-      document.getElementById('sidePanel').classList.remove('hide');
-      document.getElementById('sideResize').classList.remove('hide');
-      document.getElementById('btnHide').textContent='👁 Hide Panel';
-      szAll();if(!userZoomed)autoFitCandles();renderAll();
-    }
+    if(!sideShow){sideShow=true;document.getElementById('sidePanel').classList.remove('hide');document.getElementById('sideResize').classList.remove('hide');document.getElementById('btnHide').textContent='👁 Hide Panel';szAll();if(!userZoomed)autoFitCandles();renderAll();}
     switchTab(activeTab==='game'?'hist':'game');
   });
   document.getElementById('btnPanelSize').addEventListener('click',cyclePanelSize);
   document.getElementById('btnHide').addEventListener('click',toggleSidePanel);
   document.getElementById('btnClear').addEventListener('click',()=>{if(confirm('Clear drawings?')){draws=[];sel=null;drawSave();renderAll();}});
   document.getElementById('btnReset').addEventListener('click',()=>{
-    if(confirm('⚠️ Reset all data?')){
+    if(confirm('⚠️ Reset all data?\n\nThis will delete all history and drawings.')){
       cancelLoading=true;isLoading=false;results=[];draws=[];lastPeriod='';cds=[];
       try{localStorage.removeItem(STORE_KEY);localStorage.removeItem(DRAW_KEY);}catch(e){}
       const btn=document.getElementById('btnLoad');btn.classList.remove('loading');btn.textContent='⬇️ Load History';
