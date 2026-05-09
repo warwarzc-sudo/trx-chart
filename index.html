@@ -445,7 +445,7 @@ function p2y(p){return mH-((p-pN)/pR)*(mH-40)-20;}
 function y2p(y){return pN+((mH-y-20)/(mH-40))*pR;}
 function i2x(i){return i*(cW+cG)-sx+cG;}
 function x2i(x){return(x+sx-cG)/(cW+cG);}
-function r2y(v)function r2y(v){const min=20,max=80;const range=max-min;return rH-((v-min)/range)*(rH-20)-10;}
+function r2y(v){const min=20,max=80;const range=max-min;return rH-((v-min)/range)*(rH-20)-10;}
 function inPA(x){return x>=chW();}
 function renderAll(){if(!cds.length){clearAll();return;}cp();rM();rO();rD();rR();}
 function clearAll(){['Main','Over','Draw','Cross','RSI'].forEach(n=>{if(cc[n]){const c=cc[n],cv2=cv[n];c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle=COL.bg;c.fillRect(0,0,cv2.width,cv2.height);}});if(cc.Main){cc.Main.fillStyle='#ddd';cc.Main.font='16px sans-serif';cc.Main.textAlign='center';cc.Main.fillText('No data - Click "Load History"',CW()/2,H/2);cc.Main.textAlign='left';}}
