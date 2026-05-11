@@ -47,7 +47,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 .betSection{background:#1a1a3a;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;}
 .betSection h4{color:#ffab00;font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:1px;border-bottom:1px solid #2a2a4a;padding-bottom:4px;margin-bottom:2px;}
 #betQuick{flex:0 0 220px;}
-#betStats{flex:0 0 200px;}
+#betStats{flex:0 0 240px;}
 #betHistory{flex:1;overflow-y:auto;min-width:200px;}
 .betChoice{display:flex;gap:6px;}
 .btnBig{background:#1a3a1a;color:#00e676;border:2px solid #00e676 !important;}
@@ -94,7 +94,6 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
   <div id="authBox">
     <h1>🔐 TRX Chart Access</h1>
     <div class="subtitle">Authorization required to use this chart</div>
-    <!-- Auth part remains the same -->
     <div id="authStep1">
       <div class="step">
         <div class="step-title">Enter Your Name</div>
@@ -110,8 +109,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
       </div>
       <div id="authStatus" class="pending">Waiting for admin approval...</div>
       <div class="contact-info">
-        Send your Name + Device ID to admin<br>
-        <strong>Telegram: @YourTelegram</strong>
+        Send your Name + Device ID to admin
       </div>
       <button onclick="checkStatus()" style="margin-top:15px">Check Status Again</button>
       <button onclick="resetAuth()" style="background:#3a1a1a;color:#f55;margin-top:8px">Reset Auth</button>
@@ -148,11 +146,8 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 </div>
 
 <div id="wrap">
-  <canvas id="cMain"></canvas>
-  <canvas id="cOver"></canvas>
-  <canvas id="cDraw"></canvas>
-  <canvas id="cCross"></canvas>
-  <canvas id="cAct"></canvas>
+  <canvas id="cMain"></canvas><canvas id="cOver"></canvas><canvas id="cDraw"></canvas>
+  <canvas id="cCross"></canvas><canvas id="cAct"></canvas>
   <div id="rsiDrag"></div>
   <div id="rsiW"><canvas id="cRSI"></canvas></div>
 
@@ -196,25 +191,97 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
       </div>
     </div>
   </div>
-
-  <!-- Side Panel (History + Game) remains the same as before -->
 </div>
 
 <script>
-// Paste your previous full script here and add the new functions below
+const AUTH_API = 'https://trx-auth.warwar-zc.workers.dev';
+let authCheckInterval = null;
 
-// === NEW 24H CHART FUNCTION ===
-function renderWinRateChart() {
+function getDeviceId(){
+  let id = localStorage.getItem('trx_device_id');
+  if(!id){
+    const nav = navigator;
+    const screen = window.screen;
+    const fp = [nav.userAgent, nav.language, nav.platform, screen.width+'x'+screen.height, screen.colorDepth, new Date().getTimezoneOffset(), Math.random().toString(36).substr(2,9)].join('|');
+    let hash = 0;
+    for(let i=0;i<fp.length;i++){hash = ((hash<<5)-hash)+fp.charCodeAt(i);hash=hash&hash;}
+    id = 'dev_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
+    localStorage.setItem('trx_device_id', id);
+  }
+  return id;
+}
+
+function getUserName(){return localStorage.getItem('trx_user_name')||'';}
+function setUserName(n){localStorage.setItem('trx_user_name',n);}
+
+async function checkAuthStatus(){
+  const deviceId = getDeviceId();
+  try{
+    const r = await fetch(AUTH_API+'/check?device='+encodeURIComponent(deviceId));
+    return await r.json();
+  }catch(e){return {status:'error'};}
+}
+
+async function requestAccess(){
+  const name = document.getElementById('userNameInput').value.trim();
+  if(!name){alert('Please enter your name');return;}
+  setUserName(name);
+  const deviceId = getDeviceId();
+  const btn = document.getElementById('reqBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  try{
+    await fetch(AUTH_API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId,name})});
+    showStep2(deviceId);
+  }catch(e){
+    alert('Error');
+    btn.disabled = false;
+    btn.textContent = 'Request Access →';
+  }
+}
+
+function showStep2(deviceId){
+  document.getElementById('authStep1').style.display='none';
+  document.getElementById('authStep2').style.display='block';
+  document.getElementById('deviceIdDisplay').textContent = deviceId;
+}
+
+function copyDeviceId(){
+  const id = document.getElementById('deviceIdDisplay').textContent;
+  const text = 'Name: ' + getUserName() + '\nDevice ID: ' + id;
+  navigator.clipboard.writeText(text).then(() => alert('Copied!'));
+}
+
+async function checkStatus(){
+  const data = await checkAuthStatus();
+  const statusEl = document.getElementById('authStatus');
+  if(data.status === 'approved'){
+    statusEl.textContent = 'Approved! Loading...';
+    setTimeout(()=>{document.getElementById('authScreen').style.display='none';initApp();},800);
+  }else if(data.status === 'pending'){
+    statusEl.textContent = 'Waiting for admin approval...';
+  }else{
+    statusEl.textContent = 'Error or Rejected';
+  }
+}
+
+function resetAuth(){
+  if(confirm('Reset auth?')){localStorage.removeItem('trx_device_id');localStorage.removeItem('trx_user_name');location.reload();}
+}
+
+// ==================== BET TRACKER & CHART CODE (Main App) ====================
+let bets = [];
+
+function renderWinRateChart(){
   const canvas = document.getElementById('winRateChart');
-  if (!canvas) return;
+  if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  const todayStart = new Date();
-  todayStart.setHours(0,0,0,0);
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const todayBets = bets.filter(b => b.timestamp >= todayStart.getTime() && b.status !== 'pending');
 
-  if (todayBets.length < 2) {
+  if(todayBets.length < 2){
     ctx.fillStyle = '#666';
     ctx.font = '13px sans-serif';
     ctx.textAlign = 'center';
@@ -225,29 +292,25 @@ function renderWinRateChart() {
   const hourly = {};
   todayBets.forEach(b => {
     const hour = new Date(b.timestamp).getHours();
-    if (!hourly[hour]) hourly[hour] = {win:0, loss:0, total:0};
+    if(!hourly[hour]) hourly[hour] = {win:0, loss:0, total:0};
     hourly[hour].total++;
-    if (b.status === 'win') hourly[hour].win++;
+    if(b.status === 'win') hourly[hour].win++;
     else hourly[hour].loss++;
   });
 
-  const hours = Object.keys(hourly).map(Number).sort((a,b) => a - b);
+  const hours = Object.keys(hourly).map(Number).sort((a,b)=>a-b);
   const maxCount = Math.max(...hours.map(h => hourly[h].total), 1);
   const barWidth = Math.max(8, Math.floor(230 / hours.length));
   const startX = 35;
 
-  // Grid lines
   ctx.strokeStyle = '#333';
-  for(let i = 0; i <= 5; i++) {
-    const y = 20 + i * 18;
-    ctx.beginPath();
-    ctx.moveTo(30, y);
-    ctx.lineTo(270, y);
-    ctx.stroke();
+  for(let i=0; i<=5; i++){
+    const y = 20 + i*18;
+    ctx.beginPath(); ctx.moveTo(30,y); ctx.lineTo(270,y); ctx.stroke();
   }
 
-  hours.forEach((hour, i) => {
-    const x = startX + i * (barWidth + 4);
+  hours.forEach((hour,i) => {
+    const x = startX + i*(barWidth + 4);
     const data = hourly[hour];
     const height = Math.floor((data.total / maxCount) * 75);
     const winHeight = data.total > 0 ? Math.floor((data.win / data.total) * height) : 0;
@@ -265,14 +328,31 @@ function renderWinRateChart() {
   ctx.fillText('24H Win Rate Trend', canvas.width/2, 15);
 }
 
-// Update renderBets function (add at the end)
-function renderBets() {
-  // ... your existing renderBets code ...
-
-  renderWinRateChart();   // <-- Add this line at the end
+function renderBets(){
+  // Placeholder - add your original renderBets logic here if needed
+  renderWinRateChart();
 }
 
-// Call it once in initApp after renderBets();
+function initApp(){
+  console.log('App Started');
+  document.getElementById('betPanel').classList.toggle('show', true); // Show bet panel by default for testing
+  renderBets();
+}
+
+// Start the app
+window.addEventListener('load', () => {
+  initAuth();
+});
+
+async function initAuth(){
+  const data = await checkAuthStatus();
+  if(data.status === 'approved'){
+    document.getElementById('authScreen').style.display = 'none';
+    initApp();
+  } else {
+    // Show auth step
+  }
+}
 </script>
 </body>
 </html>
