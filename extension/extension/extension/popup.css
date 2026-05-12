@@ -1,0 +1,42 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: 'Segoe UI', sans-serif; 
+  width: 320px; 
+  background: #0a0a1a; 
+  color: #e0e0e0;
+}
+.container { padding: 16px; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.logo { font-size: 32px; }
+.title { font-size: 16px; font-weight: 700; color: #00e5ff; }
+.version { font-size: 11px; color: #888; }
+.status { 
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; background: #1a1a3a; 
+  border-radius: 8px; margin-bottom: 12px; font-size: 13px;
+}
+.dot { 
+  width: 10px; height: 10px; border-radius: 50%; 
+  background: #ffab00; animation: pulse 1.5s infinite;
+}
+.status.online .dot { background: #00e676; }
+.status.offline .dot { background: #ff5252; animation: none; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.stat { background: #1a1a3a; padding: 12px; border-radius: 8px; text-align: center; }
+.stat-value { font-size: 20px; font-weight: 700; color: #00e5ff; }
+.stat-label { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 2px; }
+.actions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.actions button {
+  padding: 10px; background: #1a1a3a; color: #00e5ff;
+  border: 1px solid #00e5ff; border-radius: 6px;
+  cursor: pointer; font-size: 12px; font-weight: 600;
+}
+.actions button:hover { background: #2a2a5a; }
+.actions button.danger { color: #ff5252; border-color: #ff5252; }
+.actions button.danger:hover { background: #3a1a1a; }
+.info { 
+  padding: 10px; background: #0e0e24; border-radius: 6px;
+  font-size: 11px; color: #aaa; line-height: 1.5;
+}
+.info strong { color: #00e5ff; }
