@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TRX Chart Companion</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">🎯</div>
+    <div>
+      <div class="title">TRX Chart Companion</div>
+      <div class="version">v1.0.0</div>
+    </div>
+  </div>
+  
+  <div id="status" class="status">
+    <div class="dot"></div>
+    <span id="statusText">Checking...</span>
+  </div>
+  
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="totalBets">0</div>
+      <div class="stat-label">Total Bets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="balance">0</div>
+      <div class="stat-label">Balance</div>
+    </div>
+  </div>
+  
+  <div class="actions">
+    <button id="openChart">📊 Open Chart</button>
+    <button id="syncNow">🔄 Sync Now</button>
+    <button id="clearData" class="danger">🗑️ Clear Data</button>
+  </div>
+  
+  <div class="info">
+    💡 Open <strong>6win598.com</strong> and play normally.<br>
+    Your bets will auto-sync to the chart!
+  </div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>
