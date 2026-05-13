@@ -3,12 +3,8 @@
   "name": "TRX Chart Companion",
   "version": "1.0.0",
   "description": "Auto-track TRX WinGo bets and sync with TRX Chart",
-  "author": "TRX Chart Team",
   
-  "permissions": [
-    "storage",
-    "activeTab"
-  ],
+  "permissions": ["storage", "activeTab", "tabs"],
   
   "host_permissions": [
     "https://6win598.com/*",
@@ -17,17 +13,12 @@
     "https://trx-chart.pages.dev/*"
   ],
   
-  "content_scripts": [
-    {
-      "matches": [
-        "https://6win598.com/*",
-        "https://*.6win598.com/*"
-      ],
-      "js": ["content-script.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
-    }
-  ],
+  "content_scripts": [{
+    "matches": ["https://6win598.com/*", "https://*.6win598.com/*"],
+    "js": ["content-script.js"],
+    "run_at": "document_start",
+    "world": "MAIN"
+  }],
   
   "background": {
     "service_worker": "background.js"
@@ -35,12 +26,12 @@
   
   "action": {
     "default_popup": "popup.html",
+    "default_title": "TRX Chart Companion",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    },
-    "default_title": "TRX Chart Companion"
+    }
   },
   
   "icons": {
@@ -50,9 +41,6 @@
   },
   
   "externally_connectable": {
-    "matches": [
-      "https://trx-chart.pages.dev/*",
-      "http://localhost:*/*"
-    ]
+    "matches": ["https://trx-chart.pages.dev/*"]
   }
 }
