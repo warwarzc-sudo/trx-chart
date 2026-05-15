@@ -224,37 +224,34 @@ canvas{position:absolute;top:0;left:0;}
 <div id="betPanel">
   <div id="betDrag"></div>
   <div id="betContent">
-    <div class="betSection" id="betQuick">
-      <h4>💰 Quick Bet</h4>
-      <div id="betChoice">
-        <button class="btnBig" id="chooseBig">🟢 BIG</button>
-        <button class="btnSmall" id="chooseSmall">🔴 SMALL</button>
-      </div>
-      <input type="number" id="betAmount" placeholder="Amount" value="1000">
-      <div id="betPresets">
-        <button data-amt="100">100</button>
-        <button data-amt="500">500</button>
-        <button data-amt="1000">1K</button>
-        <button data-amt="5000">5K</button>
-        <button data-amt="10000">10K</button>
-      </div>
-      <button id="betPlace">📌 Place Bet</button>
+  <div class="betSection" id="betCurrent">
+    <h4>🎯 Current Bet</h4>
+    <div id="curBetInfo" class="curBet">
+      <div class="curEmpty">No active bet</div>
     </div>
-    <div class="betSection" id="betStats">
-      <h4>📊 Today's Stats</h4>
-      <div class="statRow"><span class="statLabel">Total Bets</span><span class="statValue" id="sTotal">0</span></div>
-      <div class="statRow"><span class="statLabel">Wins</span><span class="statValue win" id="sWins">0</span></div>
-      <div class="statRow"><span class="statLabel">Losses</span><span class="statValue loss" id="sLosses">0</span></div>
-      <div class="statRow"><span class="statLabel">Pending</span><span class="statValue" id="sPending" style="color:#ffab00">0</span></div>
-      <div class="statRow"><span class="statLabel">Win Rate</span><span class="statValue" id="sRate">0%</span></div>
-      <div class="statRow"><span class="statLabel">Streak</span><span class="statValue" id="sStreak">-</span></div>
-      <div class="statRow"><span class="statLabel">Profit</span><span class="statValue profit" id="sProfit">0</span></div>
-      <button onclick="resetBets()" style="background:#3a1a1a;color:#f55;border:1px solid #f55;border-radius:4px;padding:6px;font-size:11px;cursor:pointer;margin-top:4px">🗑 Clear All Bets</button>
-    </div>
-    <div class="betSection" id="betHistory">
-      <h4>📋 Recent Bets</h4>
-      <div id="betList"></div>
-    </div>
+  </div>
+  
+  <div class="betSection" id="betStats">
+    <h4>📊 Today's Stats</h4>
+    <div class="statRow"><span class="statLabel">Total Bets</span><span class="statValue" id="sTotal">0</span></div>
+    <div class="statRow"><span class="statLabel">Wins</span><span class="statValue win" id="sWins">0</span></div>
+    <div class="statRow"><span class="statLabel">Losses</span><span class="statValue loss" id="sLosses">0</span></div>
+    <div class="statRow"><span class="statLabel">Pending</span><span class="statValue" id="sPending">0</span></div>
+    <div class="statRow"><span class="statLabel">Win Rate</span><span class="statValue" id="sRate">0%</span></div>
+    <div class="statRow"><span class="statLabel">Streak</span><span class="statValue" id="sStreak">-</span></div>
+    <div class="statRow"><span class="statLabel">Profit</span><span class="statValue profit" id="sProfit">+0</span></div>
+    <div class="statRow"><span class="statLabel">ROI</span><span class="statValue profit" id="sROI">+0%</span></div>
+    <button id="betReset" style="margin-top:8px;padding:6px;background:#3a1a1a;border:1px solid #ff5252;color:#ff5252;border-radius:4px;font-size:11px;cursor:pointer;font-weight:700;">🗑️ Clear All Bets</button>
+  </div>
+  
+  <div class="betSection" id="betGraph">
+    <h4>📈 Profit Graph (24h)</h4>
+    <canvas id="profitChart" style="flex:1;width:100%;height:100%;background:#0a0a1a;border-radius:4px;"></canvas>
+  </div>
+  
+  <div class="betSection" id="betHistory">
+    <h4>📜 Today's Bets</h4>
+    <div id="betList"></div>
   </div>
 </div>
 
