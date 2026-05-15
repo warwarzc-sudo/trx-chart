@@ -757,8 +757,8 @@ function szAll(){
   const betActualH=betShow?betH:0;
   mH=H-rsiActualH-betActualH;
   const cw=W-(sideShow?sideW:0);// Resize side panel to match main chart area only
- const _sidePanel_=document.getElementById('sidePanel');
-if(_sidePanel_){_sidePanel_.style.height=mH+'px';_sidePanel_.style.top=hdr.offsetHeight+tb.offsetHeight+'px';}
+const _sidePanel_=document.getElementById('sidePanel');
+if(_sidePanel_){_sidePanel_.style.height=H+'px';_sidePanel_.style.top=hdr.offsetHeight+tb.offsetHeight+'px';}
   ['Main','Over','Draw','Cross','Act'].forEach(n=>{const c=document.getElementById('c'+n);c.width=cw;c.height=H;c.style.width=cw+'px';c.style.height=H+'px';cv[n]=c;cc[n]=c.getContext('2d');});
   // RSI panel - between chart and bet panel
   const rw=document.getElementById('rsiW');rw.style.height=rsiActualH+'px';rw.style.top=mH+'px';rw.style.display=ind.rsi?'block':'none';rw.style.width=cw+'px';
