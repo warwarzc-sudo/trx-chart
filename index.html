@@ -454,7 +454,7 @@ function resetBets(){
 }
 
 function renderBets(){
-  // Stats - today only
+  // Today's bets only
   const todayStart=new Date();todayStart.setHours(0,0,0,0);
   const todayBets=bets.filter(b=>b.timestamp>=todayStart.getTime());
   const wins=todayBets.filter(b=>b.status==='win').length;
@@ -463,11 +463,18 @@ function renderBets(){
   const total=todayBets.length;
   const finished=wins+losses;
   const rate=finished>0?Math.round(wins/finished*100):0;
-  let profit=0;
-  for(const b of todayBets){if(b.status==='win'||b.status==='loss')profit+=b.profit;}
   
-  // Streak (latest finished bets)
-  const finishedBets=todayBets.filter(b=>b.status==='win'||b.status==='loss').reverse();
+  let profit=0,totalAmount=0;
+  for(const b of todayBets){
+    if(b.status==='win'||b.status==='loss'){
+      profit+=b.profit;
+      totalAmount+=b.amount;
+    }
+  }
+  const roi=totalAmount>0?(profit/totalAmount*100).toFixed(1):'0.0';
+  
+  // Streak
+  const finishedBets=todayBets.filter(b=>b.status==='win'||b.status==='loss').sort((a,b)=>b.timestamp-a.timestamp);
   let streak='-';
   if(finishedBets.length>0){
     const lastResult=finishedBets[0].status;
@@ -476,23 +483,31 @@ function renderBets(){
     streak=(lastResult==='win'?'W':'L')+count;
   }
   
-  document.getElementById('sTotal').textContent=total;
-  document.getElementById('sWins').textContent=wins;
-  document.getElementById('sLosses').textContent=losses;
-  document.getElementById('sPending').textContent=pending;
-  document.getElementById('sRate').textContent=rate+'%';
-  document.getElementById('sStreak').textContent=streak;
-  const profEl=document.getElementById('sProfit');
-  profEl.textContent=(profit>=0?'+':'')+profit.toLocaleString();
-  profEl.className='statValue profit '+(profit>0?'win':profit<0?'loss':'');
+  // Update stats
+  const setEl=(id,val,cls)=>{const e=document.getElementById(id);if(e){e.textContent=val;if(cls)e.className='statValue '+cls;}};
+  setEl('sTotal',total);
+  setEl('sWins',wins);
+  setEl('sLosses',losses);
+  setEl('sPending',pending);
+  setEl('sRate',rate+'%');
+  setEl('sStreak',streak);
+  setEl('sProfit',(profit>=0?'+':'')+profit.toLocaleString(),'profit '+(profit>0?'win':profit<0?'loss':''));
+  setEl('sROI',(roi>=0?'+':'')+roi+'%','profit '+(parseFloat(roi)>0?'win':parseFloat(roi)<0?'loss':''));
   
-  // History list (last 30, newest first)
+  // Current bet (latest pending or most recent today)
+  renderCurrentBet(todayBets);
+  
+  // Profit graph
+  renderProfitChart(todayBets);
+  
+  // History list (today, newest first)
   const list=document.getElementById('betList');
-  if(bets.length===0){
-    list.innerHTML='<div class="betEmpty">No bets yet.<br>Select Big/Small + amount, then click Place Bet.</div>';
+  if(!list)return;
+  if(todayBets.length===0){
+    list.innerHTML='<div class="betEmpty">No bets today.<br>Place a bet on 6win598.com to start tracking!</div>';
     return;
   }
-  const show=bets.slice().reverse().slice(0,30);
+  const show=todayBets.slice().sort((a,b)=>b.timestamp-a.timestamp).slice(0,50);
   let html='';
   for(const b of show){
     const t=new Date(b.timestamp);
@@ -502,13 +517,13 @@ function renderBets(){
     let resultBadge='',profitText='';
     if(b.status==='pending'){
       resultBadge='<span class="result pending">⏳</span>';
-      profitText='<span class="profit" style="color:#ffab00">pending</span>';
+      profitText='<span class="profit" style="color:#ffab00">--</span>';
     }else if(b.status==='win'){
       resultBadge='<span class="result win">W</span>';
-      profitText='<span class="profit win">+'+b.amount.toLocaleString()+'</span>';
+      profitText='<span class="profit win">+'+(b.profit||b.amount).toLocaleString()+'</span>';
     }else{
       resultBadge='<span class="result loss">L</span>';
-      profitText='<span class="profit loss">-'+b.amount.toLocaleString()+'</span>';
+      profitText='<span class="profit loss">'+(b.profit||-b.amount).toLocaleString()+'</span>';
     }
     html+='<div class="histRow">'+
       '<span class="time">'+ts+'</span>'+
@@ -516,10 +531,126 @@ function renderBets(){
       '<span class="amount">'+b.amount.toLocaleString()+'</span>'+
       resultBadge+
       profitText+
-      '<button class="delBtn" onclick="deleteBet(\''+b.id+'\')" title="Delete">×</button>'+
     '</div>';
   }
   list.innerHTML=html;
+}
+
+function renderCurrentBet(todayBets){
+  const el=document.getElementById('curBetInfo');
+  if(!el)return;
+  
+  // Find latest pending, or most recent finished
+  const pending=todayBets.filter(b=>b.status==='pending').sort((a,b)=>b.timestamp-a.timestamp)[0];
+  const recent=todayBets.sort((a,b)=>b.timestamp-a.timestamp)[0];
+  const cur=pending||recent;
+  
+  if(!cur){
+    el.className='curBet';
+    el.innerHTML='<div class="curEmpty">No bet yet today</div>';
+    return;
+  }
+  
+  const choiceCls=cur.choice==='Big'?'big':'small';
+  const choiceIcon=cur.choice==='Big'?'🟢':'🔴';
+  let statusCls=cur.status,statusText=cur.status.toUpperCase();
+  if(cur.status==='pending')statusText='⏳ PENDING';
+  else if(cur.status==='win')statusText='✓ WIN +'+(cur.profit||cur.amount);
+  else statusText='✗ LOSS '+(cur.profit||-cur.amount);
+  
+  el.className='curBet '+(cur.status==='pending'?'active':cur.status);
+  el.innerHTML=
+    '<div class="curPeriod">#'+cur.period.slice(-8)+'</div>'+
+    '<div class="curChoice '+choiceCls+'">'+choiceIcon+' '+cur.choice.toUpperCase()+'</div>'+
+    '<div class="curAmount">K'+cur.amount.toLocaleString()+'</div>'+
+    '<div class="curStatus '+statusCls+'">'+statusText+'</div>';
+}
+
+function renderProfitChart(todayBets){
+  const cv=document.getElementById('profitChart');
+  if(!cv)return;
+  const finished=todayBets.filter(b=>b.status==='win'||b.status==='loss').sort((a,b)=>a.timestamp-b.timestamp);
+  
+  // Setup canvas
+  const dpr=window.devicePixelRatio||1;
+  const rect=cv.getBoundingClientRect();
+  cv.width=rect.width*dpr;
+  cv.height=rect.height*dpr;
+  const ctx=cv.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const W=rect.width,H=rect.height;
+  
+  // Clear
+  ctx.fillStyle='#0a0a1a';
+  ctx.fillRect(0,0,W,H);
+  
+  if(finished.length===0){
+    ctx.fillStyle='#666';
+    ctx.font='12px Segoe UI';
+    ctx.textAlign='center';
+    ctx.fillText('No completed bets yet',W/2,H/2);
+    return;
+  }
+  
+  // Calculate cumulative profit
+  let cum=0;
+  const points=finished.map(b=>{cum+=b.profit;return cum;});
+  const maxP=Math.max(0,...points);
+  const minP=Math.min(0,...points);
+  const range=Math.max(Math.abs(maxP),Math.abs(minP),100);
+  
+  const pad=20;
+  const chartW=W-pad*2;
+  const chartH=H-pad*2;
+  const zeroY=pad+chartH/2;
+  
+  // Grid + zero line
+  ctx.strokeStyle='#2a2a4a';
+  ctx.lineWidth=1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(pad,zeroY);ctx.lineTo(W-pad,zeroY);ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Labels
+  ctx.fillStyle='#666';
+  ctx.font='9px monospace';
+  ctx.textAlign='right';
+  ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
+  ctx.fillText('0',pad-2,zeroY+3);
+  ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
+  
+  // Profit line
+  ctx.strokeStyle=cum>=0?'#00e676':'#ff5252';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  for(let i=0;i<points.length;i++){
+    const x=pad+(points.length===1?chartW/2:(i/(points.length-1))*chartW);
+    const y=zeroY-(points[i]/range)*(chartH/2);
+    if(i===0)ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  
+  // Fill area under line
+  ctx.fillStyle=cum>=0?'rgba(0,230,118,0.15)':'rgba(255,82,82,0.15)';
+  ctx.lineTo(pad+chartW,zeroY);
+  ctx.lineTo(pad,zeroY);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Dots on each point
+  ctx.fillStyle=cum>=0?'#00e676':'#ff5252';
+  for(let i=0;i<points.length;i++){
+    const x=pad+(points.length===1?chartW/2:(i/(points.length-1))*chartW);
+    const y=zeroY-(points[i]/range)*(chartH/2);
+    ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
+  }
+  
+  // Final value text
+  ctx.fillStyle=cum>=0?'#00e676':'#ff5252';
+  ctx.font='bold 14px Segoe UI';
+  ctx.textAlign='right';
+  ctx.fillText((cum>=0?'+':'')+cum.toLocaleString(),W-pad-5,pad+15);
 }
 
 function toggleBetPanel(){
