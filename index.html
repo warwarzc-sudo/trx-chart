@@ -532,11 +532,9 @@ function toggleBetPanel(){
 }
 
 function setupBetPanel(){
-  document.getElementById('chooseBig').addEventListener('click',()=>selectChoice('Big'));
-  document.getElementById('chooseSmall').addEventListener('click',()=>selectChoice('Small'));
-  document.getElementById('betPlace').addEventListener('click',placeBet);
-  document.querySelectorAll('#betPresets button').forEach(b=>{
-    b.addEventListener('click',()=>{document.getElementById('betAmount').value=b.dataset.amt;});
+  // Quick bet removed - extension handles bet capture
+const resetBtn=document.getElementById('betReset');
+if(resetBtn)resetBtn.addEventListener('click',resetBets);
   });
   document.getElementById('btnBet').addEventListener('click',toggleBetPanel);
   
