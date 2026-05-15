@@ -533,13 +533,15 @@ function toggleBetPanel(){
 
 function setupBetPanel(){
   // Quick bet removed - extension handles bet capture
-const resetBtn=document.getElementById('betReset');
-if(resetBtn)resetBtn.addEventListener('click',resetBets);
-  });
-  document.getElementById('btnBet').addEventListener('click',toggleBetPanel);
+  const resetBtn=document.getElementById('betReset');
+  if(resetBtn)resetBtn.addEventListener('click',resetBets);
+  
+  const btnBet=document.getElementById('btnBet');
+  if(btnBet)btnBet.addEventListener('click',toggleBetPanel);
   
   // Bet panel resize
   const rd=document.getElementById('betDrag');
+  if(!rd)return;
   const s=y=>{betDrg=true;betDSY=y;betDSH=betH;rd.classList.add('active');document.body.style.cursor='ns-resize';};
   const m=y=>{if(!betDrg)return;betH=Math.max(120,Math.min(H-100,betDSH+(betDSY-y)));szAll();renderAll();};
   const e2=()=>{if(betDrg){betDrg=false;rd.classList.remove('active');document.body.style.cursor='';betHSave();}};
