@@ -695,6 +695,94 @@ function desel(){sel=null;renderAll();}
 function showCM(x,y){const c=document.getElementById('cmenu');c.style.display='block';c.style.left=Math.min(x,CW()-150)+'px';c.style.top=Math.min(y,H-80)+'px';}
 function hideCM(){document.getElementById('cmenu').style.display='none';}
 function gid(){return'd_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);}
-</script>
+// ═══════════════════════════════════════════════════
+// EXTENSION INTEGRATION - TRX Chart Companion
+// ═══════════════════════════════════════════════════
+const TRX_EXT_ID = 'llnbbnjnebicibaikpmnliieggpgbphk';
+let extConnected = false;
+let extLastSync = 0;
+
+function extPing() {
+  if (!chrome?.runtime?.sendMessage) return;
+  try {
+    chrome.runtime.sendMessage(TRX_EXT_ID, {type: 'PING'}, (resp) => {
+      if (chrome.runtime.lastError) {
+        extConnected = false;
+        return;
+      }
+      if (resp?.ok) {
+        extConnected = true;
+        D('🔌 Extension connected v' + resp.version);
+        extSyncBets();
+      }
+    });
+  } catch(e) {
+    extConnected = false;
+  }
+}
+
+function extSyncBets() {
+  if (!chrome?.runtime?.sendMessage) return;
+  try {
+    chrome.runtime.sendMessage(TRX_EXT_ID, {type: 'GET_BETS'}, (resp) => {
+      if (chrome.runtime.lastError) return;
+      if (!resp?.bets) return;
+      
+      const extBets = resp.bets;
+      let added = 0;
+      
+      // Convert extension bets to chart format
+      const existingPeriods = new Set(bets.map(b => b.period + '_' + b.choice));
+      
+      for (const eb of extBets) {
+        // Convert selectType to Big/Small
+        let choice = null;
+        if (eb.selectType === 'big') choice = 'Big';
+        else if (eb.selectType === 'small') choice = 'Small';
+        else continue; // Skip color bets
+        
+        const key = eb.period + '_' + choice;
+        if (existingPeriods.has(key)) continue;
+        
+        // Add to bets array
+        bets.push({
+          id: 'ext_' + eb.orderNumber,
+          period: eb.period,
+          choice: choice,
+          amount: eb.amount,
+          timestamp: eb.timestamp,
+          status: eb.status === 'win' ? 'win' : (eb.status === 'loss' ? 'loss' : 'pending'),
+          result: null,
+          resultNumber: eb.number,
+          profit: eb.profit || 0,
+          fromExtension: true
+        });
+        existingPeriods.add(key);
+        added++;
+      }
+      
+      if (added > 0) {
+        // Sort by timestamp ASC (oldest first to match existing format)
+        bets.sort((a, b) => a.timestamp - b.timestamp);
+        betsSave();
+        renderBets();
+        D('✅ Synced ' + added + ' bets from extension (total: ' + bets.length + ')');
+      }
+      
+      extLastSync = Date.now();
+    });
+  } catch(e) {
+    console.warn('Ext sync error:', e);
+  }
+}
+
+// Auto-sync every 5 seconds
+setInterval(() => {
+  if (extConnected) extSyncBets();
+  else extPing();
+}, 5000);
+
+// Initial ping after 1 sec
+setTimeout(extPing, 1000);</script>
 </body>
 </html>
