@@ -67,9 +67,25 @@ canvas{position:absolute;top:0;left:0;}
 #betContent{flex:1;display:flex;padding:10px;gap:10px;overflow:hidden;}
 .betSection{background:#1a1a3a;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;}
 .betSection h4{color:#ffab00;font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:1px;border-bottom:1px solid #2a2a4a;padding-bottom:4px;margin-bottom:2px;}
-#betQuick{flex:0 0 220px;}
-#betStats{flex:0 0 200px;}
-#betHistory{flex:1;overflow-y:auto;min-width:200px;}
+#betCurrent{flex:0 0 200px;}
+#betStats{flex:0 0 200px;overflow-y:auto;}
+#betGraph{flex:1;min-width:250px;display:flex;flex-direction:column;}
+#betHistory{flex:0 0 280px;overflow-y:auto;}
+.curBet{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:8px;background:#0a0a1a;border-radius:6px;border:2px dashed #2a2a4a;text-align:center;}
+.curBet.active{border-color:#ffab00;border-style:solid;background:linear-gradient(135deg,#1a1a3a,#2a1a3a);}
+.curBet.win{border-color:#00e676;background:linear-gradient(135deg,#1a3a1a,#0a3a1a);animation:winPulse 1s ease-in-out 3;}
+.curBet.loss{border-color:#ff5252;background:linear-gradient(135deg,#3a1a1a,#3a0a1a);}
+.curEmpty{color:#666;font-size:12px;}
+.curPeriod{color:#aaa;font-size:10px;font-family:monospace;}
+.curChoice{font-size:24px;font-weight:700;}
+.curChoice.big{color:#00e676;}
+.curChoice.small{color:#ff5252;}
+.curAmount{color:#ffeb3b;font-size:18px;font-weight:700;font-family:monospace;}
+.curStatus{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;}
+.curStatus.pending{background:#ffab00;color:#000;}
+.curStatus.win{background:#00e676;color:#000;}
+.curStatus.loss{background:#ff5252;color:#fff;}
+@keyframes winPulse{0%,100%{box-shadow:0 0 0 #00e676;}50%{box-shadow:0 0 20px #00e676;}}
 #betChoice{display:flex;gap:6px;}
 #betChoice button{flex:1;padding:10px;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
 .btnBig{background:#1a3a1a;color:#00e676;border:2px solid #00e676 !important;}
