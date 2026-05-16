@@ -920,7 +920,6 @@ function extPing() {
     extConnected = false;
   }
 }
-
 function extSyncBets() {
   if (!chrome?.runtime?.sendMessage) return;
   try {
@@ -930,9 +929,13 @@ function extSyncBets() {
       
       const extBets = resp.bets;
       let added = 0;
+      let updated = 0;
       
-      // Convert extension bets to chart format
-      const existingPeriods = new Set(bets.map(b => b.period + '_' + b.choice));
+      // Build map for quick lookup
+      const existingByKey = new Map();
+      for (const b of bets) {
+        existingByKey.set(b.period + '_' + b.choice, b);
+      }
       
       for (const eb of extBets) {
         // Convert selectType to Big/Small
@@ -942,31 +945,42 @@ function extSyncBets() {
         else continue; // Skip color bets
         
         const key = eb.period + '_' + choice;
-        if (existingPeriods.has(key)) continue;
+        const newStatus = eb.status === 'win' ? 'win' : (eb.status === 'loss' ? 'loss' : 'pending');
         
-        // Add to bets array
-        bets.push({
-          id: 'ext_' + eb.orderNumber,
-          period: eb.period,
-          choice: choice,
-          amount: eb.amount,
-          timestamp: eb.timestamp,
-          status: eb.status === 'win' ? 'win' : (eb.status === 'loss' ? 'loss' : 'pending'),
-          result: null,
-          resultNumber: eb.number,
-          profit: eb.profit || 0,
-          fromExtension: true
-        });
-        existingPeriods.add(key);
-        added++;
+        if (existingByKey.has(key)) {
+          // UPDATE existing bet status
+          const existing = existingByKey.get(key);
+          if (existing.status !== newStatus) {
+            existing.status = newStatus;
+            existing.resultNumber = eb.number;
+            existing.profit = eb.profit || 0;
+            updated++;
+          }
+        } else {
+          // ADD new bet
+          bets.push({
+            id: 'ext_' + eb.orderNumber,
+            period: eb.period,
+            choice: choice,
+            amount: eb.amount,
+            timestamp: eb.timestamp,
+            status: newStatus,
+            result: null,
+            resultNumber: eb.number,
+            profit: eb.profit || 0,
+            fromExtension: true
+          });
+          existingByKey.set(key, bets[bets.length - 1]);
+          added++;
+        }
       }
       
-      if (added > 0) {
-        // Sort by timestamp ASC (oldest first to match existing format)
+      if (added > 0 || updated > 0) {
         bets.sort((a, b) => a.timestamp - b.timestamp);
         betsSave();
         renderBets();
-        D('✅ Synced ' + added + ' bets from extension (total: ' + bets.length + ')');
+        if (window.trxBtRender) window.trxBtRender();
+        D('Synced: +' + added + ' new, ' + updated + ' updated (total: ' + bets.length + ')');
       }
       
       extLastSync = Date.now();
