@@ -985,25 +985,26 @@ setInterval(() => {
 // Initial ping after 1 sec
 setTimeout(extPing, 1000);
 // ============ RESIZE FIX ============
-// Apply saved width to CSS BEFORE page renders
+// ============ RESIZE FIX v2 ============
+
+// Apply saved width early to prevent flicker
 (function(){
   try {
     let savedW = parseInt(localStorage.getItem('TRX_SIDE_V3')) || 400;
-    
-    // Sanity check: width should be reasonable
     const maxAllowed = window.innerWidth - 300;
     if(savedW < 250 || savedW > maxAllowed){
       savedW = 400;
       localStorage.setItem('TRX_SIDE_V3', '400');
     }
-    
     const earlyStyle = document.createElement('style');
     earlyStyle.id = 'trx-early-width';
     earlyStyle.textContent = '#sidePanel{width:' + savedW + 'px !important;}#sideResize{right:' + savedW + 'px !important;left:auto !important;}';
     document.head.appendChild(earlyStyle);
   } catch(e){}
 })();
-  setTimeout(function(){
+
+// Setup resize after page loads
+setTimeout(function(){
   const sp = document.getElementById('sidePanel');
   const rsz = document.getElementById('sideResize');
   const wr = document.getElementById('wrap');
@@ -1013,12 +1014,11 @@ setTimeout(extPing, 1000);
   
   const newRsz = rsz.cloneNode(false);
   newRsz.id = 'sideResize';
-  newRsz.title = 'Drag to resize';
   rsz.parentNode.replaceChild(newRsz, rsz);
   
   const style = document.createElement('style');
-  style.id = 'trx-handle-style';
-  style.textContent = '#sideResize{position:absolute !important;top:0 !important;width:8px !important;height:100% !important;cursor:ew-resize !important;z-index:100 !important;background:rgba(0,229,255,0.4) !important;}#sideResize:hover{background:rgba(0,229,255,0.8) !important;}';
+  style.id = 'trx-fix-style';
+  style.textContent = '#sideResize{position:absolute !important;top:0 !important;width:10px !important;height:100% !important;cursor:ew-resize !important;z-index:1000 !important;background:rgba(0,229,255,0.5) !important;}#sideResize:hover{background:rgba(0,229,255,0.9) !important;}#sideResize.dragging{background:rgba(255,0,255,1) !important;}';
   document.head.appendChild(style);
   
   function applyW(newWidth){
@@ -1050,8 +1050,6 @@ setTimeout(extPing, 1000);
     if(rd) rd.style.width = cw + 'px';
     
     if(typeof renderAll === 'function') renderAll();
-    
-    try { localStorage.setItem('TRX_SIDE_V3', String(newWidth)); } catch(e){}
   }
   
   let dragging = false;
@@ -1059,31 +1057,55 @@ setTimeout(extPing, 1000);
   let startW = 0;
   let overlay = null;
   
-  newRsz.addEventListener('mousedown', function(e){
-    e.preventDefault();
-    e.stopPropagation();
+  function startDrag(clientX){
     dragging = true;
-    startX = e.clientX;
+    startX = clientX;
     startW = sp.offsetWidth;
+    newRsz.classList.add('dragging');
     
     overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;cursor:ew-resize;background:transparent;';
+    overlay.id = 'trx-drag-overlay';
+    overlay.style.cssText = 'position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:9999999 !important;cursor:ew-resize !important;background:rgba(0,0,0,0.01) !important;';
     document.body.appendChild(overlay);
     
     document.body.style.userSelect = 'none';
+  }
+  
+  function doDrag(clientX){
+    if(!dragging) return;
+    const dx = startX - clientX;
+    const newW = startW + dx;
+    applyW(newW);
+  }
+  
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    newRsz.classList.remove('dragging');
+    
+    if(overlay){ overlay.remove(); overlay = null; }
+    document.body.style.userSelect = '';
+    
+    try { localStorage.setItem('TRX_SIDE_V3', String(sp.offsetWidth)); } catch(e){}
+  }
+  
+  newRsz.addEventListener('mousedown', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    startDrag(e.clientX);
   });
   
   document.addEventListener('mousemove', function(e){
-    if(!dragging) return;
-    const dx = startX - e.clientX;
-    applyW(startW + dx);
+    if(dragging){
+      e.preventDefault();
+      doDrag(e.clientX);
+    }
   });
   
-  document.addEventListener('mouseup', function(){
+  document.addEventListener('mouseup', function(e){
     if(dragging){
-      dragging = false;
-      if(overlay){ overlay.remove(); overlay = null; }
-      document.body.style.userSelect = '';
+      e.preventDefault();
+      endDrag();
     }
   });
   
@@ -1092,13 +1114,11 @@ setTimeout(extPing, 1000);
     const s = localStorage.getItem('TRX_SIDE_V3'); 
     if(s) savedW = parseInt(s) || 400;
   } catch(e){}
- sp.style.setProperty('width', savedW + 'px', 'important');
-  newRsz.style.setProperty('right', savedW + 'px', 'important');
-  newRsz.style.setProperty('left', 'auto', 'important'); 
+  
   applyW(savedW);
   
-  console.log('Resize fix loaded. Saved width:', savedW);
-}, 100);
+  console.log('Resize ready. Saved width:', savedW);
+}, 500);
 </script>
 </body>
 </html>
