@@ -984,6 +984,256 @@ setInterval(() => {
 
 // Initial ping after 1 sec
 setTimeout(extPing, 1000);
+  
+// ============ NEW BET TRACKER v2 ============
+setTimeout(function setupNewBetTracker(){
+  const bp = document.getElementById('betPanel');
+  if(!bp) { setTimeout(setupNewBetTracker, 500); return; }
+  
+  const style = document.createElement('style');
+  style.id = 'trx-bettracker-new';
+  style.textContent = `
+    #betContent { display: flex !important; flex-direction: column !important; height: 100% !important; padding: 0 !important; gap: 0 !important; }
+    #betContent > .betSection { display: none !important; }
+    .trx-bt-tabs { display: flex; background: #0a0a1a; border-bottom: 1px solid #2a2a4a; flex-shrink: 0; height: 32px; align-items: center; }
+    .trx-bt-tab { padding: 6px 16px; background: transparent; border: none; color: #666; cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit; border-bottom: 2px solid transparent; height: 100%; }
+    .trx-bt-tab.active { color: #00e5ff; border-bottom-color: #00e5ff; background: rgba(0,229,255,0.05); }
+    .trx-bt-tab:hover:not(.active) { color: #aaa; background: rgba(255,255,255,0.03); }
+    .trx-bt-spacer { flex: 1; }
+    .trx-bt-action { background: transparent; border: none; color: #888; cursor: pointer; padding: 4px 8px; font-size: 14px; }
+    .trx-bt-action:hover { color: #ff5252; }
+    .trx-bt-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .trx-bt-tabpane { flex: 1; overflow: auto; display: none; }
+    .trx-bt-tabpane.active { display: block; }
+    .trx-bt-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 11px; }
+    .trx-bt-table thead { position: sticky; top: 0; background: #0a0a1a; z-index: 10; }
+    .trx-bt-table th { padding: 8px 10px; text-align: left; color: #00e5ff; font-weight: bold; border-bottom: 1px solid #2a2a4a; background: #0a0a1a; }
+    .trx-bt-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ddd; }
+    .trx-bt-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .trx-bt-table .num { color: #888; }
+    .trx-bt-table .big { color: #00e676; font-weight: bold; }
+    .trx-bt-table .small { color: #ff5252; font-weight: bold; }
+    .trx-bt-table .win { color: #00e676; }
+    .trx-bt-table .loss { color: #ff5252; }
+    .trx-bt-table .pending { color: #ffab00; }
+    .trx-bt-table .profit-pos { color: #00e676; font-weight: bold; }
+    .trx-bt-table .profit-neg { color: #ff5252; font-weight: bold; }
+    .trx-bt-empty { text-align: center; padding: 40px 20px; color: #555; font-size: 12px; }
+    .trx-bt-graph-wrap { padding: 12px; display: flex; flex-direction: column; height: 100%; }
+    .trx-bt-graph-stats { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .trx-bt-stat-box { background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.3); padding: 4px 10px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 11px; color: #00e5ff; }
+    .trx-bt-stat-box.profit { background: rgba(0,230,118,0.08); border-color: rgba(0,230,118,0.3); color: #00e676; }
+    .trx-bt-stat-box.loss { background: rgba(255,82,82,0.08); border-color: rgba(255,82,82,0.3); color: #ff5252; }
+    .trx-bt-stat-box b { font-weight: bold; }
+    .trx-bt-graph-canvas-wrap { flex: 1; position: relative; }
+    #trxBtProfitChart { width: 100%; height: 100%; }
+  `;
+  document.head.appendChild(style);
+  
+  const container = document.createElement('div');
+  container.id = 'trx-bt-container';
+  container.style.cssText = 'display:flex;flex-direction:column;height:100%;width:100%;';
+  container.innerHTML = `
+    <div class="trx-bt-tabs">
+      <button class="trx-bt-tab active" data-tab="current">Current</button>
+      <button class="trx-bt-tab" data-tab="history">History</button>
+      <button class="trx-bt-tab" data-tab="graph">Profit Graph</button>
+      <div class="trx-bt-spacer"></div>
+      <button class="trx-bt-action" id="trxBtRefresh" title="Refresh">↻</button>
+      <button class="trx-bt-action" id="trxBtClear" title="Clear All">✕</button>
+    </div>
+    <div class="trx-bt-content">
+      <div class="trx-bt-tabpane active" id="trxBtPaneCurrent"></div>
+      <div class="trx-bt-tabpane" id="trxBtPaneHistory"></div>
+      <div class="trx-bt-tabpane" id="trxBtPaneGraph">
+        <div class="trx-bt-graph-wrap">
+          <div class="trx-bt-graph-stats" id="trxBtGraphStats"></div>
+          <div class="trx-bt-graph-canvas-wrap">
+            <canvas id="trxBtProfitChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const bc = document.getElementById('betContent');
+  if(bc){ bc.innerHTML = ''; bc.appendChild(container); }
+  else { bp.appendChild(container); }
+  
+  function fmt(n){ return Number(n).toLocaleString(); }
+  function tstr(ts){ 
+    const d = new Date(ts); 
+    return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0'); 
+  }
+  function shortPeriod(p){ if(!p) return '-'; const s = String(p); return s.slice(-6); }
+  
+  window.trxBtRender = function(){
+    const aBtn = document.querySelector('.trx-bt-tab.active');
+    if(!aBtn) return;
+    const tabName = aBtn.dataset.tab;
+    
+    if(tabName === 'current'){
+      const pane = document.getElementById('trxBtPaneCurrent');
+      if(!pane) return;
+      const pending = (window.bets || []).filter(b => b.status === 'pending').sort((a,b) => b.timestamp - a.timestamp);
+      if(pending.length === 0){
+        pane.innerHTML = '<div class="trx-bt-empty">No pending bets.<br>Place a bet on 6win598.com.</div>';
+        return;
+      }
+      let html = '<table class="trx-bt-table"><thead><tr><th>#</th><th>Time</th><th>Issue</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
+      pending.forEach((b, i) => {
+        const typeCls = b.choice === 'Big' ? 'big' : 'small';
+        html += `<tr><td class="num">${i+1}</td><td>${tstr(b.timestamp)}</td><td>${shortPeriod(b.period)}</td><td class="${typeCls}">${b.choice.toUpperCase()}</td><td>${fmt(b.amount)} MMK</td><td class="pending">⏳ Closing...</td></tr>`;
+      });
+      html += '</tbody></table>';
+      pane.innerHTML = html;
+    }
+    else if(tabName === 'history'){
+      const pane = document.getElementById('trxBtPaneHistory');
+      if(!pane) return;
+      const finished = (window.bets || []).filter(b => b.status === 'win' || b.status === 'loss').sort((a,b) => b.timestamp - a.timestamp);
+      if(finished.length === 0){
+        pane.innerHTML = '<div class="trx-bt-empty">No completed bets yet.</div>';
+        return;
+      }
+      let html = '<table class="trx-bt-table"><thead><tr><th>#</th><th>Time</th><th>Issue</th><th>Type</th><th>Amount</th><th>Result</th><th>P/L</th></tr></thead><tbody>';
+      finished.forEach((b, i) => {
+        const typeCls = b.choice === 'Big' ? 'big' : 'small';
+        const isWin = b.status === 'win';
+        const resultCls = isWin ? 'win' : 'loss';
+        const resultIcon = isWin ? '✓' : '✗';
+        const resultText = isWin ? 'WIN' : 'LOSS';
+        const profitCls = b.profit >= 0 ? 'profit-pos' : 'profit-neg';
+        const profitText = (b.profit >= 0 ? '+' : '') + fmt(b.profit);
+        html += `<tr><td class="num">${i+1}</td><td>${tstr(b.timestamp)}</td><td>${shortPeriod(b.period)}</td><td class="${typeCls}">${b.choice.toUpperCase()}</td><td>${fmt(b.amount)} MMK</td><td class="${resultCls}">${resultIcon} ${resultText} (${b.resultNumber || '-'})</td><td class="${profitCls}">${profitText}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      pane.innerHTML = html;
+    }
+    else if(tabName === 'graph'){
+      const statsBox = document.getElementById('trxBtGraphStats');
+      const cv = document.getElementById('trxBtProfitChart');
+      if(!cv || !statsBox) return;
+      const recent = (window.bets || []).filter(b => b.status === 'win' || b.status === 'loss').sort((a,b) => a.timestamp - b.timestamp);
+      let cumProfit = 0, totalAmount = 0;
+      const points = recent.map(b => {
+        cumProfit += b.profit;
+        totalAmount += b.amount;
+        return { t: b.timestamp, p: cumProfit };
+      });
+      const pct = totalAmount > 0 ? ((cumProfit / totalAmount) * 100).toFixed(2) : '0.00';
+      const plCls = cumProfit >= 0 ? 'profit' : 'loss';
+      statsBox.innerHTML = `<div class="trx-bt-stat-box"><b>Bets:</b> ${recent.length}</div><div class="trx-bt-stat-box ${plCls}"><b>P/L:</b> ${cumProfit >= 0 ? '+' : ''}${fmt(cumProfit.toFixed(0))} MMK</div><div class="trx-bt-stat-box ${plCls}"><b>ROI:</b> ${cumProfit >= 0 ? '+' : ''}${pct}%</div>`;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = cv.getBoundingClientRect();
+      cv.width = rect.width * dpr;
+      cv.height = rect.height * dpr;
+      const ctx = cv.getContext('2d');
+      ctx.scale(dpr, dpr);
+      const W = rect.width, H = rect.height;
+      ctx.fillStyle = '#0a0a1a';
+      ctx.fillRect(0, 0, W, H);
+      if(points.length === 0){
+        ctx.fillStyle = '#555';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No completed bets', W/2, H/2);
+        return;
+      }
+      const pad = 40;
+      const chartW = W - pad * 2;
+      const chartH = H - pad * 2;
+      const maxP = Math.max(0, ...points.map(p => p.p));
+      const minP = Math.min(0, ...points.map(p => p.p));
+      const range = (maxP - minP) || 1;
+      ctx.strokeStyle = '#2a2a4a';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      for(let i = 0; i <= 4; i++){
+        const y = pad + (chartH / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(W - pad, y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#888';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      for(let i = 0; i <= 4; i++){
+        const y = pad + (chartH / 4) * i;
+        const v = maxP - (range / 4) * i;
+        ctx.fillText((v >= 0 ? '+' : '') + Math.round(v).toLocaleString(), pad - 5, y + 3);
+      }
+      const lineCol = cumProfit >= 0 ? '#00e676' : '#ff5252';
+      const fillCol = cumProfit >= 0 ? 'rgba(0,230,118,0.15)' : 'rgba(255,82,82,0.15)';
+      ctx.strokeStyle = lineCol;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      points.forEach((p, i) => {
+        const x = pad + (points.length === 1 ? chartW/2 : (i / (points.length - 1)) * chartW);
+        const y = pad + chartH - ((p.p - minP) / range) * chartH;
+        if(i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.lineTo(pad + chartW, pad + chartH);
+      ctx.lineTo(pad, pad + chartH);
+      ctx.closePath();
+      ctx.fillStyle = fillCol;
+      ctx.fill();
+      ctx.fillStyle = lineCol;
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'right';
+      const finalText = (cumProfit >= 0 ? '+' : '') + Math.round(cumProfit).toLocaleString();
+      ctx.fillText(finalText, W - pad - 5, pad + 15);
+    }
+  };
+  
+  document.querySelectorAll('.trx-bt-tab').forEach(btn => {
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.trx-bt-tab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.trx-bt-tabpane').forEach(p => p.classList.remove('active'));
+      const paneId = 'trxBtPane' + this.dataset.tab.charAt(0).toUpperCase() + this.dataset.tab.slice(1);
+      const pane = document.getElementById(paneId);
+      if(pane) pane.classList.add('active');
+      window.trxBtRender();
+    });
+  });
+  
+  document.getElementById('trxBtRefresh').addEventListener('click', function(){ window.trxBtRender(); });
+  document.getElementById('trxBtClear').addEventListener('click', function(){
+    if(confirm('Clear ALL bet history? This cannot be undone.')){
+      if(window.bets) window.bets.length = 0;
+      try { localStorage.setItem('TRX_BETS_V1', '[]'); } catch(e){}
+      window.trxBtRender();
+    }
+  });
+  
+  // Make bets available globally (in case it's local)
+  if(typeof bets !== 'undefined' && !window.bets){
+    window.bets = bets;
+  }
+  
+  // Override existing renderBets to use new render
+  if(typeof window.renderBets === 'function'){
+    const oldRenderBets = window.renderBets;
+    window.renderBets = function(){
+      // Sync bets to window
+      if(typeof bets !== 'undefined') window.bets = bets;
+      if(window.trxBtRender) window.trxBtRender();
+    };
+  }
+  
+  setInterval(function(){
+    if(typeof bets !== 'undefined') window.bets = bets;
+    if(window.trxBtRender) window.trxBtRender();
+  }, 3000);
+  
+  window.trxBtRender();
+  console.log('New Bet Tracker setup complete');
+}, 1500);
 // ============ RESIZE FIX ============
 // ============ RESIZE FIX v2 ============
 
