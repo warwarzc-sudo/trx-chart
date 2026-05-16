@@ -1074,7 +1074,9 @@ setTimeout(function(){
     const s = localStorage.getItem('TRX_SIDE_V3'); 
     if(s) savedW = parseInt(s) || 400;
   } catch(e){}
-  
+ sp.style.setProperty('width', savedW + 'px', 'important');
+  newRsz.style.setProperty('right', savedW + 'px', 'important');
+  newRsz.style.setProperty('left', 'auto', 'important'); 
   applyW(savedW);
   
   console.log('Resize fix loaded. Saved width:', savedW);
