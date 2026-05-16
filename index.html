@@ -988,7 +988,15 @@ setTimeout(extPing, 1000);
 // Apply saved width to CSS BEFORE page renders
 (function(){
   try {
-    const savedW = parseInt(localStorage.getItem('TRX_SIDE_V3')) || 400;
+    let savedW = parseInt(localStorage.getItem('TRX_SIDE_V3')) || 400;
+    
+    // Sanity check: width should be reasonable
+    const maxAllowed = window.innerWidth - 300;
+    if(savedW < 250 || savedW > maxAllowed){
+      savedW = 400;
+      localStorage.setItem('TRX_SIDE_V3', '400');
+    }
+    
     const earlyStyle = document.createElement('style');
     earlyStyle.id = 'trx-early-width';
     earlyStyle.textContent = '#sidePanel{width:' + savedW + 'px !important;}#sideResize{right:' + savedW + 'px !important;left:auto !important;}';
