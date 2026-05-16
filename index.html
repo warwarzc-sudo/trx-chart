@@ -983,6 +983,102 @@ setInterval(() => {
 }, 5000);
 
 // Initial ping after 1 sec
-setTimeout(extPing, 1000);</script>
+setTimeout(extPing, 1000);
+// ============ RESIZE FIX ============
+setTimeout(function(){
+  const sp = document.getElementById('sidePanel');
+  const rsz = document.getElementById('sideResize');
+  const wr = document.getElementById('wrap');
+  const bp = document.getElementById('betPanel');
+  
+  if(!sp || !rsz || !wr) return;
+  
+  const newRsz = rsz.cloneNode(false);
+  newRsz.id = 'sideResize';
+  newRsz.title = 'Drag to resize';
+  rsz.parentNode.replaceChild(newRsz, rsz);
+  
+  const style = document.createElement('style');
+  style.id = 'trx-handle-style';
+  style.textContent = '#sideResize{position:absolute !important;top:0 !important;width:8px !important;height:100% !important;cursor:ew-resize !important;z-index:100 !important;background:rgba(0,229,255,0.4) !important;}#sideResize:hover{background:rgba(0,229,255,0.8) !important;}';
+  document.head.appendChild(style);
+  
+  function applyW(newWidth){
+    const wrapWidth = wr.offsetWidth;
+    newWidth = Math.max(250, Math.min(wrapWidth - 300, newWidth));
+    
+    if(typeof window.sideW !== 'undefined') window.sideW = newWidth;
+    
+    sp.style.setProperty('width', newWidth + 'px', 'important');
+    newRsz.style.setProperty('right', newWidth + 'px', 'important');
+    newRsz.style.setProperty('left', 'auto', 'important');
+    
+    const cw = wrapWidth - newWidth;
+    
+    ['cMain','cOver','cDraw','cCross','cAct'].forEach(function(id){
+      const c = document.getElementById(id);
+      if(c){ c.width = cw; c.style.width = cw + 'px'; }
+    });
+    
+    const rsiW = document.getElementById('rsiW');
+    if(rsiW) rsiW.style.width = cw + 'px';
+    
+    const cRSI = document.getElementById('cRSI');
+    if(cRSI){ cRSI.width = cw; cRSI.style.width = cw + 'px'; }
+    
+    if(bp) bp.style.width = cw + 'px';
+    
+    const rd = document.getElementById('rsiDrag');
+    if(rd) rd.style.width = cw + 'px';
+    
+    if(typeof renderAll === 'function') renderAll();
+    
+    try { localStorage.setItem('TRX_SIDE_V3', String(newWidth)); } catch(e){}
+  }
+  
+  let dragging = false;
+  let startX = 0;
+  let startW = 0;
+  let overlay = null;
+  
+  newRsz.addEventListener('mousedown', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    dragging = true;
+    startX = e.clientX;
+    startW = sp.offsetWidth;
+    
+    overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;cursor:ew-resize;background:transparent;';
+    document.body.appendChild(overlay);
+    
+    document.body.style.userSelect = 'none';
+  });
+  
+  document.addEventListener('mousemove', function(e){
+    if(!dragging) return;
+    const dx = startX - e.clientX;
+    applyW(startW + dx);
+  });
+  
+  document.addEventListener('mouseup', function(){
+    if(dragging){
+      dragging = false;
+      if(overlay){ overlay.remove(); overlay = null; }
+      document.body.style.userSelect = '';
+    }
+  });
+  
+  let savedW = 400;
+  try { 
+    const s = localStorage.getItem('TRX_SIDE_V3'); 
+    if(s) savedW = parseInt(s) || 400;
+  } catch(e){}
+  
+  applyW(savedW);
+  
+  console.log('Resize fix loaded. Saved width:', savedW);
+}, 2000);
+</script>
 </body>
 </html>
