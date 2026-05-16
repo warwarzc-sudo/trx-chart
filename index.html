@@ -11,7 +11,6 @@
   right: 0 !important;
   bottom: 0 !important;
   left: auto !important;
-  width: 400px !important;
   height: 100% !important;
   background: #0a0a1a !important;
   border-left: 2px solid #333 !important;
@@ -43,21 +42,17 @@
 #sideResize {
   position: absolute !important;
   top: 0 !important;
-  right: 400px !important;
   left: auto !important;
   width: 6px !important;
   height: 100% !important;
   cursor: ew-resize !important;
   z-index: 51 !important;
+  background: rgba(255,255,255,0.05) !important;
 }
-#betPanel {
-  width: calc(100% - 400px) !important;
+#sideResize:hover {
+  background: rgba(0,229,255,0.3) !important;
 }
-</style><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>TRX WinGo Chart</title>
-<style>
+</style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow:hidden;touch-action:none;}
 #authScreen{position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
