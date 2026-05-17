@@ -1,29 +1,41 @@
 {
   "manifest_version": 3,
   "name": "TRX Chart Companion",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Auto-track TRX WinGo bets and sync with TRX Chart",
-  
-  "permissions": ["storage", "activeTab", "tabs"],
-  
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "declarativeNetRequest"
+  ],
   "host_permissions": [
     "https://6win598.com/*",
     "https://6lotteryapi.com/*",
     "https://*.6win598.com/*",
+    "https://*.6lotteryapi.com/*",
     "https://trx-chart.pages.dev/*"
   ],
-  
   "content_scripts": [{
     "matches": ["https://6win598.com/*", "https://*.6win598.com/*"],
     "js": ["content-script.js"],
-    "run_at": "document_start",
-    "world": "MAIN"
+    "run_at": "document_idle",
+    "all_frames": true
   }],
-  
+  "web_accessible_resources": [{
+    "resources": ["injected.js"],
+    "matches": ["https://6win598.com/*", "https://*.6win598.com/*"]
+  }],
   "background": {
     "service_worker": "background.js"
   },
-  
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "iframe_rules",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "TRX Chart Companion",
@@ -33,13 +45,11 @@
       "128": "icons/icon128.png"
     }
   },
-  
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  
   "externally_connectable": {
     "matches": ["https://trx-chart.pages.dev/*"]
   }
