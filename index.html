@@ -1306,7 +1306,7 @@ setTimeout(function setupNewBetTracker(){
     }
     const earlyStyle = document.createElement('style');
     earlyStyle.id = 'trx-early-width';
-    earlyStyle.textContent = '#sidePanel{width:' + savedW + 'px !important;}#sideResize{right:' + savedW + 'px !important;left:auto !important;}';
+       earlyStyle.textContent = '#sidePanel{width:' + savedW + 'px;}#sideResize{right:' + savedW + 'px;left:auto;}';
     document.head.appendChild(earlyStyle);
   } catch(e){}
 })();
