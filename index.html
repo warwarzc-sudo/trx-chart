@@ -781,11 +781,16 @@ function toggleSidePanel(){
   const sp=document.getElementById('sidePanel');
   const rsz=document.getElementById('sideResize');
   
-   if(sideShow){
+     if(sideShow){
     sp.style.setProperty('display','flex','important');
     rsz.style.setProperty('display','block','important');
     sp.classList.remove('hide');
     rsz.classList.remove('hide');
+    
+    // Restore handle position to match sidePanel width
+    const currentW = sp.offsetWidth || 400;
+    rsz.style.setProperty('right', currentW + 'px', 'important');
+    rsz.style.setProperty('left', 'auto', 'important');
   } else {
     sp.style.setProperty('display','none','important');
     rsz.style.setProperty('display','none','important');
