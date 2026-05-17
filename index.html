@@ -781,9 +781,9 @@ function toggleSidePanel(){
   const sp=document.getElementById('sidePanel');
   const rsz=document.getElementById('sideResize');
   
-  if(sideShow){
-    sp.style.removeProperty('display');
-    rsz.style.removeProperty('display');
+   if(sideShow){
+    sp.style.setProperty('display','flex','important');
+    rsz.style.setProperty('display','block','important');
     sp.classList.remove('hide');
     rsz.classList.remove('hide');
   } else {
