@@ -1352,7 +1352,7 @@ setTimeout(function(){
     
     try { localStorage.setItem('TRX_SIDE_V3', String(sp.offsetWidth)); } catch(e){}
   }
-  
+    // Mouse events (desktop)
   newRsz.addEventListener('mousedown', function(e){
     e.preventDefault();
     e.stopPropagation();
@@ -1369,6 +1369,34 @@ setTimeout(function(){
   document.addEventListener('mouseup', function(e){
     if(dragging){
       e.preventDefault();
+      endDrag();
+    }
+  });
+  
+  // Touch events (tablet/mobile)
+  newRsz.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    if(e.touches.length > 0){
+      startDrag(e.touches[0].clientX);
+    }
+  }, {passive: false});
+  
+  document.addEventListener('touchmove', function(e){
+    if(dragging && e.touches.length > 0){
+      e.preventDefault();
+      doDrag(e.touches[0].clientX);
+    }
+  }, {passive: false});
+  
+  document.addEventListener('touchend', function(e){
+    if(dragging){
+      endDrag();
+    }
+  });
+  
+  document.addEventListener('touchcancel', function(e){
+    if(dragging){
       endDrag();
     }
   });
