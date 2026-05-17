@@ -1,186 +1,134 @@
-// ═══════════════════════════════════════════════════
-// TRX Chart Companion - Content Script
-// Runs on 6win598.com to intercept bet API calls
-// ═══════════════════════════════════════════════════
+// Always inject script for API capture (in both top frame and iframes)
+const script = document.createElement('script');
+script.src = chrome.runtime.getURL('injected.js');
+(document.head || document.documentElement).appendChild(script);
 
-console.log('🎯 [TRX Companion] Content script loaded');
+// Always listen for messages from injected.js and forward to background
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+  if (event.data?.source !== 'trx-page') return;
 
-const EXT_ID = 'trx-chart-companion';
-const CHART_URL = 'https://trx-chart.pages.dev';
-const API_HOST = 'lotteryapi';
-
-// ============ Fetch Interceptor ============
-const originalFetch = window.fetch;
-
-window.fetch = async function(...args) {
-  const url = typeof args[0] === 'string' ? args[0] : args[0].url;
-  const opts = args[1] || {};
-  
-  // Only intercept lottery API calls
-  if (!url.includes(API_HOST)) {
-    return originalFetch.apply(this, args);
-  }
-  
-  // Make the actual request
-  const response = await originalFetch.apply(this, args);
-  
   try {
-    // Clone response to read it without consuming
-    const cloned = response.clone();
-    const data = await cloned.json();
-    
-    // Detect API type by URL pattern
-    if (url.includes('GetMyEmerdList')) {
-      // Bet history list
-      handleBetHistory(data, opts);
-    }
-    else if (url.includes('GameBetting') || url.includes('PlaceBet')) {
-      // Bet placement
-      handleBetPlaced(data, opts);
-    }
-    else if (url.includes('GetBalance')) {
-      // Balance update
-      handleBalance(data);
-    }
-    else if (url.includes('GetMyEmerdInfo')) {
-      // Bet detail
-      handleBetDetail(data);
-    }
-  } catch (e) {
-    // Ignore parse errors
-  }
-  
-  return response;
-};
-
-// ============ Handlers ============
-function handleBetHistory(data, opts) {
-  if (!data || !data.data || !data.data.list) return;
-  
-  const bets = data.data.list.map(bet => ({
-    orderId: bet.orderId || bet.id,
-    period: bet.issueNumber,
-    choice: parseChoice(bet),
-    amount: parseFloat(bet.money || bet.amount || 0),
-    winAmount: parseFloat(bet.winAmount || bet.profit || 0),
-    status: parseStatus(bet),
-    result: bet.result,
-    createTime: bet.createTime || bet.addtime,
-    type: bet.type
-  }));
-  
-  console.log('🎯 [TRX] Bet history:', bets.length, 'records');
-  
-  sendToBackground({
-    type: 'BET_HISTORY',
-    bets: bets,
-    total: data.data.totalCount,
-    timestamp: Date.now()
-  });
-}
-
-function handleBetPlaced(data, opts) {
-  if (!data || data.code !== 0) return;
-  
-  let requestData = {};
-  try {
-    if (opts.body) requestData = JSON.parse(opts.body);
-  } catch(e) {}
-  
-  const bet = {
-    period: requestData.issueNumber || data.data?.issueNumber,
-    choice: requestData.bet || requestData.betType,
-    amount: parseFloat(requestData.amount || 0),
-    timestamp: Date.now()
-  };
-  
-  console.log('🎯 [TRX] Bet placed:', bet);
-  
-  sendToBackground({
-    type: 'BET_PLACED',
-    bet: bet
-  });
-}
-
-function handleBalance(data) {
-  if (!data || !data.data) return;
-  
-  sendToBackground({
-    type: 'BALANCE_UPDATE',
-    balance: parseFloat(data.data.amount || 0),
-    timestamp: Date.now()
-  });
-}
-
-function handleBetDetail(data) {
-  if (!data || !data.data) return;
-  
-  sendToBackground({
-    type: 'BET_DETAIL',
-    bet: data.data
-  });
-}
-
-// ============ Helpers ============
-function parseChoice(bet) {
-  // Various field names for bet choice
-  const raw = (bet.type || bet.betType || bet.bet || '').toString().toLowerCase();
-  if (raw.includes('big') || raw === '1') return 'big';
-  if (raw.includes('small') || raw === '2') return 'small';
-  if (raw === 'red' || raw === 'green' || raw === 'violet') return raw;
-  return raw;
-}
-
-function parseStatus(bet) {
-  // Status field variations
-  const status = bet.status;
-  if (status === 1 || status === '1' || status === 'Succeed' || status === 'win') return 'win';
-  if (status === 0 || status === '0' || status === 'Failed' || status === 'lose') return 'loss';
-  if (status === 2 || status === '2' || status === 'Pending') return 'pending';
-  
-  // Fallback: check by winAmount
-  const win = parseFloat(bet.winAmount || bet.profit || 0);
-  if (win > 0) return 'win';
-  if (win < 0) return 'loss';
-  return 'pending';
-}
-
-// ============ Background Communication ============
-function sendToBackground(message) {
-  // Inject script bridge to communicate with extension
-  window.postMessage({
-    source: 'trx-companion-page',
-    target: 'trx-companion-bg',
-    payload: message
-  }, '*');
-}
-
-// ============ Inject bridge script ============
-(function() {
-  // Bridge script to communicate page <-> background
-  const script = document.createElement('script');
-  script.textContent = `
-    window.addEventListener('message', (event) => {
-      if (event.source !== window) return;
-      if (event.data?.source === 'trx-companion-page') {
-        // Forward to chrome runtime via custom event
-        document.dispatchEvent(new CustomEvent('trx-msg', {
-          detail: event.data.payload
-        }));
-      }
+    chrome.runtime.sendMessage({
+      type: 'API_CAPTURED',
+      url: event.data.url,
+      data: event.data.data,
+      body: event.data.body,
+      timestamp: event.data.timestamp
     });
-  `;
-  (document.head || document.documentElement).appendChild(script);
-  script.remove();
-})();
-
-// Listen for events and forward to background
-document.addEventListener('trx-msg', (e) => {
-  try {
-    chrome.runtime.sendMessage(e.detail);
   } catch(err) {
     console.warn('[TRX] Send error:', err);
   }
 });
 
-console.log('✅ [TRX Companion] Ready - intercepting API calls');
+// Only inject floating UI in TOP frame (not in iframes)
+if (window.self === window.top) {
+  console.log('[TRX Companion] Content script loaded (TOP frame)');
+  injectFloatingUI();
+} else {
+  console.log('[TRX Companion] Content script loaded (IFRAME) - capture only');
+}
+
+function injectFloatingUI() {
+  const trackerUI = document.createElement('div');
+  trackerUI.id = 'trx-floating-tracker';
+  trackerUI.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 20px;
+      transform: translateY(-50%);
+      width: 320px;
+      background: #1a1d23;
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: white;
+      font-family: Arial, sans-serif;
+      z-index: 999999;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      overflow: hidden;
+      display: none;
+  `;
+
+  trackerUI.innerHTML = `
+      <div id="trx-drag-header" style="background: #2a2d35; padding: 10px; cursor: move; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444;">
+          <span style="font-size: 14px; font-weight: bold; color: #ffcc00;">Bet Tracker</span>
+          <button id="trx-toggle-btn" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">-</button>
+      </div>
+      <div id="trx-tracker-content" style="padding: 15px;">
+          <div style="display: flex; justify-content: space-between; text-align: center;">
+              <div>
+                  <div style="color: #888; font-size: 11px; margin-bottom: 5px;">WINS</div>
+                  <div id="trx-win-count" style="color: #00ff00; font-size: 20px; font-weight: bold;">0</div>
+              </div>
+              <div style="border-left: 1px solid #444; border-right: 1px solid #444; padding: 0 20px;">
+                  <div style="color: #888; font-size: 11px; margin-bottom: 5px;">PROFIT</div>
+                  <div id="trx-profit" style="color: #ffcc00; font-size: 20px; font-weight: bold;">0.00</div>
+              </div>
+              <div>
+                  <div style="color: #888; font-size: 11px; margin-bottom: 5px;">LOSSES</div>
+                  <div id="trx-loss-count" style="color: #ff4444; font-size: 20px; font-weight: bold;">0</div>
+              </div>
+          </div>
+      </div>
+  `;
+
+  document.body.appendChild(trackerUI);
+
+  const dragHeader = document.getElementById('trx-drag-header');
+  let isDragging = false;
+  let currentX = 20;
+  let currentY = window.innerHeight / 2;
+  let initialX;
+  let initialY;
+
+  dragHeader.addEventListener('mousedown', (e) => {
+      initialX = e.clientX - currentX;
+      initialY = e.clientY - currentY;
+      isDragging = true;
+  });
+
+  document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+      trackerUI.style.transform = 'none';
+      trackerUI.style.left = currentX + 'px';
+      trackerUI.style.top = currentY + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+      isDragging = false;
+  });
+
+  document.getElementById('trx-toggle-btn').addEventListener('click', () => {
+      const content = document.getElementById('trx-tracker-content');
+      if (content.style.display === 'none') {
+          content.style.display = 'block';
+          document.getElementById('trx-toggle-btn').innerText = '-';
+      } else {
+          content.style.display = 'none';
+          document.getElementById('trx-toggle-btn').innerText = '+';
+      }
+  });
+
+  window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      if (event.data?.source !== 'trx-page') return;
+
+      const { wins, losses, profit } = event.data.data || {};
+
+      if (wins !== undefined) {
+        const el = document.getElementById('trx-win-count');
+        if(el) el.innerText = wins;
+      }
+      if (losses !== undefined) {
+        const el = document.getElementById('trx-loss-count');
+        if(el) el.innerText = losses;
+      }
+      if (profit !== undefined) {
+        const el = document.getElementById('trx-profit');
+        if(el) el.innerText = profit;
+      }
+  });
+}
