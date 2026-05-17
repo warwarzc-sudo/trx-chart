@@ -781,17 +781,30 @@ function toggleSidePanel(){
   const sp=document.getElementById('sidePanel');
   const rsz=document.getElementById('sideResize');
   
-     if(sideShow){
+  if(sideShow){
+    // SHOW - restore saved width
     sp.style.setProperty('display','flex','important');
     rsz.style.setProperty('display','block','important');
     sp.classList.remove('hide');
     rsz.classList.remove('hide');
     
-    // Restore handle position to match sidePanel width
-    const currentW = sp.offsetWidth || 400;
-    rsz.style.setProperty('right', currentW + 'px', 'important');
+    // Restore saved width from localStorage or use last width
+    let savedW = 400;
+    try {
+      const s = localStorage.getItem('TRX_SIDE_V3');
+      if(s) savedW = parseInt(s) || 400;
+    } catch(e){}
+    
+    sp.style.setProperty('width', savedW + 'px', 'important');
+    rsz.style.setProperty('right', savedW + 'px', 'important');
     rsz.style.setProperty('left', 'auto', 'important');
   } else {
+    // HIDE - save current width first
+    const currentW = sp.offsetWidth;
+    if(currentW > 0){
+      try { localStorage.setItem('TRX_SIDE_V3', String(currentW)); } catch(e){}
+    }
+    
     sp.style.setProperty('display','none','important');
     rsz.style.setProperty('display','none','important');
     sp.classList.add('hide');
@@ -800,7 +813,7 @@ function toggleSidePanel(){
   
   document.getElementById('btnHide').textContent=sideShow?'👁 Hide Panel':'👁 Show Panel';
   
-  // Resize all canvases to full width
+  // Resize all canvases
   const wr=document.getElementById('wrap');
   const wrapWidth=wr.offsetWidth;
   const cw=sideShow?(wrapWidth-sp.offsetWidth):wrapWidth;
