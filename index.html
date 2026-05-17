@@ -776,7 +776,51 @@ function loadGameIframe(){const f=document.getElementById('gameFrame');const loa
 function showIframeBlocked(){const loading=document.getElementById('gameLoading');loading.style.display='block';loading.innerHTML='<div style="font-size:24px;margin-bottom:10px">⚠️</div><div>Site blocks iframe</div><button onclick="openGamePopup()" style="margin-top:12px;background:#3a1a3a;color:#f0f;border:1px solid #f0f;border-radius:4px;padding:8px 16px;cursor:pointer;font-weight:700">↗️ Open Popup</button>';}
 function reloadGame(){gameLoaded=false;const f=document.getElementById('gameFrame');f.src='about:blank';setTimeout(()=>loadGameIframe(),200);}
 function openGamePopup(){if(gameWindow&&!gameWindow.closed){gameWindow.focus();return;}const w=Math.min(500,Math.floor(window.screen.width*0.4));const h=Math.min(900,window.screen.height-80);const left=window.screen.width-w-30;gameWindow=window.open(GAME_URL,'TRXGame','width='+w+',height='+h+',left='+left+',top=20,resizable=yes,scrollbars=yes');if(!gameWindow)alert('Popup blocked!');}
-function toggleSidePanel(){sideShow=!sideShow;document.getElementById('sidePanel').classList.toggle('hide',!sideShow);document.getElementById('sideResize').classList.toggle('hide',!sideShow);document.getElementById('btnHide').textContent=sideShow?'👁 Hide Panel':'👁 Show Panel';szAll();if(!userZoomed)autoFitCandles();renderAll();}
+function toggleSidePanel(){
+  sideShow=!sideShow;
+  const sp=document.getElementById('sidePanel');
+  const rsz=document.getElementById('sideResize');
+  
+  if(sideShow){
+    sp.style.removeProperty('display');
+    rsz.style.removeProperty('display');
+    sp.classList.remove('hide');
+    rsz.classList.remove('hide');
+  } else {
+    sp.style.setProperty('display','none','important');
+    rsz.style.setProperty('display','none','important');
+    sp.classList.add('hide');
+    rsz.classList.add('hide');
+  }
+  
+  document.getElementById('btnHide').textContent=sideShow?'👁 Hide Panel':'👁 Show Panel';
+  
+  // Resize all canvases to full width
+  const wr=document.getElementById('wrap');
+  const wrapWidth=wr.offsetWidth;
+  const cw=sideShow?(wrapWidth-sp.offsetWidth):wrapWidth;
+  
+  ['cMain','cOver','cDraw','cCross','cAct'].forEach(function(id){
+    const c=document.getElementById(id);
+    if(c){c.width=cw;c.style.width=cw+'px';}
+  });
+  
+  const rsiW=document.getElementById('rsiW');
+  if(rsiW)rsiW.style.width=cw+'px';
+  
+  const cRSI=document.getElementById('cRSI');
+  if(cRSI){cRSI.width=cw;cRSI.style.width=cw+'px';}
+  
+  const bp=document.getElementById('betPanel');
+  if(bp)bp.style.width=cw+'px';
+  
+  const rd=document.getElementById('rsiDrag');
+  if(rd)rd.style.width=cw+'px';
+  
+  szAll();
+  if(!userZoomed)autoFitCandles();
+  renderAll();
+}
 function cyclePanelSize(){const presets=[300,400,500,700,900];let next=presets[0];for(const p of presets){if(p>sideW){next=p;break;}}if(sideW>=presets[presets.length-1])next=presets[0];sideW=Math.min(next,maxSideW());sideSave();szAll();if(!userZoomed)autoFitCandles();renderAll();}
 
 function initApp(){
