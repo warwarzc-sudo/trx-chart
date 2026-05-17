@@ -1,113 +1,281 @@
 // ═══════════════════════════════════════════════════
-// TRX Chart Companion - Background Service Worker
-// Stores bet data and communicates with chart app
+// TRX Chart Companion - Background Service Worker v3
 // ═══════════════════════════════════════════════════
 
-console.log('🎯 [TRX BG] Background started');
+console.log('🎯 [TRX BG] Service worker started v3');
 
-const STORAGE_KEY = 'trx_bet_data';
 const CHART_ORIGIN = 'https://trx-chart.pages.dev';
+const STORAGE_KEY = 'trx_bets';
+const MAX_BETS = 5000;
 
-// ============ Listen from content script ============
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('🎯 [TRX BG] Message:', message.type);
-  
-  switch(message.type) {
-    case 'BET_HISTORY':
-      saveBetHistory(message.bets);
-      break;
-    case 'BET_PLACED':
-      saveBetPlaced(message.bet);
-      break;
-    case 'BALANCE_UPDATE':
-      saveBalance(message.balance);
-      break;
+// Map selectType code -> label
+function mapSelectType(code) {
+  const map = {
+    1: 'green',
+    2: 'red',
+    3: 'violet',
+    13: 'big',
+    14: 'small',
+    // Numbers 0-9 still need testing
+  };
+  return map[code] || ('type_' + code);
+}
+
+// ============ Listen for messages from content script ============
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'API_CAPTURED') {
+    handleApiCapture(msg);
+    sendResponse({ ok: true });
   }
-  
-  sendResponse({ ok: true });
+  else if (msg.type === 'GET_BETS') {
+    chrome.storage.local.get([STORAGE_KEY], (result) => {
+      sendResponse({ bets: result[STORAGE_KEY] || [] });
+    });
+    return true;
+  }
+  else if (msg.type === 'CLEAR_BETS') {
+    chrome.storage.local.set({ [STORAGE_KEY]: [] }, () => {
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
   return true;
 });
 
-// ============ External (from chart app) ============
-chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-  console.log('🎯 [TRX BG] External:', message);
+// ============ Handle captured API data ============
+function handleApiCapture(msg) {
+  const { url, data, body } = msg;
   
-  if (message.action === 'getBets') {
+  if (!data) return;
+  
+  // Bet placement (instant capture)
+  if (url.includes('GameTRXBetting')) {
+    if (data.code === 0 && body) {
+      handleBetPlacement(body);
+    }
+    return;
+  }
+  
+  // Bet history list (My bets) - confirms wins/losses
+  if (url.includes('GetTRXMyEmerdList')) {
+    if (data.code !== 0) return;
+    const list = data.data?.list || [];
+    if (list.length > 0) {
+      saveBetsFromHistory(list);
+    }
+  }
+  // Public results (for auto-resolving pending bets)
+  else if (url.includes('GetTRXNoaverageEmerdList')) {
+    if (data.code !== 0) return;
+    const list = data.data?.data?.gameslist || data.data?.gameslist || data.data?.list || [];
+    if (list.length > 0) {
+      console.log('[TRX BG] Got', list.length, 'results, resolving pending bets...');
+      resolvePendingBets(list);
+    }
+  }
+  // Balance update
+  else if (url.includes('GetBalance')) {
+    if (data.code !== 0) return;
+    chrome.storage.local.set({ 
+      trx_balance: data.data,
+      trx_balance_time: Date.now()
+    });
+  }
+}
+
+// ============ Handle bet placement from GameTRXBetting ============
+function handleBetPlacement(bodyStr) {
+  let body;
+  try {
+    body = typeof bodyStr === 'string' ? JSON.parse(bodyStr) : bodyStr;
+  } catch(e) {
+    console.warn('[TRX BG] Cannot parse bet body:', e);
+    return;
+  }
+  
+  if (!body.issuenumber) return;
+  
+  const selectTypeLabel = mapSelectType(body.selectType);
+  const betCount = parseFloat(body.betCount) || 1;
+  const baseAmount = parseFloat(body.amount) / 100;
+  const totalAmount = baseAmount * betCount;
+  
+  const bet = {
+    orderNumber: 'TWG' + body.issuenumber + '_' + Date.now(),
+    issueNumber: body.issuenumber,
+    period: body.issuenumber,
+    amount: totalAmount,
+    realAmount: totalAmount,
+    fee: 0,
+    profit: 0,
+    selectType: selectTypeLabel,
+    rawSelectType: body.selectType,
+    colour: '',
+    number: null,
+    state: null,
+    status: 'pending',
+    addTime: new Date().toISOString().replace('T',' ').substring(0, 19),
+    timestamp: Date.now()
+  };
+  
+  console.log('[TRX BG] New bet placed:', bet);
+  
+  chrome.storage.local.get([STORAGE_KEY], (result) => {
+    const existing = result[STORAGE_KEY] || [];
+    
+    const dupCheck = existing.find(b => 
+      b.period === bet.period && b.selectType === bet.selectType
+    );
+    if (dupCheck) {
+      console.log('[TRX BG] Duplicate bet skipped');
+      return;
+    }
+    
+    const all = [bet, ...existing]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, MAX_BETS);
+    
+    chrome.storage.local.set({ [STORAGE_KEY]: all }, () => {
+      console.log('[TRX BG] Bet saved. Total:', all.length);
+      updateBadge(all);
+    });
+  });
+}
+
+// ============ Auto-resolve pending bets when results come ============
+function resolvePendingBets(resultsList) {
+  chrome.storage.local.get([STORAGE_KEY], (result) => {
+    const bets = result[STORAGE_KEY] || [];
+    let updated = 0;
+    
+    for (const r of resultsList) {
+      const period = r.issueNumber || r.period;
+      const resultNumber = r.number !== undefined ? String(r.number) : null;
+      if (!period || resultNumber === null) continue;
+      
+      for (const bet of bets) {
+        if (bet.status !== 'pending') continue;
+        if (bet.period !== period) continue;
+        
+        const num = parseInt(resultNumber);
+        const isBig = num >= 5;
+        const isSmall = num <= 4;
+        
+        let isWin = false;
+        if (bet.selectType === 'big' && isBig) isWin = true;
+        else if (bet.selectType === 'small' && isSmall) isWin = true;
+        
+        bet.number = resultNumber;
+        bet.state = isWin ? 1 : 0;
+        bet.status = isWin ? 'win' : 'loss';
+        bet.profit = isWin ? (bet.amount * 0.98) : -bet.amount;
+        
+        updated++;
+        console.log('[TRX BG] Resolved bet:', bet.period, bet.selectType, '->', bet.status);
+      }
+    }
+    
+    if (updated > 0) {
+      chrome.storage.local.set({ [STORAGE_KEY]: bets }, () => {
+        console.log('[TRX BG] Resolved', updated, 'pending bets');
+      });
+    }
+  });
+}
+
+// ============ Save bets from history API ============
+function saveBetsFromHistory(newBets) {
+  chrome.storage.local.get([STORAGE_KEY], (result) => {
+    const existing = result[STORAGE_KEY] || [];
+    const existingByOrder = new Map(existing.map(b => [b.orderNumber, b]));
+    
+    let added = 0, updated = 0;
+    
+    for (const b of newBets) {
+      const normalized = {
+        orderNumber: b.orderNumber,
+        issueNumber: b.issueNumber,
+        period: b.issueNumber,
+        amount: parseFloat(b.amount) / 100,
+        realAmount: parseFloat(b.realAmount) / 100,
+        fee: parseFloat(b.fee) / 100,
+        profit: parseFloat(b.profitAmount) / 100,
+        selectType: b.selectType,
+        rawSelectType: b.selectType,
+        colour: b.colour,
+        number: b.number,
+        state: b.state,
+        status: b.state === 1 ? 'win' : (b.state === 0 ? 'loss' : 'pending'),
+        addTime: b.addTime,
+        timestamp: new Date(b.addTime).getTime()
+      };
+      
+      if (existingByOrder.has(b.orderNumber)) {
+        const old = existingByOrder.get(b.orderNumber);
+        Object.assign(old, normalized);
+        updated++;
+      } else {
+        const dup = existing.find(e => 
+          e.period === normalized.period && 
+          e.selectType === normalized.selectType &&
+          e.orderNumber.includes('_')
+        );
+        if (dup) {
+          Object.assign(dup, normalized);
+          updated++;
+        } else {
+          existing.push(normalized);
+          existingByOrder.set(b.orderNumber, normalized);
+          added++;
+        }
+      }
+    }
+    
+    if (added === 0 && updated === 0) return;
+    
+    const all = existing
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, MAX_BETS);
+    
+    chrome.storage.local.set({ [STORAGE_KEY]: all }, () => {
+      console.log(`[TRX BG] History sync: +${added} new, ${updated} updated (total: ${all.length})`);
+      updateBadge(all);
+    });
+  });
+}
+
+// ============ Update extension badge ============
+function updateBadge(bets) {
+  const today = new Date().toDateString();
+  const todayBets = bets.filter(b => 
+    new Date(b.timestamp).toDateString() === today
+  );
+  
+  chrome.action.setBadgeText({ 
+    text: todayBets.length > 0 ? String(todayBets.length) : '' 
+  });
+  chrome.action.setBadgeBackgroundColor({ color: '#00e5ff' });
+}
+
+// ============ External messaging (from chart app) ============
+chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
+  if (sender.origin !== CHART_ORIGIN) {
+    sendResponse({ error: 'Unauthorized' });
+    return;
+  }
+  
+  if (msg.type === 'GET_BETS') {
     chrome.storage.local.get([STORAGE_KEY], (result) => {
-      sendResponse({
-        success: true,
-        data: result[STORAGE_KEY] || { bets: [], balance: 0 }
+      sendResponse({ 
+        bets: result[STORAGE_KEY] || [],
+        balance: result.trx_balance || null
       });
     });
     return true;
   }
-  
-  if (message.action === 'clearBets') {
-    chrome.storage.local.set({ [STORAGE_KEY]: { bets: [], balance: 0 } });
-    sendResponse({ success: true });
-    return true;
-  }
-  
-  if (message.action === 'ping') {
-    sendResponse({ success: true, version: '1.0.0' });
-    return true;
+  else if (msg.type === 'PING') {
+    sendResponse({ ok: true, version: '1.0.3' });
   }
 });
 
-// ============ Save Functions ============
-function saveBetHistory(newBets) {
-  chrome.storage.local.get([STORAGE_KEY], (result) => {
-    const data = result[STORAGE_KEY] || { bets: [], balance: 0 };
-    
-    // Merge by orderId (dedupe)
-    const existingIds = new Set(data.bets.map(b => b.orderId));
-    const additions = newBets.filter(b => !existingIds.has(b.orderId));
-    
-    data.bets = [...data.bets, ...additions]
-      .sort((a, b) => (b.createTime || 0) - (a.createTime || 0))
-      .slice(0, 1000); // Keep last 1000
-    
-    data.lastUpdate = Date.now();
-    
-    chrome.storage.local.set({ [STORAGE_KEY]: data }, () => {
-      console.log(`💾 Saved ${additions.length} new bets (total: ${data.bets.length})`);
-      notifyChart(data);
-    });
-  });
-}
-
-function saveBetPlaced(bet) {
-  chrome.storage.local.get([STORAGE_KEY], (result) => {
-    const data = result[STORAGE_KEY] || { bets: [], balance: 0 };
-    data.lastBet = bet;
-    data.lastBetTime = Date.now();
-    chrome.storage.local.set({ [STORAGE_KEY]: data }, () => {
-      notifyChart(data);
-    });
-  });
-}
-
-function saveBalance(balance) {
-  chrome.storage.local.get([STORAGE_KEY], (result) => {
-    const data = result[STORAGE_KEY] || { bets: [], balance: 0 };
-    data.balance = balance;
-    data.balanceUpdate = Date.now();
-    chrome.storage.local.set({ [STORAGE_KEY]: data });
-  });
-}
-
-function notifyChart(data) {
-  // Find all chart tabs and send update
-  chrome.tabs.query({ url: CHART_ORIGIN + '/*' }, (tabs) => {
-    tabs.forEach(tab => {
-      chrome.tabs.sendMessage(tab.id, {
-        type: 'TRX_BET_UPDATE',
-        data: data
-      }).catch(() => {
-        // Tab might not have content script
-      });
-    });
-  });
-}
-
-console.log('✅ [TRX BG] Ready');
+console.log('✅ [TRX BG] Ready v3');
