@@ -1,34 +1,25 @@
-trx-sync-9f31d2c4a7b8e1x5m2k
-
-
 // ============================================
 // CLOUD SYNC CONFIG
 // ============================================
 const SYNC_URL = "https://trx-chart.pages.dev/api/tracker-sync";
 const USER_ID = "warwarzc";
-const SYNC_TOKEN ="trx-sync-9f31d2c4a7b8e1x5m2k";
-
+const SYNC_TOKEN = "trx-sync-9f31d2c4a7b8e1x5m2k";
 
 let syncTimer = null;
 
 function queueSync() {
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(syncTrackerState, 1000);
+  syncTimer = setTimeout(syncTrackerState, 1500);
 }
 
 async function syncTrackerState() {
   try {
-    const data = await chrome.storage.local.get([
-      "trackerCurrent",
-      "trackerHistory",
-      "trackerBalance"
-    ]);
+    const data = await chrome.storage.local.get(["trx_bets", "trx_balance"]);
 
     const payload = {
       userId: USER_ID,
-      balance: Number(data.trackerBalance || 0),
-      current: Array.isArray(data.trackerCurrent) ? data.trackerCurrent : [],
-      history: Array.isArray(data.trackerHistory) ? data.trackerHistory : []
+      balance: Number(data.trx_balance || 0),
+      bets: Array.isArray(data.trx_bets) ? data.trx_bets : []
     };
 
     const res = await fetch(SYNC_URL, {
@@ -45,14 +36,17 @@ async function syncTrackerState() {
       return;
     }
 
-    console.log("[Sync] Cloud sync OK");
+    console.log("[Sync] ✅ Cloud sync OK -", payload.bets.length, "bets");
   } catch (err) {
     console.error("[Sync] Error:", err);
   }
 }
 // ============================================
 // END CLOUD SYNC CONFIG
-// ============================================// ═══════════════════════════════════════════════════
+// ============================================
+
+
+// ═══════════════════════════════════════════════════
 // TRX Chart Companion - Background Service Worker v3
 // ═══════════════════════════════════════════════════
 
@@ -70,7 +64,6 @@ function mapSelectType(code) {
     3: 'violet',
     13: 'big',
     14: 'small',
-    // Numbers 0-9 still need testing
   };
   return map[code] || ('type_' + code);
 }
@@ -90,6 +83,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   else if (msg.type === 'CLEAR_BETS') {
     chrome.storage.local.set({ [STORAGE_KEY]: [] }, () => {
       sendResponse({ ok: true });
+      queueSync();
     });
     return true;
   }
@@ -102,7 +96,6 @@ function handleApiCapture(msg) {
   
   if (!data) return;
   
-  // Bet placement (instant capture)
   if (url.includes('GameTRXBetting')) {
     if (data.code === 0 && body) {
       handleBetPlacement(body);
@@ -110,7 +103,6 @@ function handleApiCapture(msg) {
     return;
   }
   
-  // Bet history list (My bets) - confirms wins/losses
   if (url.includes('GetTRXMyEmerdList')) {
     if (data.code !== 0) return;
     const list = data.data?.list || [];
@@ -118,7 +110,6 @@ function handleApiCapture(msg) {
       saveBetsFromHistory(list);
     }
   }
-  // Public results (for auto-resolving pending bets)
   else if (url.includes('GetTRXNoaverageEmerdList')) {
     if (data.code !== 0) return;
     const list = data.data?.data?.gameslist || data.data?.gameslist || data.data?.list || [];
@@ -127,12 +118,13 @@ function handleApiCapture(msg) {
       resolvePendingBets(list);
     }
   }
-  // Balance update
   else if (url.includes('GetBalance')) {
     if (data.code !== 0) return;
     chrome.storage.local.set({ 
       trx_balance: data.data,
       trx_balance_time: Date.now()
+    }, () => {
+      queueSync();
     });
   }
 }
@@ -192,6 +184,7 @@ function handleBetPlacement(bodyStr) {
     chrome.storage.local.set({ [STORAGE_KEY]: all }, () => {
       console.log('[TRX BG] Bet saved. Total:', all.length);
       updateBadge(all);
+      queueSync();
     });
   });
 }
@@ -232,6 +225,7 @@ function resolvePendingBets(resultsList) {
     if (updated > 0) {
       chrome.storage.local.set({ [STORAGE_KEY]: bets }, () => {
         console.log('[TRX BG] Resolved', updated, 'pending bets');
+        queueSync();
       });
     }
   });
@@ -294,6 +288,7 @@ function saveBetsFromHistory(newBets) {
     chrome.storage.local.set({ [STORAGE_KEY]: all }, () => {
       console.log(`[TRX BG] History sync: +${added} new, ${updated} updated (total: ${all.length})`);
       updateBadge(all);
+      queueSync();
     });
   });
 }
@@ -332,4 +327,4 @@ chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
   }
 });
 
-console.log('✅ [TRX BG] Ready v3');
+console.log('✅ [TRX BG] Ready v3 + Cloud Sync');
