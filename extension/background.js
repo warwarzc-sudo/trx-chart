@@ -1,4 +1,58 @@
-// ═══════════════════════════════════════════════════
+trx-sync-9f31d2c4a7b8e1x5m2k
+
+
+// ============================================
+// CLOUD SYNC CONFIG
+// ============================================
+const SYNC_URL = "https://trx-chart.pages.dev/api/tracker-sync";
+const USER_ID = "warwarzc";
+const SYNC_TOKEN ="trx-sync-9f31d2c4a7b8e1x5m2k";
+
+
+let syncTimer = null;
+
+function queueSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncTrackerState, 1000);
+}
+
+async function syncTrackerState() {
+  try {
+    const data = await chrome.storage.local.get([
+      "trackerCurrent",
+      "trackerHistory",
+      "trackerBalance"
+    ]);
+
+    const payload = {
+      userId: USER_ID,
+      balance: Number(data.trackerBalance || 0),
+      current: Array.isArray(data.trackerCurrent) ? data.trackerCurrent : [],
+      history: Array.isArray(data.trackerHistory) ? data.trackerHistory : []
+    };
+
+    const res = await fetch(SYNC_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SYNC_TOKEN}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      console.error("[Sync] Failed:", res.status, await res.text());
+      return;
+    }
+
+    console.log("[Sync] Cloud sync OK");
+  } catch (err) {
+    console.error("[Sync] Error:", err);
+  }
+}
+// ============================================
+// END CLOUD SYNC CONFIG
+// ============================================// ═══════════════════════════════════════════════════
 // TRX Chart Companion - Background Service Worker v3
 // ═══════════════════════════════════════════════════
 
