@@ -1060,7 +1060,107 @@ setInterval(() => {
 
 // Initial ping after 1 sec
 setTimeout(extPing, 1000);
+// ═══════════════════════════════════════════════════
+// CLOUD SYNC LOADER (Mobile/Fallback Mode)
+// ═══════════════════════════════════════════════════
+const CLOUD_SYNC_URL = "https://trx-chart.pages.dev/api/tracker-sync";
+const CLOUD_USER_ID = "warwarzc";
+let cloudLastUpdate = 0;
+let cloudSyncTimer = null;
+
+async function cloudSyncBets() {
+  try {
+    const res = await fetch(`${CLOUD_SYNC_URL}?u=${CLOUD_USER_ID}`, {
+      cache: 'no-store'
+    });
+    if (!res.ok) return;
+    
+    const data = await res.json();
+    if (!data.ok || !data.state) return;
+    
+    const state = data.state;
+    
+    // Skip if no change
+    if (state.updatedAt === cloudLastUpdate) return;
+    cloudLastUpdate = state.updatedAt;
+    
+    const extBets = state.bets || [];
+    let added = 0;
+    let updated = 0;
+    
+    // Build map for quick lookup (same logic as extSyncBets)
+    const existingByKey = new Map();
+    for (const b of bets) {
+      existingByKey.set(b.period + '_' + b.choice, b);
+    }
+    
+    for (const eb of extBets) {
+      let choice = null;
+      if (eb.selectType === 'big') choice = 'Big';
+      else if (eb.selectType === 'small') choice = 'Small';
+      else continue;
+      
+      const key = eb.period + '_' + choice;
+      const newStatus = eb.status === 'win' ? 'win' : (eb.status === 'loss' ? 'loss' : 'pending');
+      
+      if (existingByKey.has(key)) {
+        const existing = existingByKey.get(key);
+        if (existing.status !== newStatus) {
+          existing.status = newStatus;
+          existing.resultNumber = eb.number;
+          existing.profit = eb.profit || 0;
+          updated++;
+        }
+      } else {
+        bets.push({
+          id: 'cloud_' + eb.orderNumber,
+          period: eb.period,
+          choice: choice,
+          amount: eb.amount,
+          timestamp: eb.timestamp,
+          status: newStatus,
+          result: null,
+          resultNumber: eb.number,
+          profit: eb.profit || 0,
+          fromCloud: true
+        });
+        existingByKey.set(key, bets[bets.length - 1]);
+        added++;
+      }
+    }
+    
+    if (added > 0 || updated > 0) {
+      bets.sort((a, b) => a.timestamp - b.timestamp);
+      betsSave();
+      renderBets();
+      if (window.trxBtRender) window.trxBtRender();
+      D('☁️ Cloud sync: +' + added + ' new, ' + updated + ' updated (total: ' + bets.length + ')');
+    }
+  } catch (err) {
+    console.warn('[Cloud] Sync error:', err);
+  }
+}
+
+function startCloudSync() {
+  // If extension already connected, skip cloud (extension is faster)
+  if (extConnected) {
+    D('🌐 Extension active, cloud sync standby');
+    return;
+  }
   
+  D('☁️ Cloud sync started (mobile/fallback mode)');
+  cloudSyncBets();
+  
+  clearInterval(cloudSyncTimer);
+  cloudSyncTimer = setInterval(() => {
+    if (!extConnected) cloudSyncBets();
+  }, 5000);
+}
+
+// Start cloud sync after extension check (3 sec delay)
+setTimeout(startCloudSync, 3000);
+
+// ═══════════════════════════════════════════════════  
 // ============ NEW BET TRACKER v2 ============
 setTimeout(function setupNewBetTracker(){
   const bp = document.getElementById('betPanel');
