@@ -57,8 +57,7 @@ export async function onRequest(context) {
     const state = {
       userId: body.userId,
       balance: Number(body.balance || 0),
-      current: Array.isArray(body.current) ? body.current : [],
-      history: Array.isArray(body.history) ? body.history.slice(0, 300) : [],
+      bets: Array.isArray(body.bets) ? body.bets.slice(0, 500) : [],
       updatedAt: Date.now()
     };
 
@@ -67,7 +66,7 @@ export async function onRequest(context) {
       JSON.stringify(state)
     );
 
-    return json({ ok: true, updatedAt: state.updatedAt });
+    return json({ ok: true, updatedAt: state.updatedAt, count: state.bets.length });
   }
 
   return json({ ok: false, error: "method not allowed" }, 405);
