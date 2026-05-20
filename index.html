@@ -848,7 +848,7 @@ function initApp(){
   if(saved.length>0){results=saved;lastPeriod=results[results.length-1].period;}
   draws=drawLoad();
   buildCandles();szAll();setupTB();setupIn();setupRD();setupSideResize();setupBetPanel();
-  autoFitCandles();scrollEnd();renderAll();renderHistory();
+ autoFitCandles();if(!userScrolled)scrollEnd();renderAll();renderHistory();
   switchTab(activeTab);
   ['ema9','ema21','rsi'].forEach(k=>{const btn=document.querySelector('[data-ind="'+k+'"]');if(btn)btn.classList.toggle('active',ind[k]);});
   buildCandles();szAll();renderAll();
