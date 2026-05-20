@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TRX Chart Admin</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;background:#0a0a1a;color:#e8e8e8;padding:20px}
+    h1{color:#00e5ff;margin-bottom:16px}
+    .card{background:#171730;border:1px solid #2b2b52;border-radius:12px;padding:16px;margin-bottom:16px}
+    input{width:100%;padding:12px;border-radius:8px;border:1px solid #444;background:#0d0d1f;color:#fff;margin-bottom:12px;font-size:14px}
+    button{padding:10px 14px;border:0;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px}
+    .btn{background:#00e5ff;color:#000}
+    .btn-red{background:#ff5a5a;color:#fff}
+    .btn-green{background:#00c853;color:#fff}
+    .btn-gray{background:#555;color:#fff}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .stat{flex:1;min-width:120px;background:#111126;border:1px solid #2b2b52;border-radius:10px;padding:12px}
+    .num{font-size:24px;font-weight:700;color:#00e5ff}
+    .lbl{font-size:12px;color:#aaa}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #2b2b52;text-align:left;font-size:13px}
+    th{color:#00e5ff}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700}
+    .pending{background:#ffb300;color:#000}
+    .approved{background:#00c853;color:#fff}
+    .rejected,.expired{background:#ff5252;color:#fff}
+    .mono{font-family:monospace;font-size:11px;color:#aaa;word-break:break-all}
+    .muted{color:#999;font-size:12px}
+    @media(max-width:700px){
+      table,thead,tbody,tr,th,td{display:block}
+      thead{display:none}
+      tr{border:1px solid #2b2b52;border-radius:10px;margin-bottom:10px;padding:8px}
+      td{border:0;padding:4px 0}
+      td:before{content:attr(data-label)": ";font-weight:700;color:#00e5ff}
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="loginBox">
+  <h1>TRX Chart Admin</h1>
+  <input id="tokenInput" type="password" placeholder="Enter admin token">
+  <button class="btn" onclick="login()">Login</button>
+</div>
+
+<div id="dashboard" style="display:none">
+  <div class="row">
+    <div class="stat"><div class="num" id="totalCount">0</div><div class="lbl">Total</div></div>
+    <div class="stat"><div class="num" id="pendingCount" style="color:#ffb300">0</div><div class="lbl">Pending</div></div>
+    <div class="stat"><div class="num" id="approvedCount" style="color:#00c853">0</div><div class="lbl">Approved</div></div>
+    <div class="stat"><div class="num" id="rejectedCount" style="color:#ff5252">0</div><div class="lbl">Rejected</div></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="btn" onclick="loadDevices()">Refresh</button>
+      <button class="btn-gray" onclick="logout()">Logout</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th><th>Name</th><th>Device ID</th>
+          <th>Requested</th><th>Last Seen</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // ⚠️ ဒီနေရာမှာ မင်း worker URL ထည့်
+  var API = "https://trx-auth.warwar-zc.workers.dev";
+  var TOKEN = localStorage.getItem("trx_admin_token") || "";
+
+  function login() {
+    var t = document.getElementById("tokenInput").value.trim();
+    if (!t) { alert("Enter token"); return; }
+    TOKEN = t;
+    localStorage.setItem("trx_admin_token", t);
+    loadDevices();
+  }
+
+  function logout() {
+    TOKEN = "";
+    localStorage.removeItem("trx_admin_token");
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("loginBox").style.display = "block";
+  }
+
+  async function loadDevices() {
+    try {
+      var r = await fetch(API + "/admin/list?token=" + encodeURIComponent(TOKEN));
+      var data = await r.json();
+      if (data.error) { alert(data.error); if (r.status === 401) logout(); return; }
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      render(data.devices || []);
+    } catch (e) { alert("Error: " + e.message); }
+  }
+
+  function render(devices) {
+    var tbody = document.getElementById("tbody");
+    var html = "";
+    var c = { pending: 0, approved: 0, rejected: 0, expired: 0 };
+
+    for (var i = 0; i < devices.length; i++) {
+      var d = devices[i];
+      var expired = d.expiresAt && Date.now() > d.expiresAt;
+      var st = expired ? "expired" : (d.status || "unknown");
+      c[st] = (c[st] || 0) + 1;
+
+      var req = d.requestedAt ? new Date(d.requestedAt).toLocaleString() : "-";
+      var ls = d.lastSeen ? ago(d.lastSeen) : "-";
+      var did = d.deviceId || "-";
+
+      var btns = "";
+      if (d.status === "pending") {
+        btns += btn("btn-green", "Approve", "approveDevice('" + did + "')");
+        btns += " " + btn("btn-red", "Reject", "rejectDevice('" + did + "')");
+      } else if (d.status === "approved") {
+        btns += btn("btn-red", "Revoke", "rejectDevice('" + did + "')");
+      } else {
+        btns += btn("btn-green", "Re-approve", "approveDevice('" + did + "')");
+      }
+      btns += " " + btn("btn-gray", "Delete", "deleteDevice('" + did + "')");
+
+      html += "<tr>";
+      html += td("Status", '<span class="badge ' + st + '">' + st.toUpperCase() + "</span>");
+      html += td("Name", esc(d.name || "-"));
+      html += td("Device ID", '<span class="mono">' + esc(did) + "</span>");
+      html += td("Requested", '<span class="muted">' + req + "</span>");
+      html += td("Last Seen", '<span class="muted">' + ls + "</span>");
+      html += td("Actions", btns);
+      html += "</tr>";
+    }
+
+    tbody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">No devices</td></tr>';
+    document.getElementById("totalCount").textContent = devices.length;
+    document.getElementById("pendingCount").textContent = c.pending || 0;
+    document.getElementById("approvedCount").textContent = c.approved || 0;
+    document.getElementById("rejectedCount").textContent = (c.rejected || 0) + (c.expired || 0);
+  }
+
+  function td(label, content) {
+    return '<td data-label="' + label + '">' + content + "</td>";
+  }
+
+  function btn(cls, label, onclick) {
+    return '<button class="' + cls + '" onclick="' + onclick + '">' + label + "</button>";
+  }
+
+  async function approveDevice(deviceId) {
+    var days = prompt("Days to approve? (0 = unlimited)", "0");
+    if (days === null) return;
+    try {
+      var r = await fetch(API + "/admin/approve?token=" + encodeURIComponent(TOKEN), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: deviceId, expiresInDays: parseInt(days) || 0 })
+      });
+      var d = await r.json();
+      if (d.ok) loadDevices(); else alert(d.error || "Failed");
+    } catch (e) { alert("Error: " + e.message); }
+  }
+
+  async function rejectDevice(deviceId) {
+    if (!confirm("Reject / revoke?")) return;
+    try {
+      var r = await fetch(API + "/admin/reject?token=" + encodeURIComponent(TOKEN), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: deviceId })
+      });
+      var d = await r.json();
+      if (d.ok) loadDevices(); else alert(d.error || "Failed");
+    } catch (e) { alert("Error: " + e.message); }
+  }
+
+  async function deleteDevice(deviceId) {
+    if (!confirm("Delete permanently?")) return;
+    try {
+      var r = await fetch(API + "/admin/delete?token=" + encodeURIComponent(TOKEN), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: deviceId })
+      });
+      var d = await r.json();
+      if (d.ok) loadDevices(); else alert(d.error || "Failed");
+    } catch (e) { alert("Error: " + e.message); }
+  }
+
+  function ago(ts) {
+    var d = Date.now() - ts;
+    if (d < 60000) return "Just now";
+    if (d < 3600000) return Math.floor(d / 60000) + "m ago";
+    if (d < 86400000) return Math.floor(d / 3600000) + "h ago";
+    return Math.floor(d / 86400000) + "d ago";
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  if (TOKEN) loadDevices();
+  setInterval(function() { if (TOKEN) loadDevices(); }, 30000);
+</script>
+</body>
+</html>
