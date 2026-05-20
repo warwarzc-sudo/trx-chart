@@ -759,7 +759,7 @@ async function loadBulkHistory(totalHours){
       clearTimeout(tid);const data=await r.json();
       if(data.records&&Array.isArray(data.records)&&data.records.length>0){
         const added=mergeResults(data.records);totalAdded+=added;totalLoaded+=data.records.length;
-        consecutiveFails=0;storeSave();buildCandles();if(!userZoomed)autoFitCandles();renderAll();renderHistory();matchBets();
+        consecutiveFails=0;storeSave();buildCandles();if(!userZoomed)autoFitCandles();if(!userScrolled)scrollEnd();renderAll();renderHistory();matchBets();
       }else{consecutiveFails++;if(consecutiveFails>=3)break;}
       await new Promise(r=>setTimeout(r,1000));
     }catch(e){consecutiveFails++;if(consecutiveFails>=3)break;}
