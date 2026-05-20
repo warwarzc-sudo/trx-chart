@@ -764,7 +764,7 @@ async function loadBulkHistory(totalHours){
       await new Promise(r=>setTimeout(r,1000));
     }catch(e){consecutiveFails++;if(consecutiveFails>=3)break;}
   }
-  storeSave();buildCandles();if(!userZoomed)autoFitCandles();scrollEnd();renderAll();renderHistory();matchBets();
+  storeSave();buildCandles();if(!userZoomed)autoFitCandles();if(!userScrolled)scrollEnd();renderAll();renderHistory();matchBets();
   showOverlay('✅ Done!<br><small>Total: '+results.length+'</small>',100);
   setTimeout(hideOverlay,4000);
   isLoading=false;cancelLoading=false;btn.classList.remove('loading');btn.textContent='⬇️ Load History';
