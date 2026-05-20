@@ -939,7 +939,139 @@ function setupTB(){document.querySelectorAll('#toolbar button[data-tool]').forEa
 function uCur(){cv.Act.style.cursor=tool==='pointer'?'default':'crosshair';}
 function bkPtr(){tool='pointer';document.querySelectorAll('#toolbar button[data-tool]').forEach(b=>b.classList.remove('active'));document.querySelector('[data-tool="pointer"]').classList.add('active');uCur();}
 
-function setupIn(){const el=cv.Act;el.addEventListener('mousedown',ev=>{ev.preventDefault();hDn(ev.offsetX,ev.offsetY);});el.addEventListener('mousemove',ev=>{hMv(ev.offsetX,ev.offsetY);});el.addEventListener('mouseup',ev=>{hUp(ev.offsetX,ev.offsetY);});el.addEventListener('mouseleave',()=>{mx=-1;my=-1;rCr(-1,-1);pzAct=false;});el.addEventListener('dblclick',ev=>{hDb(ev.offsetX,ev.offsetY);});el.addEventListener('wheel',ev=>{ev.preventDefault();const r=el.getBoundingClientRect();const wx=ev.clientX-r.left;const wy=ev.clientY-r.top;ev.deltaY<0?zIAt(wx,wy):zOAt(wx,wy);},{passive:false});el.addEventListener('contextmenu',ev=>ev.preventDefault());let tsx=0,tsy=0,pD2=0,pCx=0,pCy=0,tch=false,touchMoved=false;const LONG_PRESS_MS=400;const MOVE_THRESHOLD=10;el.addEventListener('touchstart',ev=>{ev.preventDefault();if(ev.touches.length===2){pD2=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);const r=el.getBoundingClientRect();pCx=(ev.touches[0].clientX+ev.touches[1].clientX)/2-r.left;pCy=(ev.touches[0].clientY+ev.touches[1].clientY)/2-r.top;clearTimeout(ltm);lfr=true;return;}const t=ev.touches[0],r=el.getBoundingClientRect(),tx=t.clientX-r.left,ty=t.clientY-r.top;tch=true;tsx=tx;tsy=ty;touchMoved=false;lfr=false;ltm=setTimeout(()=>{if(!touchMoved){lfr=true;hDb(tx,ty);}},LONG_PRESS_MS);hDn(tx,ty);},{passive:false});el.addEventListener('touchmove',ev=>{ev.preventDefault();if(ev.touches.length===2){const nd=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);if(nd/pD2>1.04){zIAt(pCx,pCy);pD2=nd;}else if(nd/pD2<0.96){zOAt(pCx,pCy);pD2=nd;}return;}const t=ev.touches[0],r=el.getBoundingClientRect();const tx=t.clientX-r.left,ty=t.clientY-r.top;const dist=Math.hypot(tx-tsx,ty-tsy);if(dist>MOVE_THRESHOLD){touchMoved=true;clearTimeout(ltm);}hMv(tx,ty);},{passive:false});el.addEventListener('touchend',ev=>{ev.preventDefault();clearTimeout(ltm);if(tch&&!lfr){const r=el.getBoundingClientRect();let tx=tsx,ty=tsy;if(ev.changedTouches.length){tx=ev.changedTouches[0].clientX-r.left;ty=ev.changedTouches[0].clientY-r.top;}hUp(tx,ty);}else if(lfr){hUp(tsx,tsy);}tch=false;touchMoved=false;mx=-1;my=-1;rCr(-1,-1);pzAct=false;},{passive:false});document.addEventListener('keydown',ev=>{if((ev.key==='Delete'||ev.key==='Backspace')&&sel){draws=draws.filter(d=>d.id!==sel.id);sel=null;drawSave();renderAll();}if(ev.key==='Escape'){canDr();desel();bkPtr();}});document.addEventListener('click',ev=>{if(!ev.target.closest('#cmenu'))hideCM();});}
+function setupIn(){
+    const el=cv.Act;
+    
+    // === MOUSE EVENTS ===
+    el.addEventListener('mousedown',ev=>{ev.preventDefault();hDn(ev.offsetX,ev.offsetY);});
+    el.addEventListener('mousemove',ev=>{hMv(ev.offsetX,ev.offsetY);});
+    el.addEventListener('mouseup',ev=>{hUp(ev.offsetX,ev.offsetY);});
+    el.addEventListener('mouseleave',()=>{mx=-1;my=-1;rCr(-1,-1);pzAct=false;});
+    el.addEventListener('dblclick',ev=>{hDb(ev.offsetX,ev.offsetY);});
+    el.addEventListener('wheel',ev=>{
+        ev.preventDefault();
+        const r=el.getBoundingClientRect();
+        const wx=ev.clientX-r.left;
+        const wy=ev.clientY-r.top;
+        ev.deltaY<0?zIAt(wx,wy):zOAt(wx,wy);
+    },{passive:false});
+    el.addEventListener('contextmenu',ev=>ev.preventDefault());
+    
+    // === TOUCH EVENTS ===
+    let tsx=0,tsy=0,pD2=0,pCx=0,pCy=0,tch=false,touchMoved=false;
+    const LONG_PRESS_MS=500;       // ⭐ 400 → 500ms (longer, safer)
+    const MOVE_THRESHOLD=5;        // ⭐ 10 → 5px (sensitive, cancels faster)
+    
+    el.addEventListener('touchstart',ev=>{
+        ev.preventDefault();
+        
+        // Pinch zoom (2 fingers)
+        if(ev.touches.length===2){
+            pD2=Math.hypot(
+                ev.touches[0].clientX-ev.touches[1].clientX,
+                ev.touches[0].clientY-ev.touches[1].clientY
+            );
+            const r=el.getBoundingClientRect();
+            pCx=(ev.touches[0].clientX+ev.touches[1].clientX)/2-r.left;
+            pCy=(ev.touches[0].clientY+ev.touches[1].clientY)/2-r.top;
+            clearTimeout(ltm);
+            lfr=true;
+            return;
+        }
+        
+        // Single touch
+        const t=ev.touches[0],r=el.getBoundingClientRect(),tx=t.clientX-r.left,ty=t.clientY-r.top;
+        tch=true;
+        tsx=tx;
+        tsy=ty;
+        touchMoved=false;
+        lfr=false;
+        
+        // ⭐ FIX: Only start long-press timer in POINTER mode
+        // (Drawing modes တွေမှာ long-press timer မ start)
+        if(tool==='pointer'){
+            ltm=setTimeout(()=>{
+                if(!touchMoved){
+                    lfr=true;
+                    hDb(tx,ty);
+                }
+            },LONG_PRESS_MS);
+        }
+        
+        hDn(tx,ty);
+    },{passive:false});
+    
+    el.addEventListener('touchmove',ev=>{
+        ev.preventDefault();
+        
+        // Pinch zoom (2 fingers)
+        if(ev.touches.length===2){
+            const nd=Math.hypot(
+                ev.touches[0].clientX-ev.touches[1].clientX,
+                ev.touches[0].clientY-ev.touches[1].clientY
+            );
+            if(nd/pD2>1.04){zIAt(pCx,pCy);pD2=nd;}
+            else if(nd/pD2<0.96){zOAt(pCx,pCy);pD2=nd;}
+            return;
+        }
+        
+        // Single touch move
+        const t=ev.touches[0],r=el.getBoundingClientRect();
+        const tx=t.clientX-r.left,ty=t.clientY-r.top;
+        const dist=Math.hypot(tx-tsx,ty-tsy);
+        
+        // ⭐ FIX: Cancel long-press timer faster (5px threshold)
+        if(dist>MOVE_THRESHOLD){
+            touchMoved=true;
+            clearTimeout(ltm);
+        }
+        
+        // ⭐ FIX: Drawing mode မှာ — touchMoved မစစ်ဘဲ timer cancel
+        if(tool!=='pointer'){
+            clearTimeout(ltm);
+        }
+        
+        hMv(tx,ty);
+    },{passive:false});
+    
+    el.addEventListener('touchend',ev=>{
+        ev.preventDefault();
+        clearTimeout(ltm);
+        
+        if(tch&&!lfr){
+            const r=el.getBoundingClientRect();
+            let tx=tsx,ty=tsy;
+            if(ev.changedTouches.length){
+                tx=ev.changedTouches[0].clientX-r.left;
+                ty=ev.changedTouches[0].clientY-r.top;
+            }
+            hUp(tx,ty);
+        }else if(lfr){
+            hUp(tsx,tsy);
+        }
+        
+        tch=false;
+        touchMoved=false;
+        mx=-1;my=-1;
+        rCr(-1,-1);
+        pzAct=false;
+    },{passive:false});
+    
+    // === KEYBOARD ===
+    document.addEventListener('keydown',ev=>{
+        if((ev.key==='Delete'||ev.key==='Backspace')&&sel){
+            draws=draws.filter(d=>d.id!==sel.id);
+            sel=null;
+            drawSave();
+            renderAll();
+        }
+        if(ev.key==='Escape'){canDr();desel();bkPtr();}
+    });
+    
+    document.addEventListener('click',ev=>{
+        if(!ev.target.closest('#cmenu'))hideCM();
+    });
+}
 
 function hDn(x,y){mx=x;my=y;hideCM();if(inPA(x)&&y<mH){pzAct=true;pzSY=y;pzSZ=priceZoom;pzMan=true;cv.Act.style.cursor='ns-resize';return;}uCur();if(sel&&tool==='pointer'){const ep=fEP(sel,x,y);if(ep!==null){drg={type:'ep',id:sel.id,idx:ep,sx:x,sy:y};blk=true;return;}if(hT(sel,x,y)){drg={type:'mv',id:sel.id,sx:x,sy:y,ox1:sel.x1,oy1:sel.y1,ox2:sel.x2,oy2:sel.y2};blk=true;return;}sel=null;renderAll();}if(tool!=='pointer'){blk=true;const idx=x2i(x),pr=y2p(y);if(tool==='text'){const t=prompt('Text:','Label');if(t){draws.push({id:gid(),type:'text',x1:idx,y1:pr,text:t,color:COL.tx});drawSave();renderAll();}blk=false;bkPtr();return;}if(tool==='hline'){draws.push({id:gid(),type:'hline',y1:pr,color:COL.hl});drawSave();renderAll();blk=false;bkPtr();return;}if(!dip){dip={id:gid(),type:tool,x1:idx,y1:pr,x2:idx,y2:pr,color:tool==='trendline'?COL.tr:tool==='rect'?COL.rl:COL.fb,fill:tool==='rect'?COL.rf:undefined};isDr=true;}return;}pan={sx:x,sy:y,ss:sx};}
 function hMv(x,y){mx=x;my=y;if(inPA(x)&&y<mH&&!pzAct&&!drg&&!isDr&&!pan)cv.Act.style.cursor='ns-resize';else if(!pzAct&&!drg)uCur();if(pzAct){priceZoom=Math.max(0.1,Math.min(5,pzSZ+(y-pzSY)*0.005));renderAll();return;}rCr(x,y);if(drg&&drg.type==='ep'){const d=draws.find(dd=>dd.id===drg.id);if(!d)return;const idx=x2i(x),pr=y2p(y);if(d.type==='trendline'||d.type==='fib'){drg.idx===0?(d.x1=idx,d.y1=pr):(d.x2=idx,d.y2=pr);}else if(d.type==='rect'){[()=>{d.x1=idx;d.y1=pr;},()=>{d.x2=idx;d.y2=pr;},()=>{d.x1=idx;d.y2=pr;},()=>{d.x2=idx;d.y1=pr;}][drg.idx]();}else if(d.type==='hline'){d.y1=pr;}sel=d;renderAll();return;}if(drg&&drg.type==='mv'){const d=draws.find(dd=>dd.id===drg.id);if(!d)return;const di=(x-drg.sx)/(cW+cG),dp=-(y-drg.sy)/(mH-40)*pR;if(d.type==='trendline'||d.type==='rect'||d.type==='fib'){d.x1=drg.ox1+di;d.y1=drg.oy1+dp;d.x2=drg.ox2+di;d.y2=drg.oy2+dp;}else if(d.type==='hline'){d.y1=drg.oy1+dp;}else if(d.type==='text'){d.x1=drg.ox1+di;d.y1=drg.oy1+dp;}sel=d;renderAll();return;}if(isDr&&dip){dip.x2=x2i(x);dip.y2=y2p(y);renderAll();return;}if(pan&&tool==='pointer'){sx=pan.ss+(pan.sx-x);renderAll();}}
