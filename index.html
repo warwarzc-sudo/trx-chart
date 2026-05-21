@@ -1770,7 +1770,6 @@ setTimeout(function(){
   console.log('Resize ready. Saved width:', savedW);
 }, 500);
 </script>
-
 <script>
 (function(){
   var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
@@ -1781,60 +1780,50 @@ setTimeout(function(){
   if(!isApp) return;
   document.documentElement.classList.add('app-mode');
   
-  var fixLayout = function(){
-    var hideIds = ['sidePanel','gameP','gameFrame','gameLoading','sideResize'];
-    for(var i=0;i<hideIds.length;i++){
-      var el = document.getElementById(hideIds[i]);
-      if(el){
-        el.style.setProperty('display','none','important');
-        el.style.setProperty('width','0','important');
-        el.style.setProperty('visibility','hidden','important');
-      }
-    }
-    
+  var injectCSS = function(){
+    if(document.getElementById('appModeCSS')) return;
+    var style = document.createElement('style');
+    style.id = 'appModeCSS';
+    style.textContent = 
+      '#sidePanel,#gameP,#gameFrame,#gameLoading,#sideResize{' +
+      'display:none !important;' +
+      'width:0 !important;' +
+      'visibility:hidden !important;' +
+      '}' +
+      '#betPanel{' +
+      'width:100% !important;' +
+      '}';
+    document.head.appendChild(style);
+  };
+  
+  var hideOnce = function(){
     var frame = document.getElementById('gameFrame');
-    if(frame) frame.src = 'about:blank';
-    
-    var betPanel = document.getElementById('betPanel');
-    if(betPanel){
-      betPanel.style.setProperty('width','100%','important');
-    }
-    
-    var canvasIds = ['cMain','cOver','cDraw','cCross','cAct'];
-    for(var ci=0;ci<canvasIds.length;ci++){
-      var cv = document.getElementById(canvasIds[ci]);
-      if(cv){
-        cv.style.setProperty('width','100%','important');
-      }
-    }
-    
-    var rsi = document.getElementById('rsiW');
-    if(rsi) rsi.style.setProperty('width','100%','important');
-    
-    var rsiD = document.getElementById('rsiDrag');
-    if(rsiD) rsiD.style.setProperty('width','100%','important');
-    
-    setTimeout(function(){
-      window.dispatchEvent(new Event('resize'));
-    }, 100);
-    setTimeout(function(){
-      window.dispatchEvent(new Event('resize'));
-    }, 500);
+    if(frame && frame.src !== 'about:blank') frame.src = 'about:blank';
   };
   
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', fixLayout);
+    document.addEventListener('DOMContentLoaded', function(){
+      injectCSS();
+      hideOnce();
+      window.dispatchEvent(new Event('resize'));
+    });
   } else {
-    fixLayout();
+    injectCSS();
+    hideOnce();
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
   }
   
-  setTimeout(fixLayout, 500);
-  setTimeout(fixLayout, 1500);
-  setTimeout(fixLayout, 3000);
+  setTimeout(function(){
+    injectCSS();
+    hideOnce();
+  }, 1000);
   
-  window.addEventListener('resize', function(){
-    setTimeout(fixLayout, 100);
-  });
+  setTimeout(function(){
+    injectCSS();
+    hideOnce();
+  }, 3000);
 })();
 </script>
 </body>
