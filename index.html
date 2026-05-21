@@ -1780,32 +1780,61 @@ setTimeout(function(){
   if(document.body) document.body.appendChild(indicator);
   if(!isApp) return;
   document.documentElement.classList.add('app-mode');
-  var hideGamePanel = function(){
-    var ids = ['sidePanel','gameP','gameFrame','gameLoading','sideResize'];
-    for(var i=0;i<ids.length;i++){
-      var el = document.getElementById(ids[i]);
+  
+  var fixLayout = function(){
+    var hideIds = ['sidePanel','gameP','gameFrame','gameLoading','sideResize'];
+    for(var i=0;i<hideIds.length;i++){
+      var el = document.getElementById(hideIds[i]);
       if(el){
         el.style.setProperty('display','none','important');
         el.style.setProperty('width','0','important');
         el.style.setProperty('visibility','hidden','important');
       }
     }
+    
     var frame = document.getElementById('gameFrame');
     if(frame) frame.src = 'about:blank';
-    var wrap = document.getElementById('wrap');
-    if(wrap){
-      wrap.style.setProperty('grid-template-columns','1fr','important');
-      wrap.style.setProperty('display','block','important');
+    
+    var betPanel = document.getElementById('betPanel');
+    if(betPanel){
+      betPanel.style.setProperty('width','100%','important');
     }
+    
+    var canvasIds = ['cMain','cOver','cDraw','cCross','cAct'];
+    for(var ci=0;ci<canvasIds.length;ci++){
+      var cv = document.getElementById(canvasIds[ci]);
+      if(cv){
+        cv.style.setProperty('width','100%','important');
+      }
+    }
+    
+    var rsi = document.getElementById('rsiW');
+    if(rsi) rsi.style.setProperty('width','100%','important');
+    
+    var rsiD = document.getElementById('rsiDrag');
+    if(rsiD) rsiD.style.setProperty('width','100%','important');
+    
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 500);
   };
+  
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', hideGamePanel);
+    document.addEventListener('DOMContentLoaded', fixLayout);
   } else {
-    hideGamePanel();
+    fixLayout();
   }
-  setTimeout(hideGamePanel, 500);
-  setTimeout(hideGamePanel, 1500);
-  setTimeout(hideGamePanel, 3000);
+  
+  setTimeout(fixLayout, 500);
+  setTimeout(fixLayout, 1500);
+  setTimeout(fixLayout, 3000);
+  
+  window.addEventListener('resize', function(){
+    setTimeout(fixLayout, 100);
+  });
 })();
 </script>
 </body>
