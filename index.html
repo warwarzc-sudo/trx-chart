@@ -1774,48 +1774,164 @@ setTimeout(function(){
   console.log('Resize ready. Saved width:', savedW);
 }, 500);
 </script>
-  <script>
+ <script>
 (function(){
   var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
-  var indicator = document.createElement('div');
-  indicator.style.cssText = 'position:fixed;top:5px;right:5px;background:'+(isApp?'#0c0':'#c00')+';color:#fff;padding:4px 8px;font-size:11px;z-index:99999;border-radius:4px;font-family:monospace';
-  indicator.textContent = isApp ? 'APP MODE ON' : 'BROWSER MODE';
-  if(document.body) document.body.appendChild(indicator);
   if(!isApp) return;
   document.documentElement.classList.add('app-mode');
   
-  try {
-    localStorage.setItem('TRX_SIDE_V3', '0');
-  } catch(e){}
+  try { localStorage.setItem('TRX_SIDE_V3', '0'); } catch(e){}
   
   var injectCSS = function(){
     if(document.getElementById('appModeCSS')) return;
     var style = document.createElement('style');
     style.id = 'appModeCSS';
-    style.textContent = 
+    style.textContent =
       'html.app-mode #sidePanel,' +
       'html.app-mode #gameP,' +
       'html.app-mode #gameFrame,' +
       'html.app-mode #gameLoading,' +
-      'html.app-mode #sideResize{' +
+      'html.app-mode #sideResize,' +
+      'html.app-mode #btnGame,' +
+      'html.app-mode #btnPanelSize,' +
+      'html.app-mode #btnHide{' +
       'display:none !important;' +
       'width:0 !important;' +
+      '}' +
+      'html.app-mode #betPanel{' +
+      'width:100vw !important;' +
+      'left:0 !important;' +
+      'right:0 !important;' +
+      '}' +
+      'html.app-mode #toolbar{' +
+      'position:fixed !important;' +
+      'left:0 !important;' +
+      'top:48px !important;' +
+      'bottom:0 !important;' +
+      'width:60px !important;' +
+      'flex-direction:column !important;' +
+      'align-items:center !important;' +
+      'padding:8px 4px !important;' +
+      'gap:6px !important;' +
+      'overflow-y:auto !important;' +
+      'z-index:50 !important;' +
+      '}' +
+      'html.app-mode #toolbar button{' +
+      'width:52px !important;' +
+      'padding:8px 4px !important;' +
+      'font-size:11px !important;' +
+      'text-align:center !important;' +
+      '}' +
+      'html.app-mode #toolbar .sep{' +
+      'width:40px !important;' +
+      'height:1px !important;' +
+      'margin:4px 0 !important;' +
+      '}' +
+      'html.app-mode #wrap{' +
+      'margin-left:60px !important;' +
+      'width:calc(100vw - 60px) !important;' +
+      '}' +
+      'html.app-mode #header{' +
+      'flex-wrap:wrap !important;' +
+      '}' +
+      'html.app-mode #header .left{' +
+      'flex-wrap:wrap !important;' +
+      'gap:6px !important;' +
+      '}' +
+      'html.app-mode .appbtn{' +
+      'background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;' +
+      'padding:5px 10px;font-size:12px;cursor:pointer;margin-left:4px;' +
+      '}' +
+      'html.app-mode .appbtn:hover{background:#2a2a5a;color:#fff;}' +
+      'html.app-mode #btnReloadChart{color:#0bf !important;border-color:#0bf !important;}' +
+      'html.app-mode #btnReloadGame{color:#0f0 !important;border-color:#0f0 !important;}' +
+      'html.app-mode #btnHideGame{' +
+      'background:#1a1a3a;color:#f0f;border:1px solid #f0f;border-radius:4px;' +
+      'padding:8px 4px;font-size:18px;cursor:pointer;width:52px;text-align:center;' +
+      'margin-bottom:4px;' +
       '}';
     document.head.appendChild(style);
   };
   
-  injectCSS();
+  var moveButtonsToHeader = function(){
+    var header = document.querySelector('#header .left');
+    if(!header) return;
+    if(document.getElementById('btnReloadChart')) return;
+    
+    var btnReloadChart = document.createElement('button');
+    btnReloadChart.id = 'btnReloadChart';
+    btnReloadChart.className = 'appbtn';
+    btnReloadChart.innerHTML = '🔄 Chart';
+    btnReloadChart.onclick = function(){
+      if(window.AndroidBridge && window.AndroidBridge.reloadChart){
+        window.AndroidBridge.reloadChart();
+      } else {
+        location.reload();
+      }
+    };
+    header.appendChild(btnReloadChart);
+    
+    var btnReloadGame = document.createElement('button');
+    btnReloadGame.id = 'btnReloadGame';
+    btnReloadGame.className = 'appbtn';
+    btnReloadGame.innerHTML = '🔄 Game';
+    btnReloadGame.onclick = function(){
+      if(window.AndroidBridge && window.AndroidBridge.reloadGame){
+        window.AndroidBridge.reloadGame();
+      }
+    };
+    header.appendChild(btnReloadGame);
+  };
   
-  var frame = document.getElementById('gameFrame');
-  if(frame) frame.src = 'about:blank';
+  var addHideGameButton = function(){
+    var toolbar = document.getElementById('toolbar');
+    if(!toolbar) return;
+    if(document.getElementById('btnHideGame')) return;
+    
+    var btn = document.createElement('button');
+    btn.id = 'btnHideGame';
+    btn.innerHTML = '🎮';
+    btn.dataset.visible = 'false';
+    btn.onclick = function(){
+      var visible = btn.dataset.visible === 'true';
+      if(visible){
+        if(window.AndroidBridge && window.AndroidBridge.hideGame){
+          window.AndroidBridge.hideGame();
+        }
+        btn.innerHTML = '🎮';
+        btn.dataset.visible = 'false';
+      } else {
+        if(window.AndroidBridge && window.AndroidBridge.showGame){
+          window.AndroidBridge.showGame();
+        }
+        btn.innerHTML = '❌';
+        btn.dataset.visible = 'true';
+      }
+    };
+    toolbar.insertBefore(btn, toolbar.firstChild);
+  };
   
-  setTimeout(function(){
-    window.dispatchEvent(new Event('resize'));
-  }, 500);
+  var setup = function(){
+    injectCSS();
+    moveButtonsToHeader();
+    addHideGameButton();
+    
+    var frame = document.getElementById('gameFrame');
+    if(frame) frame.src = 'about:blank';
+    
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 300);
+  };
   
-  setTimeout(function(){
-    window.dispatchEvent(new Event('resize'));
-  }, 1500);
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+  
+  setTimeout(setup, 500);
+  setTimeout(setup, 1500);
 })();
 </script>
 </body>
