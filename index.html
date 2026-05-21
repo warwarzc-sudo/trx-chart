@@ -53,6 +53,10 @@
 #betPanel {
   width: calc(100% - 400px) !important;
 }
+html.app-mode #betPanel {
+  width: 100vw !important;
+  left: 0 !important;
+}
 </style><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -1789,82 +1793,29 @@ setTimeout(function(){
     var style = document.createElement('style');
     style.id = 'appModeCSS';
     style.textContent = 
-      '#sidePanel,#gameP,#gameFrame,#gameLoading,#sideResize{' +
+      'html.app-mode #sidePanel,' +
+      'html.app-mode #gameP,' +
+      'html.app-mode #gameFrame,' +
+      'html.app-mode #gameLoading,' +
+      'html.app-mode #sideResize{' +
       'display:none !important;' +
       'width:0 !important;' +
       '}';
     document.head.appendChild(style);
   };
   
-  var fixBetPanel = function(){
-    var bp = document.getElementById('betPanel');
-    if(!bp) return false;
-    
-    var currentWidth = bp.style.width;
-    if(currentWidth === '100vw' || currentWidth === '100%') return false;
-    
-    bp.style.setProperty('width', '100vw', 'important');
-    bp.style.setProperty('left', '0', 'important');
-    bp.style.setProperty('right', '0', 'important');
-    return true;
-  };
-  
-  var fixCanvas = function(){
-    var w = window.innerWidth;
-    var canvasIds = ['cMain','cOver','cDraw','cCross','cAct'];
-    var changed = false;
-    for(var i=0;i<canvasIds.length;i++){
-      var cv = document.getElementById(canvasIds[i]);
-      if(cv && cv.width !== w){
-        cv.width = w;
-        cv.style.width = w + 'px';
-        changed = true;
-      }
-    }
-    return changed;
-  };
-  
-  var hideFrame = function(){
-    var frame = document.getElementById('gameFrame');
-    if(frame && frame.src !== 'about:blank') frame.src = 'about:blank';
-  };
-  
   injectCSS();
-  hideFrame();
+  
+  var frame = document.getElementById('gameFrame');
+  if(frame) frame.src = 'about:blank';
   
   setTimeout(function(){
-    injectCSS();
-    fixBetPanel();
-    fixCanvas();
-    hideFrame();
     window.dispatchEvent(new Event('resize'));
   }, 500);
   
   setTimeout(function(){
-    fixBetPanel();
-    fixCanvas();
     window.dispatchEvent(new Event('resize'));
   }, 1500);
-  
-  if(typeof MutationObserver !== 'undefined'){
-    var observer = new MutationObserver(function(){
-      fixBetPanel();
-      hideFrame();
-    });
-    
-    var startObserve = function(){
-      var bp = document.getElementById('betPanel');
-      if(bp){
-        observer.observe(bp, { attributes: true, attributeFilter: ['style'] });
-      }
-      if(document.body){
-        observer.observe(document.body, { childList: true, subtree: false });
-      }
-    };
-    
-    if(document.body) startObserve();
-    else document.addEventListener('DOMContentLoaded', startObserve);
-  }
 })();
 </script>
 </body>
