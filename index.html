@@ -1774,7 +1774,7 @@ setTimeout(function(){
   console.log('Resize ready. Saved width:', savedW);
 }, 500);
 </script>
- <script>
+  <script>
 (function(){
   var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
   if(!isApp) return;
@@ -1827,24 +1827,33 @@ setTimeout(function(){
       'padding:6px 2px !important;' +
       'gap:4px !important;' +
       'overflow-y:auto !important;' +
-      'z-index:50 !important;' +
+      'overflow-x:hidden !important;' +
+      'z-index:9999 !important;' +
       'background:#0e0e24 !important;' +
+      'border-right:1px solid #222248 !important;' +
       '}' +
       'html.app-mode #toolbar button{' +
       'width:48px !important;' +
-      'padding:6px 2px !important;' +
+      'min-height:36px !important;' +
+      'padding:4px 2px !important;' +
       'font-size:10px !important;' +
       'text-align:center !important;' +
       'line-height:1.1 !important;' +
+      'white-space:normal !important;' +
       '}' +
       'html.app-mode #toolbar .sep{' +
       'width:36px !important;' +
       'height:1px !important;' +
       'margin:2px 0 !important;' +
+      'flex-shrink:0 !important;' +
       '}' +
       'html.app-mode #wrap{' +
       'margin-left:56px !important;' +
       'width:calc(100vw - 56px) !important;' +
+      'position:relative !important;' +
+      '}' +
+      'html.app-mode #wrap canvas{' +
+      'left:0 !important;' +
       '}' +
       'html.app-mode .appbtn{' +
       'background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;' +
@@ -1857,8 +1866,10 @@ setTimeout(function(){
       'background:#1a1a3a !important;color:#f0f !important;' +
       'border:1px solid #f0f !important;border-radius:4px !important;' +
       'padding:8px 2px !important;font-size:18px !important;' +
-      'width:48px !important;text-align:center !important;' +
+      'width:48px !important;min-height:42px !important;' +
+      'text-align:center !important;' +
       'margin-bottom:4px !important;cursor:pointer !important;' +
+      'flex-shrink:0 !important;' +
       '}';
     document.head.appendChild(style);
   };
@@ -1935,15 +1946,6 @@ setTimeout(function(){
   
   var triggerResize = function(){
     window.dispatchEvent(new Event('resize'));
-    setTimeout(function(){
-      window.dispatchEvent(new Event('resize'));
-    }, 100);
-    setTimeout(function(){
-      window.dispatchEvent(new Event('resize'));
-    }, 500);
-    setTimeout(function(){
-      window.dispatchEvent(new Event('resize'));
-    }, 1500);
   };
   
   var setup = function(){
@@ -1955,6 +1957,10 @@ setTimeout(function(){
     if(frame) frame.src = 'about:blank';
     
     triggerResize();
+    setTimeout(triggerResize, 200);
+    setTimeout(triggerResize, 600);
+    setTimeout(triggerResize, 1500);
+    setTimeout(triggerResize, 3000);
   };
   
   if(document.readyState === 'loading'){
@@ -1965,7 +1971,6 @@ setTimeout(function(){
   
   setTimeout(setup, 500);
   setTimeout(setup, 1500);
-  setTimeout(triggerResize, 2500);
 })();
 </script>
 </body>
