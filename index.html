@@ -1775,34 +1775,37 @@ setTimeout(function(){
   if(navigator.userAgent.indexOf('TRXTrackerChartWebView') === -1) return;
   
   document.documentElement.classList.add('app-mode');
-  console.log('[APP MODE] Hiding chart-embedded game iframe');
+  console.log('[APP MODE] Hiding sidePanel');
   
   var hideGamePanel = function(){
-    var frame = document.getElementById('gameFrame');
-    var loading = document.getElementById('gameLoading');
+    var sidePanel = document.getElementById('sidePanel');
+    if(sidePanel){
+      sidePanel.style.display = 'none';
+      sidePanel.style.width = '0';
+    }
     
+    var gameP = document.getElementById('gameP');
+    if(gameP){
+      gameP.style.display = 'none';
+    }
+    
+    var frame = document.getElementById('gameFrame');
     if(frame){
       frame.style.display = 'none';
       frame.src = 'about:blank';
-      
-      var parent = frame.parentElement;
-      for(var i=0;i<5 && parent;i++){
-        if(parent.id === 'gamePanel' || 
-           parent.id === 'gameContainer' || 
-           parent.id === 'gameWrap' ||
-           parent.className.indexOf('game') !== -1 ||
-           parent.className.indexOf('resizable') !== -1){
-          parent.style.display = 'none';
-          break;
-        }
-        parent = parent.parentElement;
-      }
     }
     
+    var loading = document.getElementById('gameLoading');
     if(loading) loading.style.display = 'none';
     
+    var wrap = document.getElementById('wrap');
+    if(wrap){
+      wrap.style.gridTemplateColumns = '1fr';
+      wrap.style.display = 'block';
+    }
+    
     var extras = document.querySelectorAll(
-      '.resize-handle, .gameResizeHandle, #gameToggle, .game-toggle, #gameReload, #gamePopup'
+      '.resize-handle, .gameResizeHandle, #gameToggle, .game-toggle, #gameReload, #gamePopup, #sideResize'
     );
     for(var k=0;k<extras.length;k++){
       extras[k].style.display = 'none';
