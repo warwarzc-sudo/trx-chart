@@ -1771,42 +1771,6 @@ setTimeout(function(){
 }, 500);
 <script>
 // ===== App Mode Detection - Hide game iframe panel =====
-<script>
-(function(){
-  var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
-  var indicator = document.createElement('div');
-  indicator.style.cssText = 'position:fixed;top:5px;right:5px;background:'+(isApp?'#0c0':'#c00')+';color:#fff;padding:4px 8px;font-size:11px;z-index:99999;border-radius:4px;font-family:monospace';
-  indicator.textContent = isApp ? 'APP MODE ON' : 'BROWSER MODE';
-  if(document.body) document.body.appendChild(indicator);
-  if(!isApp) return;
-  document.documentElement.classList.add('app-mode');
-  var hideGamePanel = function(){
-    var ids = ['sidePanel','gameP','gameFrame','gameLoading','sideResize'];
-    for(var i=0;i<ids.length;i++){
-      var el = document.getElementById(ids[i]);
-      if(el){
-        el.style.setProperty('display','none','important');
-        el.style.setProperty('width','0','important');
-        el.style.setProperty('visibility','hidden','important');
-      }
-    }
-    var frame = document.getElementById('gameFrame');
-    if(frame) frame.src = 'about:blank';
-    var wrap = document.getElementById('wrap');
-    if(wrap){
-      wrap.style.setProperty('grid-template-columns','1fr','important');
-      wrap.style.setProperty('display','block','important');
-    }
-  };
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', hideGamePanel);
-  } else {
-    hideGamePanel();
-  }
-  setTimeout(hideGamePanel, 500);
-  setTimeout(hideGamePanel, 1500);
-  setTimeout(hideGamePanel, 3000);
-})();
-</script>
+
   </body>
 </html>
