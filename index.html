@@ -1803,52 +1803,62 @@ setTimeout(function(){
       'left:0 !important;' +
       'right:0 !important;' +
       '}' +
-      'html.app-mode #toolbar{' +
-      'position:fixed !important;' +
-      'left:0 !important;' +
-      'top:48px !important;' +
-      'bottom:0 !important;' +
-      'width:60px !important;' +
-      'flex-direction:column !important;' +
-      'align-items:center !important;' +
-      'padding:8px 4px !important;' +
-      'gap:6px !important;' +
-      'overflow-y:auto !important;' +
-      'z-index:50 !important;' +
-      '}' +
-      'html.app-mode #toolbar button{' +
-      'width:52px !important;' +
-      'padding:8px 4px !important;' +
-      'font-size:11px !important;' +
-      'text-align:center !important;' +
-      '}' +
-      'html.app-mode #toolbar .sep{' +
-      'width:40px !important;' +
-      'height:1px !important;' +
-      'margin:4px 0 !important;' +
-      '}' +
-      'html.app-mode #wrap{' +
-      'margin-left:60px !important;' +
-      'width:calc(100vw - 60px) !important;' +
-      '}' +
       'html.app-mode #header{' +
       'flex-wrap:wrap !important;' +
+      'height:auto !important;' +
+      'min-height:48px !important;' +
+      'padding:4px 8px !important;' +
+      'gap:4px !important;' +
       '}' +
       'html.app-mode #header .left{' +
       'flex-wrap:wrap !important;' +
-      'gap:6px !important;' +
+      'gap:4px !important;' +
+      'align-items:center !important;' +
+      '}' +
+      'html.app-mode #toolbar{' +
+      'position:fixed !important;' +
+      'left:0 !important;' +
+      'top:auto !important;' +
+      'bottom:0 !important;' +
+      'width:56px !important;' +
+      'height:calc(100vh - 90px) !important;' +
+      'flex-direction:column !important;' +
+      'align-items:center !important;' +
+      'padding:6px 2px !important;' +
+      'gap:4px !important;' +
+      'overflow-y:auto !important;' +
+      'z-index:50 !important;' +
+      'background:#0e0e24 !important;' +
+      '}' +
+      'html.app-mode #toolbar button{' +
+      'width:48px !important;' +
+      'padding:6px 2px !important;' +
+      'font-size:10px !important;' +
+      'text-align:center !important;' +
+      'line-height:1.1 !important;' +
+      '}' +
+      'html.app-mode #toolbar .sep{' +
+      'width:36px !important;' +
+      'height:1px !important;' +
+      'margin:2px 0 !important;' +
+      '}' +
+      'html.app-mode #wrap{' +
+      'margin-left:56px !important;' +
+      'width:calc(100vw - 56px) !important;' +
       '}' +
       'html.app-mode .appbtn{' +
       'background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;' +
-      'padding:5px 10px;font-size:12px;cursor:pointer;margin-left:4px;' +
+      'padding:5px 10px;font-size:12px;cursor:pointer;' +
       '}' +
       'html.app-mode .appbtn:hover{background:#2a2a5a;color:#fff;}' +
       'html.app-mode #btnReloadChart{color:#0bf !important;border-color:#0bf !important;}' +
       'html.app-mode #btnReloadGame{color:#0f0 !important;border-color:#0f0 !important;}' +
       'html.app-mode #btnHideGame{' +
-      'background:#1a1a3a;color:#f0f;border:1px solid #f0f;border-radius:4px;' +
-      'padding:8px 4px;font-size:18px;cursor:pointer;width:52px;text-align:center;' +
-      'margin-bottom:4px;' +
+      'background:#1a1a3a !important;color:#f0f !important;' +
+      'border:1px solid #f0f !important;border-radius:4px !important;' +
+      'padding:8px 2px !important;font-size:18px !important;' +
+      'width:48px !important;text-align:center !important;' +
+      'margin-bottom:4px !important;cursor:pointer !important;' +
       '}';
     document.head.appendChild(style);
   };
@@ -1856,31 +1866,43 @@ setTimeout(function(){
   var moveButtonsToHeader = function(){
     var header = document.querySelector('#header .left');
     if(!header) return;
-    if(document.getElementById('btnReloadChart')) return;
     
-    var btnReloadChart = document.createElement('button');
-    btnReloadChart.id = 'btnReloadChart';
-    btnReloadChart.className = 'appbtn';
-    btnReloadChart.innerHTML = '🔄 Chart';
-    btnReloadChart.onclick = function(){
-      if(window.AndroidBridge && window.AndroidBridge.reloadChart){
-        window.AndroidBridge.reloadChart();
-      } else {
-        location.reload();
-      }
-    };
-    header.appendChild(btnReloadChart);
+    if(!document.getElementById('btnReloadChart')){
+      var btn1 = document.createElement('button');
+      btn1.id = 'btnReloadChart';
+      btn1.className = 'appbtn';
+      btn1.innerHTML = '🔄 Chart';
+      btn1.onclick = function(){
+        if(window.AndroidBridge && window.AndroidBridge.reloadChart){
+          window.AndroidBridge.reloadChart();
+        } else {
+          location.reload();
+        }
+      };
+      header.appendChild(btn1);
+    }
     
-    var btnReloadGame = document.createElement('button');
-    btnReloadGame.id = 'btnReloadGame';
-    btnReloadGame.className = 'appbtn';
-    btnReloadGame.innerHTML = '🔄 Game';
-    btnReloadGame.onclick = function(){
-      if(window.AndroidBridge && window.AndroidBridge.reloadGame){
-        window.AndroidBridge.reloadGame();
+    if(!document.getElementById('btnReloadGame')){
+      var btn2 = document.createElement('button');
+      btn2.id = 'btnReloadGame';
+      btn2.className = 'appbtn';
+      btn2.innerHTML = '🔄 Game';
+      btn2.onclick = function(){
+        if(window.AndroidBridge && window.AndroidBridge.reloadGame){
+          window.AndroidBridge.reloadGame();
+        }
+      };
+      header.appendChild(btn2);
+    }
+    
+    var moveIds = ['btnBet', 'btnLoad', 'btnFit', 'btnClear', 'btnReset'];
+    for(var i=0;i<moveIds.length;i++){
+      var btn = document.getElementById(moveIds[i]);
+      if(btn && btn.parentElement && btn.parentElement.id === 'toolbar'){
+        btn.classList.add('appbtn');
+        header.appendChild(btn);
       }
-    };
-    header.appendChild(btnReloadGame);
+    }
   };
   
   var addHideGameButton = function(){
@@ -1911,6 +1933,19 @@ setTimeout(function(){
     toolbar.insertBefore(btn, toolbar.firstChild);
   };
   
+  var triggerResize = function(){
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 500);
+    setTimeout(function(){
+      window.dispatchEvent(new Event('resize'));
+    }, 1500);
+  };
+  
   var setup = function(){
     injectCSS();
     moveButtonsToHeader();
@@ -1919,9 +1954,7 @@ setTimeout(function(){
     var frame = document.getElementById('gameFrame');
     if(frame) frame.src = 'about:blank';
     
-    setTimeout(function(){
-      window.dispatchEvent(new Event('resize'));
-    }, 300);
+    triggerResize();
   };
   
   if(document.readyState === 'loading'){
@@ -1932,6 +1965,7 @@ setTimeout(function(){
   
   setTimeout(setup, 500);
   setTimeout(setup, 1500);
+  setTimeout(triggerResize, 2500);
 })();
 </script>
 </body>
