@@ -60,7 +60,139 @@ html.app-mode #betPanel {
 #toolbar{
   background: red !important;
 }
+<style id="trx-tablet-layout">
+/* ═══════════════════════════════════════════════════
+   TRX TABLET LAYOUT - Floating Vertical Toolbar
+   ═══════════════════════════════════════════════════ */
 
+/* 1. Move action buttons to header */
+#header {
+  flex-wrap: wrap !important;
+  height: auto !important;
+  min-height: 48px !important;
+  gap: 4px !important;
+}
+
+#header .left {
+  flex: 1 !important;
+  flex-wrap: wrap !important;
+}
+
+/* 2. Create header action buttons area */
+#header::after {
+  content: '';
+  display: none;
+}
+
+/* Move specific buttons to header via positioning */
+#btnBet, #btnLoad, #btnFit, #btnGame, #btnHide, #btnClear, #btnReset {
+  position: fixed !important;
+  top: 8px !important;
+  z-index: 200 !important;
+  height: 32px !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+#btnBet { right: 542px !important; }
+#btnLoad { right: 432px !important; }
+#btnFit { right: 360px !important; }
+#btnGame { right: 250px !important; }
+#btnHide { right: 140px !important; }
+#btnClear { right: 70px !important; }
+#btnReset { right: 8px !important; }
+
+/* 3. Hide Panel Size button */
+#btnPanelSize { display: none !important; }
+
+/* 4. Convert toolbar to LEFT FLOATING VERTICAL */
+#toolbar {
+  position: fixed !important;
+  top: 60px !important;
+  left: 8px !important;
+  width: 52px !important;
+  height: auto !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  background: rgba(14, 14, 36, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #2a2a4a !important;
+  border-radius: 8px !important;
+  padding: 6px 4px !important;
+  z-index: 150 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  gap: 4px !important;
+}
+
+/* 5. Hide the action buttons from toolbar (they're now in header) */
+#toolbar #btnBet,
+#toolbar #btnLoad,
+#toolbar #btnFit,
+#toolbar #btnGame,
+#toolbar #btnPanelSize,
+#toolbar #btnHide,
+#toolbar #btnClear,
+#toolbar #btnReset {
+  display: none !important;
+}
+
+/* 6. Style drawing tool buttons (vertical) */
+#toolbar button[data-tool],
+#toolbar button[data-ind] {
+  width: 44px !important;
+  height: 36px !important;
+  padding: 4px !important;
+  font-size: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1.1 !important;
+  word-break: keep-all !important;
+  overflow: hidden !important;
+}
+
+/* 7. Hide separators in toolbar */
+#toolbar .sep {
+  width: 80% !important;
+  height: 1px !important;
+  margin: 2px auto !important;
+}
+
+/* 8. Make chart wrap FULL WIDTH (toolbar is floating now) */
+#wrap {
+  margin-left: 0 !important;
+}
+
+/* 9. Mobile/Tablet responsive adjustments */
+@media (max-width: 900px) {
+  #btnBet { right: 480px !important; font-size: 11px !important; }
+  #btnLoad { right: 388px !important; font-size: 11px !important; }
+  #btnFit { right: 328px !important; font-size: 11px !important; }
+  #btnGame { right: 228px !important; font-size: 11px !important; }
+  #btnHide { right: 130px !important; font-size: 11px !important; }
+  #btnClear { right: 65px !important; font-size: 11px !important; }
+  #btnReset { right: 8px !important; font-size: 11px !important; }
+}
+
+@media (max-width: 700px) {
+  /* On phones, header buttons wrap below */
+  #btnBet, #btnLoad, #btnFit, #btnGame, #btnHide, #btnClear, #btnReset {
+    position: static !important;
+    display: inline-block !important;
+    margin: 2px !important;
+  }
+  
+  #header {
+    padding-bottom: 4px !important;
+  }
+  
+  #toolbar {
+    top: 95px !important;
+  }
+}
+</style>
 </style><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
