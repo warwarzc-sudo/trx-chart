@@ -60,60 +60,7 @@ html.app-mode #betPanel {
 #toolbar{
   background: red !important;
 }
-/* FORCE TOOLBAR LEFT ON MOBILE & TABLET */
-@media screen and (max-width: 1400px) {
-  
-  /* Make space on left and force full width */
-  body, html {
-    padding-left: 75px !important;
-    padding-top: 0 !important;
-    width: 100vw !important;
-    overflow-x: hidden !important;
-  }
 
-  /* Force Toolbar to front and fix position */
-  #toolbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 75px !important;
-    height: 100vh !important;
-    background: #0e0e24 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    flex-wrap: nowrap !important;
-    overflow-y: auto !important;
-    z-index: 2147483647 !important; /* Maximum z-index to bring to front */
-    transform: none !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  /* Toolbar buttons */
-  #toolbar button {
-    width: 65px !important;
-    min-height: 40px !important;
-    font-size: 10px !important;
-    margin: 4px auto !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-  }
-
-  /* Stretch Chart to cover right empty space */
-  #chart, #tvchart, #chartWrap {
-    width: 100% !important;
-    flex: 1 !important;
-  }
-
-  /* Make Game Panel float so it doesn't take empty space when hidden */
-  #sidePanel {
-    position: fixed !important;
-    top: 0 !important;
-    right: 0 !important;
-    height: 100vh !important;
-    z-index: 99999 !important;
-  }
-}
 </style><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
