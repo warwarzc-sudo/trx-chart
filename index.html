@@ -2163,90 +2163,102 @@ setTimeout(function(){
     if(frame) frame.src = 'about:blank';
     <script id="trx-resize-fix">
 (function() {
+  var isResizing = false;
+
   function resizeAllCanvas() {
-    var wrap = document.getElementById('wrap');
-    if (!wrap) return;
-    
-    var wrapW = wrap.clientWidth;
-    var wrapH = wrap.clientHeight;
-    var mainH = Math.floor(wrapH * 0.7);
-    
-    var mainIds = ['cMain', 'cOver', 'cDraw', 'cCross', 'cAct'];
-    for (var i = 0; i < mainIds.length; i++) {
-      var c = document.getElementById(mainIds[i]);
-      if (c) {
-        c.width = wrapW;
-        c.height = mainH;
-        c.style.width = wrapW + 'px';
-        c.style.height = mainH + 'px';
+    if (isResizing) return;
+    isResizing = true;
+
+    try {
+      var wrap = document.getElementById('wrap');
+      if (!wrap) return;
+
+      var wrapW = wrap.clientWidth;
+      var wrapH = wrap.clientHeight;
+      if (wrapW < 10 || wrapH < 10) return;
+
+      var mainH = Math.floor(wrapH * 0.7);
+
+      var mainIds = ['cMain', 'cOver', 'cDraw', 'cCross', 'cAct'];
+      for (var i = 0; i < mainIds.length; i++) {
+        var c = document.getElementById(mainIds[i]);
+        if (c) {
+          var cW = c.clientWidth || wrapW;
+          var cH = c.clientHeight || mainH;
+          if (c.width !== cW) c.width = cW;
+          if (c.height !== cH) c.height = cH;
+        }
       }
-    }
-     var rsiW = document.getElementById('rsiW');
-    var cRSI = document.getElementById('cRSI');
-    if (rsiW && cRSI) {
-      var rsiWidth = rsiW.clientWidth;
-      var rsiHeight = rsiW.clientHeight;
-      cRSI.width = rsiWidth;
-      cRSI.height = rsiHeight;
-      cRSI.style.width = rsiWidth + 'px';
-      cRSI.style.height = rsiHeight + 'px';
-    }
-     window.dispatchEvent(new Event('resize'));
-    
-    if (typeof window.drawChart === 'function') window.drawChart();
-    if (typeof window.redraw === 'function') window.redraw();
-    if (typeof window.render === 'function') window.render();
-    if (typeof window.draw === 'function') window.draw();
-    if (typeof window.update === 'function') window.update();
-    if (typeof window.fitChart === 'function') window.fitChart();
-    
-    var fitBtn = document.getElementById('btnFit');
-    if (fitBtn) {
-      setTimeout(function() { fitBtn.click(); }, 50);
+
+      var rsiW = document.getElementById('rsiW');
+      var cRSI = document.getElementById('cRSI');
+      if (rsiW && cRSI) {
+        var rsiWidth = rsiW.clientWidth;
+        var rsiHeight = rsiW.clientHeight;
+        if (cRSI.width !== rsiWidth) cRSI.width = rsiWidth;
+        if (cRSI.height !== rsiHeight) cRSI.height = rsiHeight;
+      }
+
+      /* === NO dispatchEvent('resize') here === */
+      /* === That was causing infinite recursion === */
+
+      if (typeof window.drawChart === 'function') window.drawChart();
+      if (typeof window.redraw === 'function') window.redraw();
+      if (typeof window.render === 'function') window.render();
+      if (typeof window.draw === 'function') window.draw();
+      if (typeof window.update === 'function') window.update();
+      if (typeof window.fitChart === 'function') window.fitChart();
+
+      var fitBtn = document.getElementById('btnFit');
+      if (fitBtn) {
+        setTimeout(function() { fitBtn.click(); }, 80);
+      }
+
+    } finally {
+      isResizing = false;
     }
   }
-   window.addEventListener('load', function() {
+
+  function attachButtonListeners() {
+    var btnIds = ['btnHide', 'btnGame', 'btnBet', 'btnReset', 'btnLoad', 'btnFit', 'btnPanelSize'];
+    for (var i = 0; i < btnIds.length; i++) {
+      (function(id) {
+        var btn = document.getElementById(id);
+        if (btn && !btn._resizeAttached) {
+          btn._resizeAttached = true;
+          btn.addEventListener('click', function() {
+            setTimeout(resizeAllCanvas, 250);
+          });
+        }
+      })(btnIds[i]);
+    }
+  }
+
+  window.addEventListener('resize', function() {
+    setTimeout(resizeAllCanvas, 50);
+  });
+
+  window.addEventListener('orientationchange', function() {
+    setTimeout(resizeAllCanvas, 300);
+  });
+
+  window.addEventListener('load', function() {
+    attachButtonListeners();
     setTimeout(resizeAllCanvas, 100);
     setTimeout(resizeAllCanvas, 500);
     setTimeout(resizeAllCanvas, 1500);
   });
-   window.addEventListener('resize', resizeAllCanvas);
-   window.addEventListener('orientationchange', function() {
-    setTimeout(resizeAllCanvas, 300);
-  });
-  
-  var btnIds = ['btnHide', 'btnGame', 'btnBet', 'btnReset', 'btnLoad'];
-  for (var i = 0; i < btnIds.length; i++) {
-    var btn = document.getElementById(btnIds[i]);
-    if (btn) {
-      btn.addEventListener('click', function() {
-        setTimeout(resizeAllCanvas, 200);
-      });
-    }
-  }
-  
-  setTimeout(resizeAllCanvas, 200);
-  setTimeout(resizeAllCanvas, 1000);
-  setTimeout(resizeAllCanvas, 2000);
-})();
-</script>
-    triggerResize();
-    setTimeout(triggerResize, 200);
-    setTimeout(triggerResize, 600);
-    setTimeout(triggerResize, 1500);
-    setTimeout(triggerResize, 3000);
-  };
-  
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', setup);
-  } else {
-    setup();
-  }
-  
-  setTimeout(setup, 500);
-  setTimeout(setup, 1500);
-})();
-</script>
 
+  if (document.readyState !== 'loading') {
+    attachButtonListeners();
+  } else {
+    document.addEventListener('DOMContentLoaded', attachButtonListeners);
+  }
+
+  setTimeout(resizeAllCanvas, 300);
+  setTimeout(resizeAllCanvas, 1000);
+  setTimeout(resizeAllCanvas, 3000);
+})();
+</script>
 </body>
 </html>
