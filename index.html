@@ -138,6 +138,8 @@ html, body {
   margin: 0 !important;
   padding: 0 !important;
   height: 100vh !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
   overflow: hidden !important;
 }
 
@@ -151,6 +153,7 @@ html, body {
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
+  overflow: hidden !important;
 }
 
 #cMain, #cOver, #cDraw, #cCross, #cAct {
@@ -170,6 +173,7 @@ html, body {
   height: 30% !important;
   width: auto !important;
   border-top: 1px solid #2a2a4a !important;
+  overflow: hidden !important;
 }
 
 #cRSI {
@@ -180,8 +184,59 @@ html, body {
   height: 100% !important;
 }
 
+#sidePanel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: 400px !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+#sidePanel #histP,
+#sidePanel #gameP {
+  height: calc(100% - 40px) !important;
+  width: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#sidePanel #gameFrame {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  border: none !important;
+  display: block !important;
+  margin: 0 !important;
+}
+
+#toolbar {
+  position: fixed !important;
+  top: 55px !important;
+  left: 8px !important;
+  bottom: 8px !important;
+  width: 60px !important;
+  height: auto !important;
+  max-height: calc(100vh - 65px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex-direction: column !important;
+  display: flex !important;
+}
+
 body.panel-hidden #wrap {
   right: 0 !important;
+}
+
+body.panel-hidden #sidePanel {
+  display: none !important;
 }
 
 @media (max-width: 700px) {
@@ -189,6 +244,14 @@ body.panel-hidden #wrap {
     top: 95px !important;
     left: 0 !important;
     right: 0 !important;
+  }
+  #sidePanel {
+    top: 95px !important;
+    width: 100% !important;
+    height: calc(100vh - 95px) !important;
+  }
+  #toolbar {
+    top: 100px !important;
   }
 }
 </style>
