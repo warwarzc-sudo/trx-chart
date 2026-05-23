@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TRX WinGo Chart</title>
+
 <style>
 #wrap {
   position: relative !important;
@@ -11,7 +16,6 @@
   right: 0 !important;
   bottom: 0 !important;
   left: auto !important;
- 
   height: 100% !important;
   background: #0a0a1a !important;
   border-left: 2px solid #333 !important;
@@ -43,7 +47,6 @@
 #sideResize {
   position: absolute !important;
   top: 0 !important;
- 
   left: auto !important;
   width: 6px !important;
   height: 100% !important;
@@ -53,15 +56,86 @@
 #betPanel {
   width: calc(100% - 400px) !important;
 }
-html.app-mode #betPanel {
-  width: 100vw !important;
-  left: 0 !important;
-}
-#toolbar{
-  background: red !important;
+</style>
+
+<style id="trx-tablet-layout">
+/* ═══════════════════════════════════════════════════
+   TABLET-FRIENDLY LAYOUT
+   ═══════════════════════════════════════════════════ */
+
+/* Action buttons → header */
+#btnBet, #btnLoad, #btnFit, #btnGame, #btnHide, #btnClear, #btnReset {
+  position: fixed !important;
+  top: 8px !important;
+  z-index: 9999 !important;
+  height: 32px !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
 }
 
-</style><head>
+#btnBet    { left: 360px !important; }
+#btnLoad   { left: 470px !important; }
+#btnFit    { left: 580px !important; }
+#btnGame   { left: 645px !important; }
+#btnHide   { left: 755px !important; }
+#btnClear  { left: 860px !important; }
+#btnReset  { left: 930px !important; }
+
+#btnPanelSize { display: none !important; }
+
+/* Vertical floating toolbar */
+#toolbar {
+  position: fixed !important;
+  top: 55px !important;
+  left: 8px !important;
+  width: 60px !important;
+  height: auto !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  background: rgba(14, 14, 36, 0.95) !important;
+  border: 1px solid #2a2a4a !important;
+  border-radius: 8px !important;
+  padding: 6px 4px !important;
+  z-index: 150 !important;
+  gap: 4px !important;
+  align-items: center !important;
+}
+
+#toolbar button[data-tool],
+#toolbar button[data-ind] {
+  width: 50px !important;
+  height: 38px !important;
+  padding: 4px !important;
+  font-size: 10px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#toolbar .sep {
+  width: 80% !important;
+  height: 1px !important;
+  margin: 3px auto !important;
+  background: #2a2a4a !important;
+}
+
+@media (max-width: 700px) {
+  #btnBet, #btnLoad, #btnFit, #btnGame, #btnHide, #btnClear, #btnReset {
+    position: static !important;
+    display: inline-block !important;
+    margin: 2px !important;
+  }
+  #toolbar {
+    top: 95px !important;
+  }
+}
+</style>
+</head>
+<body>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>TRX WinGo Chart</title>
