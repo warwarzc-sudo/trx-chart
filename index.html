@@ -57,7 +57,7 @@ html.app-mode #betPanel {
   width: 100vw !important;
   left: 0 !important;
 }
-#toolbar {
+  #toolbar {
   display: flex !important;
   align-items: center !important;
   gap: 4px !important;
@@ -67,6 +67,7 @@ html.app-mode #betPanel {
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
   z-index: 99 !important;
+  height: 38px !important;
   -webkit-overflow-scrolling: touch;
 }
 #toolbar button {
@@ -76,14 +77,14 @@ html.app-mode #betPanel {
   display: flex !important;
   flex-direction: row !important;
   width: 100vw !important;
-  height: calc(100vh - 84px) !important;
+  height: calc(100vh - 86px) !important; /* Fixed height container to stop distortion */
   overflow: hidden !important;
   position: relative !important;
 }
 #verticalToolbar {
   display: flex !important;
   flex-direction: column !important;
-  width: 110px !important;
+  width: 115px !important;
   background: #0e0e24 !important;
   border-right: 1px solid #222248 !important;
   padding: 6px 4px !important;
@@ -91,6 +92,7 @@ html.app-mode #betPanel {
   flex-shrink: 0 !important;
   overflow-y: auto !important;
   z-index: 90 !important;
+  height: 100% !important;
 }
 #verticalToolbar button {
   width: 100% !important;
@@ -118,10 +120,17 @@ html.app-mode #betPanel {
   width: 100% !important;
 }
 #sidePanel {
+  position: absolute !important;
   top: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   height: 100% !important;
+  background: #0a0a1a !important;
+  border-left: 2px solid #333 !important;
+  z-index: 50 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 </style>
 </head>
