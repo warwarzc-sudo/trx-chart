@@ -1,10 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>TRX WinGo Chart</title>
-
 <style>
 #wrap {
   position: relative !important;
@@ -16,6 +11,7 @@
   right: 0 !important;
   bottom: 0 !important;
   left: auto !important;
+ 
   height: 100% !important;
   background: #0a0a1a !important;
   border-left: 2px solid #333 !important;
@@ -47,6 +43,7 @@
 #sideResize {
   position: absolute !important;
   top: 0 !important;
+ 
   left: auto !important;
   width: 6px !important;
   height: 100% !important;
@@ -56,213 +53,15 @@
 #betPanel {
   width: calc(100% - 400px) !important;
 }
-</style>
-<style id="trx-tablet-layout">
-/* ═══════════════════════════════════════════════════
-   TABLET-FRIENDLY LAYOUT
-   ═══════════════════════════════════════════════════ */
-
-/* Action buttons → header */
-#btnBet, #btnLoad, #btnFit, #btnGame, #btnHide, #btnClear, #btnReset {
-  position: fixed !important;
-  top: 8px !important;
-  z-index: 9999 !important;
-  height: 32px !important;
-  padding: 4px 10px !important;
-  font-size: 12px !important;
-  white-space: nowrap !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-}
-
-#btnBet    { left: 360px !important; }
-#btnLoad   { left: 470px !important; }
-#btnFit    { left: 580px !important; }
-#btnGame   { left: 645px !important; }
-#btnHide   { left: 755px !important; }
-#btnClear  { left: 860px !important; }
-#btnReset  { left: 930px !important; }
-
-#btnPanelSize { display: none !important; }
-
-/* Vertical floating toolbar */
-#toolbar {
-  position: fixed !important;
-  top: 55px !important;
-  left: 8px !important;
-  width: 60px !important;
-  height: auto !important;
-  flex-direction: column !important;
-  flex-wrap: nowrap !important;
-  background: rgba(14, 14, 36, 0.95) !important;
-  border: 1px solid #2a2a4a !important;
-  border-radius: 8px !important;
-  padding: 6px 4px !important;
-  z-index: 150 !important;
-  gap: 4px !important;
-  align-items: center !important;
-}
-
-#toolbar button[data-tool],
-#toolbar button[data-ind] {
-  width: 50px !important;
-  height: 38px !important;
-  padding: 4px !important;
-  font-size: 10px !important;
-  margin: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-#toolbar .sep {
-  width: 80% !important;
-  height: 1px !important;
-  margin: 3px auto !important;
-  background: #2a2a4a !important;
-}
-
-@media (max-width: 700px) {
-  #btnBet, #btnLoad, #btnFit, #btnGame, #btnHide, #btnClear, #btnReset {
-    position: static !important;
-    display: inline-block !important;
-    margin: 2px !important;
-  }
-  #toolbar {
-    top: 95px !important;
-  }
-}
-</style>
-<style id="trx-wrap-height-fix">
-html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  height: 100vh !important;
+html.app-mode #betPanel {
   width: 100vw !important;
-  max-width: 100vw !important;
-  overflow: hidden !important;
-}
-
-#wrap {
-  position: absolute !important;
-  top: 50px !important;
-  left: 75px !important;
-  right: 400px !important;
-  bottom: 0 !important;
-  width: auto !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: hidden !important;
-}
-
-#cMain, #cOver, #cDraw, #cCross, #cAct {
-  position: absolute !important;
-  top: 0 !important;
   left: 0 !important;
-  width: 100% !important;
-  height: 70% !important;
+}
+#toolbar{
+  background: red !important;
 }
 
-#rsiW {
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  top: auto !important;
-  height: 30% !important;
-  width: auto !important;
-  border-top: 1px solid #2a2a4a !important;
-  overflow: hidden !important;
-}
-
-#cRSI {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-#sidePanel {
-  position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: auto !important;
-  width: 400px !important;
-  height: 100vh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-#sidePanel #histP,
-#sidePanel #gameP {
-  height: calc(100% - 40px) !important;
-  width: 100% !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-#sidePanel #gameFrame {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  border: none !important;
-  display: block !important;
-  margin: 0 !important;
-}
-
-#toolbar {
-  position: fixed !important;
-  top: 50px !important;
-  left: 0 !important;
-  bottom: 0 !important;
-  width: 75px !important;
-  height: calc(100vh - 50px) !important;
-  max-height: none !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  flex-direction: column !important;
-  display: flex !important;
-  z-index: 100 !important;
-  background: #131722 !important;
-  border-right: 1px solid #2a2a4a !important;
-  box-sizing: border-box !important;
-  padding: 8px 4px !important;
-}
-
-body.panel-hidden #wrap {
-  right: 0 !important;
-}
-
-body.panel-hidden #sidePanel {
-  display: none !important;
-}
-
-@media (max-width: 700px) {
-  #wrap {
-    top: 95px !important;
-    left: 0 !important;
-    right: 0 !important;
-  }
-  #sidePanel {
-    top: 95px !important;
-    width: 100% !important;
-    height: calc(100vh - 95px) !important;
-  }
-  #toolbar {
-    top: 100px !important;
-    height: calc(100vh - 100px) !important;
-  }
-}
-</style>
-</head>
-<body>
+</style><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>TRX WinGo Chart</title>
@@ -473,26 +272,23 @@ canvas{position:absolute;top:0;left:0;}
 </div>
 </div>
 <div id="toolbar">
-  <button class="active" data-tool="pointer">☝Pointer</button>
-  <div class="sep"></div>
-  <button data-tool="trendline">📏Trend</button>
-  <button data-tool="hline">➖HLine</button>
-  <button data-tool="rect">⬜Rect</button>
-  <button data-tool="fib">📐Fib</button>
-  <button data-tool="text">🔤Text</button>
-  <div class="sep"></div>
-  <button data-ind="ema9">EMA9</button>
-  <button data-ind="ema21">EMA21</button>
-  <button data-ind="rsi">RSI</button>
-  <div class="sep"></div>
-  <button id="btnBet">💰 Bet Tracker</button>
-  <button id="btnLoad">⬇️ Load History</button>
-  <button id="btnFit">📐 Fit</button>
-  <button id="btnGame">🎮 Toggle Game</button>
-  <button id="btnPanelSize">↔ Panel Size</button>
-  <button id="btnHide">👁 Hide Panel</button>
-  <button id="btnClear">🗑Clear</button>
-  <button id="btnReset">⚠️Reset</button>
+<button class="active" data-tool="pointer">☝Pointer</button><div class="sep"></div>
+<button data-tool="trendline">📏Trend</button>
+<button data-tool="hline">➖HLine</button>
+<button data-tool="rect">⬜Rect</button>
+<button data-tool="fib">📐Fib</button>
+<button data-tool="text">🔤Text</button><div class="sep"></div>
+<button data-ind="ema9">EMA9</button>
+<button data-ind="ema21">EMA21</button>
+<button data-ind="rsi">RSI</button><div class="sep"></div>
+<button id="btnBet">💰 Bet Tracker</button>
+<button id="btnLoad">⬇️ Load History</button>
+<button id="btnFit">📐 Fit</button>
+<button id="btnGame">🎮 Toggle Game</button>
+<button id="btnPanelSize">↔ Panel Size</button>
+<button id="btnHide">👁 Hide Panel</button>
+<button id="btnClear">🗑Clear</button>
+<button id="btnReset">⚠️Reset</button>
 </div>
 <div id="wrap">
 <canvas id="cMain"></canvas><canvas id="cOver"></canvas><canvas id="cDraw"></canvas>
@@ -2163,100 +1959,22 @@ setTimeout(function(){
     
     var frame = document.getElementById('gameFrame');
     if(frame) frame.src = 'about:blank';
-   <script id="trx-resize-fix">
-(function() {
-  var isResizing = false;
-
-  function resizeAllCanvas() {
-    if (isResizing) return;
-    isResizing = true;
-
-    try {
-      var wrap = document.getElementById('wrap');
-      if (!wrap) return;
-
-      var wrapW = wrap.clientWidth;
-      var wrapH = wrap.clientHeight;
-      if (wrapW < 10 || wrapH < 10) return;
-
-      var mainH = Math.floor(wrapH * 0.7);
-
-      var mainIds = ['cMain', 'cOver', 'cDraw', 'cCross', 'cAct'];
-      for (var i = 0; i < mainIds.length; i++) {
-        var c = document.getElementById(mainIds[i]);
-        if (c) {
-          var cW = c.clientWidth || wrapW;
-          var cH = c.clientHeight || mainH;
-          if (c.width !== cW) c.width = cW;
-          if (c.height !== cH) c.height = cH;
-        }
-      }
-
-      var rsiW = document.getElementById('rsiW');
-      var cRSI = document.getElementById('cRSI');
-      if (rsiW && cRSI) {
-        var rsiWidth = rsiW.clientWidth;
-        var rsiHeight = rsiW.clientHeight;
-        if (cRSI.width !== rsiWidth) cRSI.width = rsiWidth;
-        if (cRSI.height !== rsiHeight) cRSI.height = rsiHeight;
-      }
-
-      if (typeof window.drawChart === 'function') window.drawChart();
-      if (typeof window.redraw === 'function') window.redraw();
-      if (typeof window.render === 'function') window.render();
-      if (typeof window.draw === 'function') window.draw();
-      if (typeof window.update === 'function') window.update();
-      if (typeof window.fitChart === 'function') window.fitChart();
-
-      var fitBtn = document.getElementById('btnFit');
-      if (fitBtn) {
-        setTimeout(function() { fitBtn.click(); }, 80);
-      }
-
-    } finally {
-      isResizing = false;
-    }
-  }
-
-  function attachButtonListeners() {
-    var btnIds = ['btnHide', 'btnGame', 'btnBet', 'btnReset', 'btnLoad', 'btnFit', 'btnPanelSize'];
-    for (var i = 0; i < btnIds.length; i++) {
-      (function(id) {
-        var btn = document.getElementById(id);
-        if (btn && !btn._resizeAttached) {
-          btn._resizeAttached = true;
-          btn.addEventListener('click', function() {
-            setTimeout(resizeAllCanvas, 250);
-          });
-        }
-      })(btnIds[i]);
-    }
-  }
-
-  window.addEventListener('resize', function() {
-    setTimeout(resizeAllCanvas, 50);
-  });
-
-  window.addEventListener('orientationchange', function() {
-    setTimeout(resizeAllCanvas, 300);
-  });
-
-  window.addEventListener('load', function() {
-    attachButtonListeners();
-    setTimeout(resizeAllCanvas, 100);
-    setTimeout(resizeAllCanvas, 500);
-    setTimeout(resizeAllCanvas, 1500);
-  });
-
-  if (document.readyState !== 'loading') {
-    attachButtonListeners();
+    
+    triggerResize();
+    setTimeout(triggerResize, 200);
+    setTimeout(triggerResize, 600);
+    setTimeout(triggerResize, 1500);
+    setTimeout(triggerResize, 3000);
+  };
+  
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setup);
   } else {
-    document.addEventListener('DOMContentLoaded', attachButtonListeners);
+    setup();
   }
-
-  setTimeout(resizeAllCanvas, 300);
-  setTimeout(resizeAllCanvas, 1000);
-  setTimeout(resizeAllCanvas, 3000);
+  
+  setTimeout(setup, 500);
+  setTimeout(setup, 1500);
 })();
 </script>
 </body>
