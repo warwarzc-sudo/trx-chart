@@ -2104,5 +2104,65 @@ setTimeout(function(){
   setTimeout(setup, 1500);
 })();
 </script>
+<script id="trx-resize-fix">
+(function() {
+  function resizeAllCanvas() {
+    var wrap = document.getElementById('wrap');
+    if (!wrap) return;
+    
+    var w = wrap.clientWidth;
+    var h = wrap.clientHeight;
+    
+    var ids = ['cMain', 'cOver', 'cDraw', 'cCross', 'cAct'];
+    for (var i = 0; i < ids.length; i++) {
+      var c = document.getElementById(ids[i]);
+      if (c) {
+        c.width = w;
+        c.height = h;
+        c.style.width = w + 'px';
+        c.style.height = h + 'px';
+      }
+    }
+    
+    var rsiW = document.getElementById('rsiW');
+    var cRSI = document.getElementById('cRSI');
+    if (rsiW && cRSI) {
+      cRSI.width = rsiW.clientWidth;
+      cRSI.height = rsiW.clientHeight;
+      cRSI.style.width = rsiW.clientWidth + 'px';
+      cRSI.style.height = rsiW.clientHeight + 'px';
+    }
+    
+    window.dispatchEvent(new Event('resize'));
+    
+    if (typeof window.drawChart === 'function') window.drawChart();
+    if (typeof window.redraw === 'function') window.redraw();
+    if (typeof window.render === 'function') window.render();
+  }
+  
+  window.addEventListener('load', function() {
+    setTimeout(resizeAllCanvas, 100);
+    setTimeout(resizeAllCanvas, 500);
+  });
+  
+  window.addEventListener('resize', resizeAllCanvas);
+  
+  window.addEventListener('orientationchange', function() {
+    setTimeout(resizeAllCanvas, 300);
+  });
+  
+  var btnIds = ['btnHide', 'btnGame', 'btnFit', 'btnBet', 'btnReset'];
+  for (var i = 0; i < btnIds.length; i++) {
+    var btn = document.getElementById(btnIds[i]);
+    if (btn) {
+      btn.addEventListener('click', function() {
+        setTimeout(resizeAllCanvas, 150);
+      });
+    }
+  }
+  
+  setTimeout(resizeAllCanvas, 200);
+})();
+</script>
 </body>
 </html>
