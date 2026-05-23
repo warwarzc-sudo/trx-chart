@@ -57,7 +57,6 @@
   width: calc(100% - 400px) !important;
 }
 </style>
-
 <style id="trx-tablet-layout">
 /* ═══════════════════════════════════════════════════
    TABLET-FRIENDLY LAYOUT
@@ -131,6 +130,60 @@
   }
   #toolbar {
     top: 95px !important;
+  }
+}
+</style>
+<style id="trx-wrap-height-fix">
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+#wrap {
+  position: absolute !important;
+  top: 50px !important;
+  left: 75px !important;
+  right: 400px !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+#cMain, #cOver, #cDraw, #cCross, #cAct {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#rsiW {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 25% !important;
+  width: auto !important;
+}
+
+#cRSI {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body.panel-hidden #wrap {
+  right: 0 !important;
+}
+
+@media (max-width: 700px) {
+  #wrap {
+    top: 95px !important;
+    left: 0 !important;
+    right: 0 !important;
   }
 }
 </style>
