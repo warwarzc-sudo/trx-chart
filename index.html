@@ -2160,7 +2160,7 @@ setTimeout(function(){
     
     var frame = document.getElementById('gameFrame');
     if(frame) frame.src = 'about:blank';
-    <script id="trx-resize-fix">
+   <script id="trx-resize-fix">
 (function() {
   var isResizing = false;
 
@@ -2197,9 +2197,6 @@ setTimeout(function(){
         if (cRSI.width !== rsiWidth) cRSI.width = rsiWidth;
         if (cRSI.height !== rsiHeight) cRSI.height = rsiHeight;
       }
-
-      /* === NO dispatchEvent('resize') here === */
-      /* === That was causing infinite recursion === */
 
       if (typeof window.drawChart === 'function') window.drawChart();
       if (typeof window.redraw === 'function') window.redraw();
