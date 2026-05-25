@@ -2098,5 +2098,76 @@ setTimeout(function(){
     }
 })();
 </script>
+<script>
+(function() {
+    function fixBetAmounts() {
+        // 1. Fix Current Active Bet Panel Amount
+        const curBetEl = document.querySelector('.curBet');
+        if (curBetEl && curBetEl.innerText && !curBetEl.hasAttribute('data-fixed')) {
+            // Find numbers inside the current bet container
+            let text = curBetEl.innerHTML;
+            // Check if it has a number and hasn't been multiplied yet
+            if (/\d+/.test(text)) {
+                curBetEl.innerHTML = text.replace(/(\d+(\.\d+)?)/g, function(match) {
+                    let val = parseFloat(match);
+                    // Only multiply small amounts that look like they are missing zeros
+                    return (val < 10000 && val > 0) ? (val * 100) : match;
+                });
+                curBetEl.setAttribute('data-fixed', 'true');
+            }
+        }
+
+        // 2. Fix History List (#betHistory) Amount Display
+        const histItems = document.querySelectorAll('#betHistory div, #betHistory tr, #betHistory li');
+        histItems.forEach(item => {
+            if (item.innerText && !item.hasAttribute('data-fixed') && !item.querySelector('h4')) {
+                let html = item.innerHTML;
+                if (/\d+/.test(html)) {
+                    item.innerHTML = html.replace(/(\d+(\.\d+)?)/g, function(match) {
+                        let val = parseFloat(match);
+                        // Prevent multiplying Period numbers (which are usually huge like 2026...)
+                        return (val < 10000 && val > 0) ? (val * 100) : match;
+                    });
+                    item.setAttribute('data-fixed', 'true');
+                }
+            }
+        });
+
+        // 3. Fix Stats (#betStats) Total Profit/Loss Display
+        const statsItems = document.querySelectorAll('#betStats div, #betStats p, #betStats span');
+        statsItems.forEach(stat => {
+            if (stat.innerText && !stat.hasAttribute('data-fixed') && stat.children.length === 0) {
+                let text = stat.innerText;
+                let val = parseFloat(text.replace(/[^0-9.]/g, ''));
+                if (!isNaN(val) && val < 10000 && val > 0) {
+                    let sign = text.includes('-') ? '-' : (text.includes('+') ? '+' : '');
+                    stat.innerText = sign + (val * 100) + " MMK";
+                    stat.setAttribute('data-fixed', 'true');
+                }
+            }
+        });
+    }
+
+    // Run every 300ms to instantly fix newly added bets
+    setInterval(fixBetAmounts, 300);
+
+    // Reset fixed attributes when bet status changes to refresh numbers
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+                const target = mutation.target;
+                if (target.classList.contains('curBet')) {
+                    target.removeAttribute('data-fixed');
+                }
+            }
+        });
+    });
+    
+    const curBetNode = document.querySelector('.curBet');
+    if (curBetNode) {
+        observer.observe(curBetNode, { attributes: true });
+    }
+})();
+</script>      
 </body>
 </html>
