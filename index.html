@@ -616,10 +616,9 @@ function renderCurrentBet(todayBets){
   const choiceCls=cur.choice==='Big'?'big':'small';
   const choiceIcon=cur.choice==='Big'?'🟢':'🔴';
   let statusCls=cur.status,statusText=cur.status.toUpperCase();
-  if(cur.status==='pending')statusText='⏳ PENDING';
-  else if(cur.status==='win')statusText='✓ WIN +'+(cur.profit||cur.amount);
-  else statusText='✗ LOSS '+(cur.profit||-cur.amount);
-  
+ if(cur.status==='pending')statusText='⏳ PENDING';
+else if(cur.status==='win')statusText='✓ WIN +'+((cur.profit||cur.amount) * 100).toLocaleString();
+else statusText='✗ LOSS '+((cur.profit||-cur.amount) * 100).toLocaleString();
   el.className='curBet '+(cur.status==='pending'?'active':cur.status);
   el.innerHTML=
     '<div class="curPeriod">#'+cur.period.slice(-8)+'</div>'+
@@ -627,7 +626,6 @@ function renderCurrentBet(todayBets){
   '<div class="curAmount">'+(cur.amount * 100).toLocaleString()+' MMK</div>'+
     '<div class="curStatus '+statusCls+'">'+statusText+'</div>';
 }
-
 function renderProfitChart(todayBets){
   const cv=document.getElementById('profitChart');
   if(!cv)return;
