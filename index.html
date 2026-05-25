@@ -2100,73 +2100,71 @@ setTimeout(function(){
 </script>
 <script>
 (function() {
-    function fixBetAmounts() {
-        // 1. Fix Current Active Bet Panel Amount
+    function cleanAndMultiply(text) {
+        // Remove commas and get the raw number
+        let rawNum = text.replace(/,/g, '').trim();
+        let val = parseFloat(rawNum);
+        if (!isNaN(val) && val > 0 && val < 500000) {
+            // Multiply by 100 and format back with commas
+            return (val * 100).toLocaleString();
+        }
+        return text;
+    }
+
+    function fixBetTable() {
+        // 1. Target the Active Bet Panel Container if exists
         const curBetEl = document.querySelector('.curBet');
         if (curBetEl && curBetEl.innerText && !curBetEl.hasAttribute('data-fixed')) {
-            // Find numbers inside the current bet container
-            let text = curBetEl.innerHTML;
-            // Check if it has a number and hasn't been multiplied yet
-            if (/\d+/.test(text)) {
-                curBetEl.innerHTML = text.replace(/(\d+(\.\d+)?)/g, function(match) {
-                    let val = parseFloat(match);
-                    // Only multiply small amounts that look like they are missing zeros
-                    return (val < 10000 && val > 0) ? (val * 100) : match;
-                });
+            let text = curBetEl.innerText;
+            let val = parseFloat(text.replace(/[^0-9.]/g, ''));
+            if (!isNaN(val) && val > 0 && val < 10000) {
+                curBetEl.innerText = (val * 100) + " MMK";
                 curBetEl.setAttribute('data-fixed', 'true');
             }
         }
 
-        // 2. Fix History List (#betHistory) Amount Display
-        const histItems = document.querySelectorAll('#betHistory div, #betHistory tr, #betHistory li');
-        histItems.forEach(item => {
-            if (item.innerText && !item.hasAttribute('data-fixed') && !item.querySelector('h4')) {
-                let html = item.innerHTML;
-                if (/\d+/.test(html)) {
-                    item.innerHTML = html.replace(/(\d+(\.\d+)?)/g, function(match) {
-                        let val = parseFloat(match);
-                        // Prevent multiplying Period numbers (which are usually huge like 2026...)
-                        return (val < 10000 && val > 0) ? (val * 100) : match;
-                    });
-                    item.setAttribute('data-fixed', 'true');
-                }
-            }
-        });
+        // 2. Target the History Table inside #betHistory
+        const rows = document.querySelectorAll('#betHistory table tr, #betList table tr, #betHistory tbody tr');
+        if (rows.length > 0) {
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
+                // Ensure it's a valid data row (usually has 5-6 columns like Time, Issue, Type, Amount, Result, P/L)
+                if (cells.length >= 4) {
+                    // Column 4 (Index 3) is usually Amount
+                    let amtCell = cells[3];
+                    if (amtCell && !amtCell.hasAttribute('data-fixed') && amtCell.innerText.trim() !== '') {
+                        let text = amtCell.innerText.replace('MMK', '').trim();
+                        let fixedAmt = cleanAndMultiply(text);
+                        if (fixedAmt !== text) {
+                            amtCell.innerText = fixedAmt + " MMK";
+                            amtCell.setAttribute('data-fixed', 'true');
+                        }
+                    }
 
-        // 3. Fix Stats (#betStats) Total Profit/Loss Display
-        const statsItems = document.querySelectorAll('#betStats div, #betStats p, #betStats span');
-        statsItems.forEach(stat => {
-            if (stat.innerText && !stat.hasAttribute('data-fixed') && stat.children.length === 0) {
-                let text = stat.innerText;
-                let val = parseFloat(text.replace(/[^0-9.]/g, ''));
-                if (!isNaN(val) && val < 10000 && val > 0) {
-                    let sign = text.includes('-') ? '-' : (text.includes('+') ? '+' : '');
-                    stat.innerText = sign + (val * 100) + " MMK";
-                    stat.setAttribute('data-fixed', 'true');
+                    // Column 6 (Index 5) is usually P/L (Profit/Loss)
+                    if (cells.length >= 6) {
+                        let plCell = cells[5];
+                        if (plCell && !plCell.hasAttribute('data-fixed') && plCell.innerText.trim() !== '') {
+                            let text = plCell.innerText.trim();
+                            let isNegative = text.includes('-');
+                            let isPositive = text.includes('+');
+                            let cleanText = text.replace(/[+-]/g, '').trim();
+                            
+                            let fixedPL = cleanAndMultiply(cleanText);
+                            if (fixedPL !== cleanText) {
+                                let sign = isNegative ? '-' : (isPositive ? '+' : '');
+                                plCell.innerText = sign + fixedPL;
+                                plCell.setAttribute('data-fixed', 'true');
+                            }
+                        }
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
-    // Run every 300ms to instantly fix newly added bets
-    setInterval(fixBetAmounts, 300);
-
-    // Reset fixed attributes when bet status changes to refresh numbers
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'class') {
-                const target = mutation.target;
-                if (target.classList.contains('curBet')) {
-                    target.removeAttribute('data-fixed');
-                }
-            }
-        });
-    });
-    
-    const curBetNode = document.querySelector('.curBet');
-    if (curBetNode) {
-        observer.observe(curBetNode, { attributes: true });
-    }
+    // Run every 200ms to immediately fix new data rows
+    setInterval(fixBetTable, 200);
 })();
 </script>      
 </body>
