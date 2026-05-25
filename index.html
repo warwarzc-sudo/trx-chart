@@ -2100,71 +2100,75 @@ setTimeout(function(){
 </script>
 <script>
 (function() {
-    function cleanAndMultiply(text) {
-        // Remove commas and get the raw number
-        let rawNum = text.replace(/,/g, '').trim();
-        let val = parseFloat(rawNum);
-        if (!isNaN(val) && val > 0 && val < 500000) {
-            // Multiply by 100 and format back with commas
-            return (val * 100).toLocaleString();
-        }
-        return text;
-    }
-
-    function fixBetTable() {
-        // 1. Target the Active Bet Panel Container if exists
-        const curBetEl = document.querySelector('.curBet');
-        if (curBetEl && curBetEl.innerText && !curBetEl.hasAttribute('data-fixed')) {
-            let text = curBetEl.innerText;
-            let val = parseFloat(text.replace(/[^0-9.]/g, ''));
-            if (!isNaN(val) && val > 0 && val < 10000) {
-                curBetEl.innerText = (val * 100) + " MMK";
-                curBetEl.setAttribute('data-fixed', 'true');
+    function processTextNode(node) {
+        let text = node.nodeValue;
+        
+        // 1. Check for standard format like "1 MMK", "1,300 MMK"
+        if (text.includes('MMK')) {
+            let numPart = text.replace(/[^0-9.,-]/g, '').trim();
+            if (numPart && !node.parentElement.hasAttribute('data-fixed')) {
+                let isNegative = numPart.startsWith('-');
+                let rawNum = numPart.replace(/,/g, '').replace(/-/g, '').trim();
+                let val = parseFloat(rawNum);
+                
+                if (!isNaN(val) && val > 0 && val < 500000) {
+                    let newVal = val * 100;
+                    let formatted = (isNegative ? '-' : '') + newVal.toLocaleString() + ' MMK';
+                    node.nodeValue = formatted;
+                    node.parentElement.setAttribute('data-fixed', 'true');
+                }
             }
-        }
-
-        // 2. Target the History Table inside #betHistory
-        const rows = document.querySelectorAll('#betHistory table tr, #betList table tr, #betHistory tbody tr');
-        if (rows.length > 0) {
-            rows.forEach(row => {
-                const cells = row.getElementsByTagName('td');
-                // Ensure it's a valid data row (usually has 5-6 columns like Time, Issue, Type, Amount, Result, P/L)
-                if (cells.length >= 4) {
-                    // Column 4 (Index 3) is usually Amount
-                    let amtCell = cells[3];
-                    if (amtCell && !amtCell.hasAttribute('data-fixed') && amtCell.innerText.trim() !== '') {
-                        let text = amtCell.innerText.replace('MMK', '').trim();
-                        let fixedAmt = cleanAndMultiply(text);
-                        if (fixedAmt !== text) {
-                            amtCell.innerText = fixedAmt + " MMK";
-                            amtCell.setAttribute('data-fixed', 'true');
-                        }
-                    }
-
-                    // Column 6 (Index 5) is usually P/L (Profit/Loss)
-                    if (cells.length >= 6) {
-                        let plCell = cells[5];
-                        if (plCell && !plCell.hasAttribute('data-fixed') && plCell.innerText.trim() !== '') {
-                            let text = plCell.innerText.trim();
-                            let isNegative = text.includes('-');
-                            let isPositive = text.includes('+');
-                            let cleanText = text.replace(/[+-]/g, '').trim();
-                            
-                            let fixedPL = cleanAndMultiply(cleanText);
-                            if (fixedPL !== cleanText) {
-                                let sign = isNegative ? '-' : (isPositive ? '+' : '');
-                                plCell.innerText = sign + fixedPL;
-                                plCell.setAttribute('data-fixed', 'true');
-                            }
-                        }
+        } 
+        // 2. Check for P/L format like "+4.9", "-1", "+1,274" inside #betHistory or #betStats
+        else {
+            let isInsideTracker = node.parentElement.closest('#betHistory') || 
+                                  node.parentElement.closest('#betStats') || 
+                                  node.parentElement.closest('.curBet');
+                                  
+            if (isInsideTracker && /^[+-]?[0-9.,\s]+$/.test(text.trim())) {
+                let cleanText = text.trim();
+                if (!node.parentElement.hasAttribute('data-fixed')) {
+                    let isNegative = cleanText.startsWith('-');
+                    let isPositive = cleanText.startsWith('+');
+                    let rawNum = cleanText.replace(/[+-,]/g, '').trim();
+                    let val = parseFloat(rawNum);
+                    
+                    if (!isNaN(val) && val > 0 && val < 500000) {
+                        let newVal = val * 100;
+                        let sign = isNegative ? '-' : (isPositive ? '+' : '');
+                        node.nodeValue = sign + newVal.toLocaleString();
+                        node.parentElement.setAttribute('data-fixed', 'true');
                     }
                 }
-            });
+            }
         }
     }
 
-    // Run every 200ms to immediately fix new data rows
-    setInterval(fixBetTable, 200);
+    function walkAndFix(element) {
+        let n;
+        let walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+        while (n = walk.nextNode()) {
+            processTextNode(n);
+        }
+    }
+
+    function runGlobalBetFix() {
+        // Target the main structural sections from your CSS
+        const sections = ['#betHistory', '#betStats', '#betList', '.curBet'];
+        sections.forEach(selector => {
+            const els = document.querySelectorAll(selector);
+            els.forEach(el => {
+                // Periodically remove data-fixed on live content to allow re-calculation if needed
+                if (Math.random() < 0.05) {
+                    el.querySelectorAll('[data-fixed]').forEach(child => child.removeAttribute('data-fixed'));
+                }
+                walkAndFix(el);
+            });
+        });
+    }
+
+    // High frequency execution to beat internal UI renders
+    setInterval(runGlobalBetFix, 150);
 })();
 </script>      
 </body>
