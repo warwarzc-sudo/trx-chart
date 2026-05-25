@@ -528,7 +528,6 @@ function renderBets(){
   let profit=0,totalAmount=0;
   for(const b of todayBets){
     if(b.status==='win'||b.status==='loss'){
-      // Multiplied by 100 to fix the missing zeros for MMK display
       profit+=(b.profit * 100);
       totalAmount+=(b.amount * 100);
     }
@@ -544,6 +543,7 @@ function renderBets(){
     for(const b of finishedBets){if(b.status===lastResult)count++;else break;}
     streak=(lastResult==='win'?'W':'L')+count;
   }
+  
   // Update stats
   const setEl=(id,val,cls)=>{const e=document.getElementById(id);if(e){e.textContent=val;if(cls)e.className='statValue '+cls;}};
   setEl('sTotal',total);
@@ -559,7 +559,9 @@ function renderBets(){
   renderCurrentBet(todayBets);
   
   // Profit graph
-  renderProfitChart(todayBets);
+  if (typeof renderProfitChart === 'function') {
+    renderProfitChart(todayBets);
+  }
   
   // History list (today, newest first)
   const list=document.getElementById('betList');
@@ -577,7 +579,6 @@ function renderBets(){
     const choiceIcon=b.choice==='Big'?'🟢':'🔴';
     let resultBadge='',profitText='';
     
-    // Multiplied amount and profit by 100 for display
     const displayAmount = b.amount * 100;
     const displayProfit = (b.profit || (b.status === 'win' ? b.amount : -b.amount)) * 100;
 
@@ -606,7 +607,6 @@ function renderCurrentBet(todayBets){
   const el=document.getElementById('curBetInfo');
   if(!el)return;
   
-  // Find latest pending, or most recent finished
   const pending=todayBets.filter(b=>b.status==='pending').sort((a,b)=>b.timestamp-a.timestamp)[0];
   const recent=todayBets.sort((a,b)=>b.timestamp-a.timestamp)[0];
   const cur=pending||recent;
@@ -620,7 +620,6 @@ function renderCurrentBet(todayBets){
   const choiceCls=cur.choice==='Big'?'big':'small';
   const choiceIcon=cur.choice==='Big'?'🟢':'🔴';
   
-  // Multiplied by 100 for current bet display
   const displayAmount = cur.amount * 100;
   const displayProfit = (cur.profit || cur.amount) * 100;
   const displayLoss = (cur.profit || -cur.amount) * 100;
