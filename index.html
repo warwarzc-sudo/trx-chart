@@ -1779,9 +1779,9 @@ setTimeout(function(){
 }, 500);
 </script>
   <script>
-    <script>
+   <script>
 (function() {
-    function initSavedDataAndAutoLoad() {
+    async function initSavedDataAndAutoLoad() {
         if (typeof storeLoad === 'function' && typeof results !== 'undefined') {
             results = storeLoad();
             
@@ -1796,28 +1796,50 @@ setTimeout(function(){
             }
             
             setTimeout(async function() {
-                console.log("Background auto-fetching latest data...");
-                
-                if (typeof loadHistoryData === 'function') {
-                    await loadHistoryData();
-                } else if (typeof fetchHistory === 'function') {
-                    await fetchHistory();
-                } else if (typeof btnLoad !== 'undefined' && document.getElementById('btnLoad')) {
-                    document.getElementById('btnLoad').click();
+                if (typeof loadBulkHistory === 'function' && results.length > 0) {
+                    try {
+                        const lastCandle = results[results.length - 1];
+                        let lastTime = lastCandle.timestamp;
+                        
+                        if (lastTime < 1e12) lastTime = lastTime * 1000;
+                        
+                        const currentTime = Date.now();
+                        const timeDiffMs = currentTime - lastTime;
+                        
+                        let hoursNeeded = Math.ceil(timeDiffMs / (1000 * 60 * 60));
+                        
+                        if (hoursNeeded <= 0 || isNaN(hoursNeeded)) hoursNeeded = 1;
+                        if (hoursNeeded > 24) hoursNeeded = 24;
+                        
+                        console.log("Chart was offline. Missing time gap calculated: " + hoursNeeded + " hour(s).");
+                        console.log("Background auto-fetching the last " + hoursNeeded + " hour(s) of data...");
+                        
+                        await loadBulkHistory(hoursNeeded);
+                        
+                        if (typeof storeSave === 'function') {
+                            storeSave();
+                        }
+                    } catch (e) {
+                        console.error("Dynamic background auto-load failed:", e);
+                    }
+                } else if (typeof loadBulkHistory === 'function' && results.length === 0) {
+                    try {
+                        await loadBulkHistory(3);
+                    } catch(e) {}
                 }
-            }, 1000);
+            }, 1200);
         }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSavedDataAndAutoLoad);
-    } else {
+    if (document.documentElement.classList.contains('app-mode') || document.readyState !== 'loading') {
         initSavedDataAndAutoLoad();
+    } else {
+        document.addEventListener('DOMContentLoaded', initSavedDataAndAutoLoad);
     }
     
-    setTimeout(initSavedDataAndAutoLoad, 800);
-    setTimeout(initSavedDataAndAutoLoad, 1800);
+    setTimeout(initSavedDataAndAutoLoad, 600);
 })();
+</script>
 </script>
 (function(){
   var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
