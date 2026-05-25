@@ -590,7 +590,7 @@ function renderBets(){
     html+='<div class="histRow">'+
       '<span class="time">'+ts+'</span>'+
       '<span class="choice '+choiceCls+'">'+choiceIcon+b.choice.charAt(0)+'</span>'+
-      '<span class="amount">'+b.amount.toLocaleString()+'</span>'+
+    '<span class="amount">'+(b.amount * 100).toLocaleString()+' MMK</span>'+
       resultBadge+
       profitText+
     '</div>';
