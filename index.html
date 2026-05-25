@@ -514,7 +514,6 @@ function resetBets(){
   renderBets();
   D('🗑️ All bets cleared');
 }
-
 function renderBets(){
   // Today's bets only
   const todayStart=new Date();todayStart.setHours(0,0,0,0);
@@ -529,8 +528,9 @@ function renderBets(){
   let profit=0,totalAmount=0;
   for(const b of todayBets){
     if(b.status==='win'||b.status==='loss'){
-      profit+=b.profit;
-      totalAmount+=b.amount;
+      // Multiplied by 100 to fix the missing zeros for MMK display
+      profit+=(b.profit * 100);
+      totalAmount+=(b.amount * 100);
     }
   }
   const roi=totalAmount>0?(profit/totalAmount*100).toFixed(1):'0.0';
@@ -544,7 +544,6 @@ function renderBets(){
     for(const b of finishedBets){if(b.status===lastResult)count++;else break;}
     streak=(lastResult==='win'?'W':'L')+count;
   }
-  
   // Update stats
   const setEl=(id,val,cls)=>{const e=document.getElementById(id);if(e){e.textContent=val;if(cls)e.className='statValue '+cls;}};
   setEl('sTotal',total);
@@ -577,20 +576,25 @@ function renderBets(){
     const choiceCls=b.choice==='Big'?'big':'small';
     const choiceIcon=b.choice==='Big'?'🟢':'🔴';
     let resultBadge='',profitText='';
+    
+    // Multiplied amount and profit by 100 for display
+    const displayAmount = b.amount * 100;
+    const displayProfit = (b.profit || (b.status === 'win' ? b.amount : -b.amount)) * 100;
+
     if(b.status==='pending'){
       resultBadge='<span class="result pending">⏳</span>';
       profitText='<span class="profit" style="color:#ffab00">--</span>';
     }else if(b.status==='win'){
       resultBadge='<span class="result win">W</span>';
-      profitText='<span class="profit win">+'+(b.profit||b.amount).toLocaleString()+'</span>';
+      profitText='<span class="profit win">+' + displayProfit.toLocaleString() + '</span>';
     }else{
       resultBadge='<span class="result loss">L</span>';
-      profitText='<span class="profit loss">'+(b.profit||-b.amount).toLocaleString()+'</span>';
+      profitText='<span class="profit loss">' + displayProfit.toLocaleString() + '</span>';
     }
     html+='<div class="histRow">'+
       '<span class="time">'+ts+'</span>'+
       '<span class="choice '+choiceCls+'">'+choiceIcon+b.choice.charAt(0)+'</span>'+
-      '<span class="amount">'+b.amount.toLocaleString()+'</span>'+
+      '<span class="amount">'+displayAmount.toLocaleString()+' MMK</span>'+
       resultBadge+
       profitText+
     '</div>';
@@ -615,24 +619,24 @@ function renderCurrentBet(todayBets){
   
   const choiceCls=cur.choice==='Big'?'big':'small';
   const choiceIcon=cur.choice==='Big'?'🟢':'🔴';
+  
+  // Multiplied by 100 for current bet display
+  const displayAmount = cur.amount * 100;
+  const displayProfit = (cur.profit || cur.amount) * 100;
+  const displayLoss = (cur.profit || -cur.amount) * 100;
+
   let statusCls=cur.status,statusText=cur.status.toUpperCase();
   if(cur.status==='pending')statusText='⏳ PENDING';
-  else if(cur.status==='win')statusText='✓ WIN +'+(cur.profit||cur.amount);
-  else statusText='✗ LOSS '+(cur.profit||-cur.amount);
+  else if(cur.status==='win')statusText='✓ WIN +'+displayProfit.toLocaleString();
+  else statusText='✗ LOSS '+displayLoss.toLocaleString();
   
   el.className='curBet '+(cur.status==='pending'?'active':cur.status);
   el.innerHTML=
     '<div class="curPeriod">#'+cur.period.slice(-8)+'</div>'+
     '<div class="curChoice '+choiceCls+'">'+choiceIcon+' '+cur.choice.toUpperCase()+'</div>'+
-    '<div class="curAmount">K'+cur.amount.toLocaleString()+'</div>'+
+    '<div class="curAmount">'+displayAmount.toLocaleString()+' MMK</div>'+
     '<div class="curStatus '+statusCls+'">'+statusText+'</div>';
 }
-
-function renderProfitChart(todayBets){
-  const cv=document.getElementById('profitChart');
-  if(!cv)return;
-  const finished=todayBets.filter(b=>b.status==='win'||b.status==='loss').sort((a,b)=>a.timestamp-b.timestamp);
-  
   // Setup canvas
   const dpr=window.devicePixelRatio||1;
   const rect=cv.getBoundingClientRect();
