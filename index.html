@@ -585,7 +585,7 @@ function renderBets(){
      profitText='<span class="profit win">+'+((b.profit||b.amount) * 100).toLocaleString()+'</span>';
     }else{
       resultBadge='<span class="result loss">L</span>';
-      profitText='<span class="profit loss">'+(b.profit||-b.amount).toLocaleString()+'</span>';
+     profitText='<span class="profit loss">'+((b.profit||-b.amount) * 100).toLocaleString()+'</span>';
     }
     html+='<div class="histRow">'+
       '<span class="time">'+ts+'</span>'+
