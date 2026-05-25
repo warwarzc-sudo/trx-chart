@@ -582,7 +582,7 @@ function renderBets(){
       profitText='<span class="profit" style="color:#ffab00">--</span>';
     }else if(b.status==='win'){
       resultBadge='<span class="result win">W</span>';
-      profitText='<span class="profit win">+'+(b.profit||b.amount).toLocaleString()+'</span>';
+     profitText='<span class="profit win">+'+((b.profit||b.amount) * 100).toLocaleString()+'</span>';
     }else{
       resultBadge='<span class="result loss">L</span>';
       profitText='<span class="profit loss">'+(b.profit||-b.amount).toLocaleString()+'</span>';
