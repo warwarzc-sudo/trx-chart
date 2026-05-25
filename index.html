@@ -1779,6 +1779,46 @@ setTimeout(function(){
 }, 500);
 </script>
   <script>
+    <script>
+(function() {
+    function initSavedDataAndAutoLoad() {
+        if (typeof storeLoad === 'function' && typeof results !== 'undefined') {
+            results = storeLoad();
+            
+            if (results.length > 0) {
+                console.log("Found " + results.length + " saved candles. Displaying immediately...");
+                if (typeof lastPeriod !== 'undefined' && results[results.length - 1]) {
+                    lastPeriod = results[results.length - 1].period;
+                }
+                if (typeof makeCandles === 'function') makeCandles();
+                if (typeof render === 'function') render();
+                if (typeof draw === 'function') draw();
+            }
+            
+            setTimeout(async function() {
+                console.log("Background auto-fetching latest data...");
+                
+                if (typeof loadHistoryData === 'function') {
+                    await loadHistoryData();
+                } else if (typeof fetchHistory === 'function') {
+                    await fetchHistory();
+                } else if (typeof btnLoad !== 'undefined' && document.getElementById('btnLoad')) {
+                    document.getElementById('btnLoad').click();
+                }
+            }, 1000);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSavedDataAndAutoLoad);
+    } else {
+        initSavedDataAndAutoLoad();
+    }
+    
+    setTimeout(initSavedDataAndAutoLoad, 800);
+    setTimeout(initSavedDataAndAutoLoad, 1800);
+})();
+</script>
 (function(){
   var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
   if(!isApp) return;
