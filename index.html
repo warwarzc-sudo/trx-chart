@@ -527,12 +527,12 @@ function renderBets(){
   const rate=finished>0?Math.round(wins/finished*100):0;
   
   let profit=0,totalAmount=0;
-  for(const b of todayBets){
-    if(b.status==='win'||b.status==='loss'){
-      profit+=b.profit;
-      totalAmount+=b.amount;
-    }
+ for(const b of todayBets){
+  if(b.status==='win'||b.status==='loss'){
+    profit+=(b.profit * 100);
+    totalAmount+=(b.amount * 100);
   }
+}
   const roi=totalAmount>0?(profit/totalAmount*100).toFixed(1):'0.0';
   
   // Streak
