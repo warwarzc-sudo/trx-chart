@@ -558,11 +558,6 @@ function renderBets(){
   // Current bet (latest pending or most recent today)
   renderCurrentBet(todayBets);
   
-  // Profit graph
-  if (typeof renderProfitChart === 'function') {
-    renderProfitChart(todayBets);
-  }
-  
   // History list (today, newest first)
   const list=document.getElementById('betList');
   if(!list)return;
