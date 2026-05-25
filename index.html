@@ -506,6 +506,7 @@ function deleteBet(id){
   betsSave();
   renderBets();
 }
+
 function resetBets(){
   if(!confirm('Clear ALL bet history?\nThis cannot be undone.'))return;
   bets=[];
@@ -528,8 +529,8 @@ function renderBets(){
   let profit=0,totalAmount=0;
   for(const b of todayBets){
     if(b.status==='win'||b.status==='loss'){
-      profit+=(b.profit * 100);
-      totalAmount+=(b.amount * 100);
+      profit+=b.profit;
+      totalAmount+=b.amount;
     }
   }
   const roi=totalAmount>0?(profit/totalAmount*100).toFixed(1):'0.0';
@@ -558,6 +559,9 @@ function renderBets(){
   // Current bet (latest pending or most recent today)
   renderCurrentBet(todayBets);
   
+  // Profit graph
+  renderProfitChart(todayBets);
+  
   // History list (today, newest first)
   const list=document.getElementById('betList');
   if(!list)return;
@@ -573,24 +577,20 @@ function renderBets(){
     const choiceCls=b.choice==='Big'?'big':'small';
     const choiceIcon=b.choice==='Big'?'🟢':'🔴';
     let resultBadge='',profitText='';
-    
-    const displayAmount = b.amount * 100;
-    const displayProfit = (b.profit || (b.status === 'win' ? b.amount : -b.amount)) * 100;
-
     if(b.status==='pending'){
       resultBadge='<span class="result pending">⏳</span>';
       profitText='<span class="profit" style="color:#ffab00">--</span>';
     }else if(b.status==='win'){
       resultBadge='<span class="result win">W</span>';
-      profitText='<span class="profit win">+' + displayProfit.toLocaleString() + '</span>';
+      profitText='<span class="profit win">+'+(b.profit||b.amount).toLocaleString()+'</span>';
     }else{
       resultBadge='<span class="result loss">L</span>';
-      profitText='<span class="profit loss">' + displayProfit.toLocaleString() + '</span>';
+      profitText='<span class="profit loss">'+(b.profit||-b.amount).toLocaleString()+'</span>';
     }
     html+='<div class="histRow">'+
       '<span class="time">'+ts+'</span>'+
       '<span class="choice '+choiceCls+'">'+choiceIcon+b.choice.charAt(0)+'</span>'+
-      '<span class="amount">'+displayAmount.toLocaleString()+' MMK</span>'+
+      '<span class="amount">'+b.amount.toLocaleString()+'</span>'+
       resultBadge+
       profitText+
     '</div>';
@@ -602,6 +602,7 @@ function renderCurrentBet(todayBets){
   const el=document.getElementById('curBetInfo');
   if(!el)return;
   
+  // Find latest pending, or most recent finished
   const pending=todayBets.filter(b=>b.status==='pending').sort((a,b)=>b.timestamp-a.timestamp)[0];
   const recent=todayBets.sort((a,b)=>b.timestamp-a.timestamp)[0];
   const cur=pending||recent;
@@ -614,23 +615,24 @@ function renderCurrentBet(todayBets){
   
   const choiceCls=cur.choice==='Big'?'big':'small';
   const choiceIcon=cur.choice==='Big'?'🟢':'🔴';
-  
-  const displayAmount = cur.amount * 100;
-  const displayProfit = (cur.profit || cur.amount) * 100;
-  const displayLoss = (cur.profit || -cur.amount) * 100;
-
   let statusCls=cur.status,statusText=cur.status.toUpperCase();
   if(cur.status==='pending')statusText='⏳ PENDING';
-  else if(cur.status==='win')statusText='✓ WIN +'+displayProfit.toLocaleString();
-  else statusText='✗ LOSS '+displayLoss.toLocaleString();
+  else if(cur.status==='win')statusText='✓ WIN +'+(cur.profit||cur.amount);
+  else statusText='✗ LOSS '+(cur.profit||-cur.amount);
   
   el.className='curBet '+(cur.status==='pending'?'active':cur.status);
   el.innerHTML=
     '<div class="curPeriod">#'+cur.period.slice(-8)+'</div>'+
     '<div class="curChoice '+choiceCls+'">'+choiceIcon+' '+cur.choice.toUpperCase()+'</div>'+
-    '<div class="curAmount">'+displayAmount.toLocaleString()+' MMK</div>'+
+    '<div class="curAmount">K'+cur.amount.toLocaleString()+'</div>'+
     '<div class="curStatus '+statusCls+'">'+statusText+'</div>';
 }
+
+function renderProfitChart(todayBets){
+  const cv=document.getElementById('profitChart');
+  if(!cv)return;
+  const finished=todayBets.filter(b=>b.status==='win'||b.status==='loss').sort((a,b)=>a.timestamp-b.timestamp);
+  
   // Setup canvas
   const dpr=window.devicePixelRatio||1;
   const rect=cv.getBoundingClientRect();
@@ -2096,78 +2098,5 @@ setTimeout(function(){
     }
 })();
 </script>
-<script>
-(function() {
-    function processTextNode(node) {
-        let text = node.nodeValue;
-        
-        // 1. Check for standard format like "1 MMK", "1,300 MMK"
-        if (text.includes('MMK')) {
-            let numPart = text.replace(/[^0-9.,-]/g, '').trim();
-            if (numPart && !node.parentElement.hasAttribute('data-fixed')) {
-                let isNegative = numPart.startsWith('-');
-                let rawNum = numPart.replace(/,/g, '').replace(/-/g, '').trim();
-                let val = parseFloat(rawNum);
-                
-                if (!isNaN(val) && val > 0 && val < 500000) {
-                    let newVal = val * 100;
-                    let formatted = (isNegative ? '-' : '') + newVal.toLocaleString() + ' MMK';
-                    node.nodeValue = formatted;
-                    node.parentElement.setAttribute('data-fixed', 'true');
-                }
-            }
-        } 
-        // 2. Check for P/L format like "+4.9", "-1", "+1,274" inside #betHistory or #betStats
-        else {
-            let isInsideTracker = node.parentElement.closest('#betHistory') || 
-                                  node.parentElement.closest('#betStats') || 
-                                  node.parentElement.closest('.curBet');
-                                  
-            if (isInsideTracker && /^[+-]?[0-9.,\s]+$/.test(text.trim())) {
-                let cleanText = text.trim();
-                if (!node.parentElement.hasAttribute('data-fixed')) {
-                    let isNegative = cleanText.startsWith('-');
-                    let isPositive = cleanText.startsWith('+');
-                    let rawNum = cleanText.replace(/[+-,]/g, '').trim();
-                    let val = parseFloat(rawNum);
-                    
-                    if (!isNaN(val) && val > 0 && val < 500000) {
-                        let newVal = val * 100;
-                        let sign = isNegative ? '-' : (isPositive ? '+' : '');
-                        node.nodeValue = sign + newVal.toLocaleString();
-                        node.parentElement.setAttribute('data-fixed', 'true');
-                    }
-                }
-            }
-        }
-    }
-
-    function walkAndFix(element) {
-        let n;
-        let walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-        while (n = walk.nextNode()) {
-            processTextNode(n);
-        }
-    }
-
-    function runGlobalBetFix() {
-        // Target the main structural sections from your CSS
-        const sections = ['#betHistory', '#betStats', '#betList', '.curBet'];
-        sections.forEach(selector => {
-            const els = document.querySelectorAll(selector);
-            els.forEach(el => {
-                // Periodically remove data-fixed on live content to allow re-calculation if needed
-                if (Math.random() < 0.05) {
-                    el.querySelectorAll('[data-fixed]').forEach(child => child.removeAttribute('data-fixed'));
-                }
-                walkAndFix(el);
-            });
-        });
-    }
-
-    // High frequency execution to beat internal UI renders
-    setInterval(runGlobalBetFix, 150);
-})();
-</script>      
 </body>
 </html>
