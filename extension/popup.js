@@ -66,16 +66,16 @@ function loadStats() {
     // Total bets count
     document.getElementById('totalBets').textContent = bets.length;
     
-    // Balance display
+    // Balance display (သုည ၂ လုံး တိုးထားသော အပိုင်း)
     let balanceText = '0';
     if (balance !== null && balance !== undefined) {
       if (typeof balance === 'object') {
         const amount = balance.amount || balance.balance || balance.money || 0;
-        balanceText = parseFloat(amount).toFixed(0);
+        balanceText = (parseFloat(amount) * 100).toFixed(0); 
       } else {
-        balanceText = parseFloat(balance).toFixed(0);
+        balanceText = (parseFloat(balance) * 100).toFixed(0);
       }
     }
-    document.getElementById('balance').textContent = balanceText;
+    document.getElementById('balance').textContent = balanceText + ' MMK';
   });
 }
