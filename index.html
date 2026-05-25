@@ -624,7 +624,7 @@ function renderCurrentBet(todayBets){
   el.innerHTML=
     '<div class="curPeriod">#'+cur.period.slice(-8)+'</div>'+
     '<div class="curChoice '+choiceCls+'">'+choiceIcon+' '+cur.choice.toUpperCase()+'</div>'+
-    '<div class="curAmount">K'+cur.amount.toLocaleString()+'</div>'+
+  '<div class="curAmount">'+(cur.amount * 100).toLocaleString()+' MMK</div>'+
     '<div class="curStatus '+statusCls+'">'+statusText+'</div>';
 }
 
