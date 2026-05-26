@@ -1780,46 +1780,37 @@ setTimeout(function(){
    <script>
 (function() {
     const style = document.createElement('style');
-    style.id = 'trx-master-fix';
+    style.id = 'trx-final-fix';
     style.textContent = `
-        body, #app { 
-            height: 100vh !important; 
-            overflow: hidden !important; 
-            margin: 0 !important; 
+        #toolbar {
+            position: fixed !important;
+            right: 0px !important;
+            left: auto !important;
+            top: 10px !important;
+            display: flex !important;
+            flex-direction: row-reverse !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            background: transparent !important;
+            z-index: 999999 !important;
+            padding: 0 10px !important;
+            width: auto !important;
         }
-        #chart-container { 
-            height: 100vh !important; 
-            margin: 0 !important; 
-            padding: 0 !important; 
-        }
-        #chart { 
-            height: 100% !important; 
-        }
-        body > div:empty, body > iframe { 
-            display: none !important; 
+
+        #toolbar button {
+            margin: 0 4px !important;
+            height: 34px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
     `;
+    
+    const oldStyle = document.getElementById('trx-final-fix');
+    if (oldStyle) oldStyle.remove();
     document.head.appendChild(style);
 
-    async function initData() {
-        if (typeof storeLoad === 'function') {
-            try {
-                results = storeLoad();
-                if (typeof makeCandles === 'function') makeCandles();
-                if (typeof render === 'function') render();
-                if (typeof draw === 'function') draw();
-                if (typeof loadBulkHistory === 'function') await loadBulkHistory(3);
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    }
-
-    if (document.readyState === 'complete') {
-        initData();
-    } else {
-        window.addEventListener('load', initData);
-    }
+    window.dispatchEvent(new Event('resize'));
 })();
 </script>
 </script>
