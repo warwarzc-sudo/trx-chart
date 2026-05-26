@@ -71,19 +71,65 @@ html.app-mode #betPanel {
 /* ==========================================================================
    HEADER TOOLBAR BUTTONS (Increased Height & Font Size)
    ========================================================================== */
+/* ==========================================================================
+   HEADER & TOP TOOLBAR STRUCTURE
+   ========================================================================== */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #12122a;
+  border-bottom: 1px solid #2a2a4a;
+  height: 54px;                 /* Expanded height slightly to give logo room */
+  z-index: 100;
+  position: relative;
+}
+
+#header .left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#header .title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #00e5ff;
+  white-space: nowrap;
+}
+
+#cbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a1a3a;
+  border: 1px solid #00e5ff;
+  border-radius: 6px;
+  padding: 4px 12px;
+}
+
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Header Buttons Configuration */
 #toolbar button {
   background: #1a1a3a;
   color: #ccc;
   border: 1px solid #333;
   border-radius: 6px;
   padding: 0 14px;
-  height: 36px;                 /* Increased height for header buttons */
-  font-size: 13px;              /* Slightly larger font to match height */
+  height: 38px;                 /* Set clear height for top buttons */
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 #toolbar button:hover {
@@ -98,96 +144,69 @@ html.app-mode #betPanel {
   font-weight: 700;
 }
 
-#toolbar .sep {
-  width: 1px;
-  height: 24px;
-  background: #333;
-  margin: 0 6px;
-}
-
 /* ==========================================================================
-   VERTICAL TOOLBAR BUTTONS (Taller Height & Better Spacing)
+   VERTICAL SIDEBAR TOOLBAR (Left Side independent panel)
    ========================================================================== */
-#btnBet, 
-#btnLoad, 
-#btnFit, 
-#btnGame, 
-#btnHide, 
-#btnPanelSize, 
-#btnClear, 
-#btnReset {
-  height: 46px !important;       /* Made vertical buttons significantly taller */
-  margin-bottom: 8px !important; /* Added gap between each button so they don't stick */
-  padding: 0 16px !important;    /* Proportional inner padding */
-  font-size: 13px !important;    /* Clearer text size */
-  border-radius: 6px !important; /* Smooth corners */
-}
-
-#btnLoad {
-  background: #1a3a1a !important;
-  color: #0f0 !important;
-  border-color: #0f0 !important;
-}
-
-#btnLoad:hover {
-  background: #2a5a2a !important;
-}
-
-#btnLoad.loading {
-  background: #3a3a1a !important;
-  color: #ff0 !important;
-  border-color: #ff0 !important;
-  cursor: wait;
-}
-
-#btnReset {
-  background: #3a1a3a !important; /* Updated background tone */
-  color: #f55 !important;
-  border-color: #f55 !important;
-}
-
-#btnFit {
-  background: #1a2a3a !important;
-  color: #0bf !important;
-  border-color: #0bf !important;
-}
-
-#btnGame {
-  background: #3a1a3a !important;
-  color: #f0f !important;
-  border-color: #f0f !important;
-  font-weight: 700 !important;
-}
-
-#btnGame.active {
-  background: #f0f !important;
-  color: #000 !important;
-}
-
-#btnHide {
-  background: #1a1a3a !important;
-  color: #888 !important;
-}
-
-#btnPanelSize {
-  background: #1a2a3a !important;
-  color: #0bf !important;
-  border-color: #0bf !important;
-}
-
-#btnBet {
-  background: #3a3a1a !important;
-  color: #ff0 !important;
-  border-color: #ff0 !important;
-  font-weight: 700 !important;
-}
-
-#btnBet.active {
-  background: #ff0 !important;
-  color: #000 !important;
-}
-
 #wrap {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 54px);   /* Dynamic viewport sizing */
+  overflow: hidden;
+}
+
+#sidebar-tools {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 75px;                  /* Fixed width container for left buttons */
+  height: 100%;
+  background: rgba(14, 14, 36, 0.85);
+  border-right: 1px solid #222248;
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;       /* Stack buttons top to bottom */
+  gap: 10px;                    /* Distinct gaps between each vertical button */
+  z-index: 50;                  /* Layered over canvas but behind utility overlays */
+}
+
+/* Vertical Sidebar Buttons Configuration */
+#sidebar-tools button {
+  width: 100%;
+  height: 48px !important;       /* Comfortable taller height */
+  font-size: 11px !important;    /* Concise font size to display well inside layout */
+  border-radius: 6px !important;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #333;
+  padding: 2px !important;
+}
+
+/* Individual Sidebar Button Theme Specifications */
+#btnLoad { background: #1a3a1a !important; color: #0f0 !important; border-color: #0f0 !important; }
+#btnLoad:hover { background: #2a5a2a !important; }
+#btnLoad.loading { background: #3a3a1a !important; color: #ff0 !important; border-color: #ff0 !important; cursor: wait; }
+#btnReset { background: #3a1a1a !important; color: #f55 !important; border-color: #f55 !important; }
+#btnFit { background: #1a2a3a !important; color: #0bf !important; border-color: #0bf !important; }
+#btnGame { background: #3a1a3a !important; color: #f0f !important; border-color: #f0f !important; }
+#btnGame.active { background: #f0f !important; color: #000 !important; }
+#btnHide { background: #1a1a3a !important; color: #888 !important; }
+#btnPanelSize { background: #1a2a3a !important; color: #0bf !important; border-color: #0bf !important; }
+#btnBet { background: #3a3a1a !important; color: #ff0 !important; border-color: #ff0 !important; }
+#btnBet.active { background: #ff0 !important; color: #000 !important; }
+#btnClear { background: #222244 !important; color: #eee !important; border-color: #444 !important; }
+
+/* Adjust canvas placement to account for left sidebar spacing */
+canvas {
+  position: absolute;
+  top: 0;
+  left: 75px;                   /* Offset exact width of sidebar container */
+  width: calc(100% - 75px);
+} {
   position: relative;
   width: 100%;
   overflow: hidden;
