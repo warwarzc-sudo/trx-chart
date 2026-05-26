@@ -235,31 +235,64 @@ canvas { position: absolute; top: 0; left: 0; }
 </div>
 </div>
 <div id="toolbar">
-<button class="active" data-tool="pointer">☝Pointer</button><div class="sep"></div>
-<button data-tool="trendline">📏Trend</button>
-<button data-tool="hline">➖HLine</button>
-<button data-tool="rect">⬜Rect</button>
-<button data-tool="fib">📐Fib</button>
-<button data-tool="text">🔤Text</button><div class="sep"></div>
-<button data-ind="ema9">EMA9</button>
-<button data-ind="ema21">EMA21</button>
-<button data-ind="rsi">RSI</button><div class="sep"></div>
-<button id="btnBet">💰 Bet Tracker</button>
-<button id="btnLoad">⬇️ Load History</button>
-<button id="btnFit">📐 Fit</button>
-<button id="btnGame">🎮 Toggle Game</button>
-<button id="btnPanelSize">↔ Panel Size</button>
-<button id="btnHide">👁 Hide Panel</button>
-<button id="btnClear">🗑Clear</button>
-<button id="btnReset">⚠️Reset</button>
+    <button class="active" data-tool="pointer">☝Pointer</button><div class="sep"></div>
+    <button data-tool="trendline">📏Trend</button>
+    <button data-tool="hline">➖HLine</button>
+    <button data-tool="rect">⬜Rect</button>
+    <button data-tool="fib">📐Fib</button>
+    <button data-tool="text">🔤Text</button><div class="sep"></div>
+    <button data-ind="ema9">EMA9</button>
+    <button data-ind="ema21">EMA21</button>
+    <button data-ind="rsi">RSI</button><div class="sep"></div>
+    <button id="btnBet">💰 Bet Tracker</button>
+    <button id="btnLoad">⬇️ Load History</button>
+    <button id="btnFit">📐 Fit</button>
+    <button id="btnGame">🎮 Toggle Game</button>
+    <button id="btnPanelSize">↔ Panel Size</button>
+    <button id="btnHide">👁 Hide Panel</button>
+    <button id="btnClear">🗑Clear</button>
+    <button id="btnReset">⚠️Reset</button>
 </div>
-<div id="wrap">
-<canvas id="cMain"></canvas><canvas id="cOver"></canvas><canvas id="cDraw"></canvas>
-<canvas id="cCross"></canvas><canvas id="cAct"></canvas>
-<div id="rsiDrag"></div>
-<div id="rsiW"><canvas id="cRSI"></canvas></div>
-<div id="cmenu"><div id="cmDel">🗑 Delete</div><div id="cmCol">🎨 Color</div></div>
 
+<div class="main-container">
+
+    <div id="canvas-container">
+        <div id="wrap">
+            <canvas id="cMain"></canvas>
+            <canvas id="cOver"></canvas>
+            <canvas id="cDraw"></canvas>
+            <canvas id="cCross"></canvas>
+            <canvas id="cAct"></canvas>
+        </div>
+        <div id="rsiDrag"></div>
+        <div id="rsiW">
+            <canvas id="cRSI"></canvas>
+        </div>
+        <div id="cmenu">
+            <div id="cmDel">🗑 Delete</div>
+            <div id="cmCol">🎨 Color</div>
+        </div>
+    </div>
+
+    <div id="sideResize"></div>
+    <div id="sidePanel">
+        <div id="sideTabs">
+            </div>
+        <div id="histP">
+            </div>
+        <div id="gameP">
+            <iframe id="gameFrame"></iframe>
+        </div>
+    </div>
+
+</div> ```
+
+---
+
+### 📝 ဘာတွေ ပြောင်းလဲသွားလဲ?
+1. အစ်ကို့ရဲ့ `id="toolbar"` ခလုတ်တွေ အကုန်လုံး အကောင်းအတိုင်း အပေါ်မှာ ကျန်ခဲ့ပါတယ်။
+2. Chart ပြတဲ့ Canvas အဖွဲ့အစည်း တစ်ခုလုံးကို `<div id="canvas-container">` ဆိုပြီး ဘောင်တစ်ခု ခတ်ပေးလိုက်ပါတယ်။
+3. Canvas ရော၊ Game SidePanel ရောကို `<div class="main-container">` ဆိုတဲ့ ဘောင်ကြီးထဲမှာ အတူတူ ထည့်ပေးလိုက်တာဖြစ်လို့ Layout တွေ တစ်ခုနဲ့တစ်ခု ဘယ်တော့မှ ထပ်မသွားတော့ဘဲ Game UI လည်း ညာဘက်အပေါ်မှာ အပြည့် ကွက်တိ ပေါ်လာမှာ ဖြစ်ပါတယ်ဗျာ။
 <!-- BET TRACKER PANEL -->
 <div id="betPanel">
   <div id="betDrag"></div>
