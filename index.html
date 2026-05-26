@@ -1,202 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
 <style>
-/* ===== GLOBAL RESET & BASE ===== */
-*{
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-body {
-  background: #0a0a1a;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', sans-serif;
-  overflow: hidden;
-  touch-action: none;
-}
-
-/* ===== APP LAYOUT WRAPPER ===== */
 #wrap {
   position: relative !important;
-  width: 100vw !important;
-  height: 100vh !important;
   overflow: hidden !important;
+}
+#sidePanel {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+ 
+  height: 100% !important;
+  background: #0a0a1a !important;
+  border-left: 2px solid #333 !important;
+  z-index: 50 !important;
   display: flex !important;
   flex-direction: column !important;
-}
-
-/* ===== HEADER & TOOLBAR ===== */
-#header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  background: #12122a;
-  border-bottom: 1px solid #2a2a4a;
-  height: 48px;
-  width: 100% !important;
-  position: relative;
-  z-index: 110 !important;
-}
-#header .left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-#header .title { font-size: 15px; font-weight: 700; color: #00e5ff; }
-#cbox { display: flex; align-items: center; gap: 6px; background: #1a1a3a; border: 1px solid #00e5ff; border-radius: 6px; padding: 3px 10px; }
-#cnum { font-size: 20px; font-weight: 700; color: #ffab00; min-width: 28px; text-align: center; }
-#cres { font-size: 12px; font-weight: 600; max-width: 220px; white-space: nowrap; color: #888; }
-#pid { font-size: 10px; color: #aaa; margin-left: 4px; }
-
-#toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: #0e0e24;
-  border-bottom: 1px solid #222248;
-  flex-wrap: wrap;
-  width: 100% !important;
-  position: relative;
-  z-index: 109 !important;
-}
-#toolbar button { background: #1a1a3a; color: #ccc; border: 1px solid #333; border-radius: 4px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
-#toolbar button:hover { background: #2a2a5a; color: #fff; }
-#toolbar button.active { background: #00e5ff; color: #000; border-color: #00e5ff; font-weight: 700; }
-#toolbar .sep { width: 1px; height: 22px; background: #333; margin: 0 4px; }
-
-/* ===== BUTTON COLOR THEMES ===== */
-#btnLoad { background: #1a3a1a !important; color: #0f0 !important; border-color: #0f0 !important; }
-#btnLoad:hover { background: #2a5a2a !important; }
-#btnLoad.loading { background: #3a3a1a !important; color: #ff0 !important; border-color: #ff0 !important; cursor: wait; }
-#btnReset { background: #3a1a1a !important; color: #f55 !important; border-color: #f55 !important; }
-#btnFit { background: #1a2a3a !important; color: #0bf !important; border-color: #0bf !important; }
-#btnGame { background: #3a1a3a !important; color: #f0f !important; border-color: #f0f !important; font-weight: 700 !important; }
-#btnGame.active { background: #f0f !important; color: #000 !important; }
-#btnHide { background: #1a1a3a !important; color: #888 !important; }
-#btnPanelSize { background: #1a1a3a !important; color: #0bf !important; border-color: #0bf !important; }
-#btnBet { background: #3a3a1a !important; color: #ff0 !important; border-color: #ff0 !important; font-weight: 700 !important; }
-#btnBet.active { background: #ff0 !important; color: #000 !important; }
-
-/* ===== MAIN CONTENT AREA ===== */
-.main-container {
-  display: flex !important;
-  flex: 1 !important;
-  width: 100% !important;
-  position: relative !important;
   overflow: hidden !important;
 }
-
-/* ===== CANVAS CHART STYLES ===== */
-#canvas-container {
+#sidePanel #sideTabs {
+  flex-shrink: 0 !important;
+  width: 100% !important;
+}
+#sidePanel #histP,
+#sidePanel #gameP {
   flex: 1 !important;
+  width: 100% !important;
+  overflow: hidden !important;
   position: relative !important;
+}
+#sidePanel #gameP.show {
+  display: block !important;
+}
+#sidePanel #gameFrame {
+  width: 100% !important;
   height: 100% !important;
-  overflow: hidden !important;
+  border: none !important;
+  display: block !important;
 }
-canvas { position: absolute; top: 0; left: 0; }
-#cMain { z-index: 1; }
-#cOver { z-index: 2; }
-#cDraw { z-index: 3; }
-#cCross { z-index: 4; pointer-events: none; }
-#cAct { z-index: 10; }
-
-#rsiW { position: absolute; bottom: 0; left: 0; width: 100%; }
-#rsiDrag {
-  position: absolute; left: 0; width: 100%; height: 12px; cursor: ns-resize; z-index: 30;
-  background: rgba(0, 229, 255, 0.2); border-top: 1px solid rgba(0, 229, 255, 0.4); border-bottom: 1px solid rgba(0, 229, 255, 0.4);
-  display: flex; align-items: center; justify-content: center;
+#sideResize {
+  position: absolute !important;
+  top: 0 !important;
+ 
+  left: auto !important;
+  width: 6px !important;
+  height: 100% !important;
+  cursor: ew-resize !important;
+  z-index: 51 !important;
 }
-#rsiDrag:hover, #rsiDrag.active { background: rgba(0, 229, 255, 0.5); }
-#rsiDrag::before { content: '═══'; color: #00e5ff; font-size: 10px; font-weight: bold; letter-spacing: -2px; opacity: 0.7; }
-#cRSI { z-index: 1; }
-
-/* ===== RIGHT SIDE PANEL ===== */
-#sidePanel {
-  position: absolute !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: auto !important;
-  height: 100% !important; background: #0a0a1a !important; border-left: 2px solid #333 !important;
-  z-index: 100 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important;
+#betPanel {
+  width: calc(100% - 400px) !important;
 }
-#sidePanel.hide { display: none !important; }
-#sideTabs { display: flex; background: #0e0e24; border-bottom: 1px solid #222; height: 36px; flex-shrink: 0; }
-#sideTabs button { flex: 1; background: transparent; color: #888; border: none; cursor: pointer; font-size: 12px; font-weight: 600; padding: 6px; border-bottom: 2px solid transparent; }
-#sideTabs button.active { color: #00e5ff; border-bottom-color: #00e5ff; background: #12122a; }
-#sideTabs button:hover { color: #fff; }
-
-#histP { flex: 1 !important; overflow-y: auto !important; display: none; }
-#histP.show { display: block !important; }
-.hr { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; font-size: 11px; border-bottom: 1px solid #151530; }
-.hr.big { color: #00e676; }
-.hr.small { color: #ff5252; }
-.hr .rn { font-weight: 700; font-size: 14px; }
-
-/* ===== GAME PANELS AND IFRAME ===== */
-#gameP { flex: 1 !important; width: 100% !important; height: 100% !important; display: none; position: relative !important; background: #000 !important; overflow: hidden !important; }
-#gameP.show { display: flex !important; flex-direction: column !important; }
-#gameFrame { width: 100% !important; height: 100% !important; flex: 1 !important; border: none !important; display: block !important; background: #000 !important; }
-#gameToolbar { position: absolute; top: 6px; right: 6px; z-index: 105; display: flex; gap: 4px; }
-#gameToolbar button { background: rgba(26, 26, 58, 0.95); color: #fff; border: 1px solid #555; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: 700; }
-#gameToolbar button:hover { background: rgba(60, 60, 120, 0.95); border-color: #00e5ff; }
-#gameLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #888; font-size: 13px; text-align: center; z-index: 5; background: #000; padding: 20px; border-radius: 8px; }
-
-/* ===== DRAGGABLE RESIZE BAR ===== */
-#sideResize { position: absolute !important; top: 0 !important; width: 8px !important; height: 100% !important; cursor: ew-resize !important; z-index: 101 !important; background: rgba(0, 229, 255, 0.15); }
-#sideResize:hover, #sideResize.active { background: rgba(0, 229, 255, 0.6); }
-#sideResize::before { content: '⋮⋮'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00e5ff; font-size: 14px; font-weight: bold; letter-spacing: -2px; }
-#sideResize.hide { display: none !important; }
-
-/* ===== BET TRACKER PANEL ===== */
-#betPanel { position: absolute; left: 0; width: 100%; background: #0d0d22; border-top: 2px solid #ffab00; z-index: 25; display: none; flex-direction: column; }
-#betPanel.show { display: flex; }
-#betDrag { position: absolute; left: 0; top: -6px; width: 100%; height: 12px; cursor: ns-resize; z-index: 31; background: rgba(255, 171, 0, 0.2); border-top: 1px solid rgba(255, 171, 0, 0.4); border-bottom: 1px solid rgba(255, 171, 0, 0.4); display: flex; align-items: center; justify-content: center; }
-#betDrag:hover, #betDrag.active { background: rgba(255, 171, 0, 0.5); }
-#betDrag::before { content: '═══'; color: #ffab00; font-size: 10px; font-weight: bold; letter-spacing: -2px; opacity: 0.7; }
-#betContent { flex: 1; display: flex; padding: 10px; gap: 10px; overflow: hidden; }
-.betSection { background: #1a1a3a; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-.betSection h4 { color: #ffab00; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; border-bottom: 1px solid #2a2a4a; padding-bottom: 4px; margin-bottom: 2px; }
-#betCurrent { flex: 0 0 200px; }
-#betStats { flex: 0 0 200px; overflow-y: auto; }
-#betGraph { flex: 1; min-width: 250px; display: flex; flex-direction: column; }
-#betHistory { flex: 0 0 280px; overflow-y: auto; }
-
-/* ===== AUTHENTICATION SCREEN ===== */
-#authScreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0a0a1a, #1a1a3a); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-#authBox { background: #12122a; border: 2px solid #00e5ff; border-radius: 16px; padding: 30px; max-width: 500px; width: 100%; box-shadow: 0 8px 40px rgba(0, 229, 255, 0.2); }
-#authBox h1 { color: #00e5ff; margin-bottom: 8px; font-size: 24px; text-align: center; }
-#authBox .subtitle { color: #888; text-align: center; margin-bottom: 25px; font-size: 13px; }
-#authBox .step { margin-bottom: 20px; padding: 15px; background: #1a1a3a; border-radius: 8px; border-left: 3px solid #00e5ff; }
-#authBox .step-title { color: #00e5ff; font-weight: 700; margin-bottom: 8px; font-size: 13px; }
-#authBox input { width: 100%; padding: 12px; background: #0a0a1a; border: 1px solid #444; border-radius: 6px; color: #fff; font-size: 14px; margin-bottom: 10px; }
-#authBox input:focus { border-color: #00e5ff; outline: none; }
-#authBox button { width: 100%; padding: 14px; background: linear-gradient(90deg, #00e5ff, #00b8cc); color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; margin-top: 10px; }
-#authBox button:hover { opacity: 0.9; }
-#authBox button:disabled { background: #444; color: #888; cursor: not-allowed; }
-
-/* ===== DEBUG & OVERLAYS ===== */
-#cmenu { position: absolute; display: none; background: #1e1e3a; border: 1px solid #00e5ff; border-radius: 6px; padding: 4px 0; z-index: 60; min-width: 140px; }
-#cmenu div { padding: 8px 16px; font-size: 12px; cursor: pointer; color: #eee; }
-#cmenu div:hover { background: #2a2a5a; }
-#dbgBox { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.95); color: #0f0; font-family: monospace; font-size: 11px; padding: 6px 10px; z-index: 9999; max-height: 30vh; overflow-y: auto; border-top: 1px solid #0f0; }
-#loadOverlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 30, 0.95); border: 2px solid #00e5ff; border-radius: 8px; padding: 20px 30px; z-index: 5000; color: #fff; font-size: 14px; display: none; text-align: center; box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3); min-width: 300px; }
-#loadOverlay.show { display: block; }
-#loadProg { margin-top: 10px; background: #222; border-radius: 4px; height: 8px; overflow: hidden; }
-#loadProgBar { background: linear-gradient(90deg, #00e5ff, #00e676); height: 100%; width: 0%; transition: width 0.3s; }
-
-/* ===== RESPONSIVE MEDIA QUERIES ===== */
-@media(max-width:600px){
-  #header { padding: 4px 8px; height: 42px; }
-  #header .title { font-size: 13px; }
-  #cnum { font-size: 16px; }
-  #cres { font-size: 10px; max-width: 140px; }
-  #toolbar button { padding: 4px 8px; font-size: 11px; }
-  #sideResize { width: 14px !important; }
-  #authBox { padding: 20px; }
-  #betContent { flex-direction: column; overflow-y: auto; }
+html.app-mode #betPanel {
+  width: 100vw !important;
+  left: 0 !important;
 }
-@media(max-width:900px){ #sideResize { width: 12px !important; } }
-</style>
-  <head>
+#toolbar{
+  background: red !important;
+}
+
+</style><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>TRX WinGo Chart</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow:hidden;touch-action:none;}
+#authScreen{position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
+#authBox{background:#12122a;border:2px solid #00e5ff;border-radius:16px;padding:30px;max-width:500px;width:100%;box-shadow:0 8px 40px rgba(0,229,255,0.2);}
+#authBox h1{color:#00e5ff;margin-bottom:8px;font-size:24px;text-align:center;}
+#authBox .subtitle{color:#888;text-align:center;margin-bottom:25px;font-size:13px;}
+#authBox .step{margin-bottom:20px;padding:15px;background:#1a1a3a;border-radius:8px;border-left:3px solid #00e5ff;}
+#authBox .step-title{color:#00e5ff;font-weight:700;margin-bottom:8px;font-size:13px;}
+#authBox input{width:100%;padding:12px;background:#0a0a1a;border:1px solid #444;border-radius:6px;color:#fff;font-size:14px;margin-bottom:10px;}
+#authBox input:focus{border-color:#00e5ff;outline:none;}
+#authBox button{width:100%;padding:14px;background:linear-gradient(90deg,#00e5ff,#00b8cc);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;margin-top:10px;}
+#authBox button:hover{opacity:0.9;}
+#authBox button:disabled{background:#444;color:#888;cursor:not-allowed;}
+#authStatus{padding:12px;border-radius:6px;margin-top:15px;font-size:13px;text-align:center;}
+#authStatus.pending{background:rgba(255,171,0,0.15);color:#ffab00;border:1px solid #ffab00;}
+#authStatus.rejected{background:rgba(255,82,82,0.15);color:#ff5252;border:1px solid #ff5252;}
+#authStatus.expired{background:rgba(255,82,82,0.15);color:#ff5252;border:1px solid #ff5252;}
+#authStatus.error{background:rgba(255,82,82,0.15);color:#ff5252;border:1px solid #ff5252;}
+.deviceIdBox{background:#0a0a1a;padding:12px;border-radius:6px;border:1px dashed #00e5ff;margin:10px 0;font-family:monospace;font-size:12px;color:#00e5ff;word-break:break-all;}
+.copy-btn{background:#1a1a3a !important;color:#00e5ff !important;border:1px solid #00e5ff !important;padding:6px 12px !important;font-size:11px !important;width:auto !important;margin-top:5px !important;}
+.contact-info{background:#1a3a1a;padding:12px;border-radius:6px;border:1px solid #0f0;color:#0f0;font-size:13px;margin-top:15px;text-align:center;}
+#header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#12122a;border-bottom:1px solid #2a2a4a;height:48px;z-index:100;}
+#header .left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#header .title{font-size:15px;font-weight:700;color:#00e5ff;}
+#cbox{display:flex;align-items:center;gap:6px;background:#1a1a3a;border:1px solid #00e5ff;border-radius:6px;padding:3px 10px;}
+#cnum{font-size:20px;font-weight:700;color:#ffab00;min-width:28px;text-align:center;}
+#cres{font-size:12px;font-weight:600;max-width:220px;white-space:nowrap;color:#888;}
+#pid{font-size:10px;color:#aaa;margin-left:4px;}
+#toolbar{display:flex;align-items:center;gap:4px;padding:4px 8px;background:#0e0e24;border-bottom:1px solid #222248;flex-wrap:wrap;z-index:99;}
+#toolbar button{background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;padding:5px 10px;font-size:12px;cursor:pointer;}
+#toolbar button:hover{background:#2a2a5a;color:#fff;}
+#toolbar button.active{background:#00e5ff;color:#000;border-color:#00e5ff;font-weight:700;}
+#toolbar .sep{width:1px;height:22px;background:#333;margin:0 4px;}
+#btnLoad{background:#1a3a1a !important;color:#0f0 !important;border-color:#0f0 !important;}
+#btnLoad:hover{background:#2a5a2a !important;}
+#btnLoad.loading{background:#3a3a1a !important;color:#ff0 !important;border-color:#ff0 !important;cursor:wait;}
+#btnReset{background:#3a1a1a !important;color:#f55 !important;border-color:#f55 !important;}
+#btnFit{background:#1a2a3a !important;color:#0bf !important;border-color:#0bf !important;}
+#btnGame{background:#3a1a3a !important;color:#f0f !important;border-color:#f0f !important;font-weight:700 !important;}
+#btnGame.active{background:#f0f !important;color:#000 !important;}
+#btnHide{background:#1a1a3a !important;color:#888 !important;}
+#btnPanelSize{background:#1a1a3a !important;color:#0bf !important;border-color:#0bf !important;}
+#btnBet{background:#3a3a1a !important;color:#ff0 !important;border-color:#ff0 !important;font-weight:700 !important;}
+#btnBet.active{background:#ff0 !important;color:#000 !important;}
+#wrap{position:relative;width:100%;overflow:hidden;}
+canvas{position:absolute;top:0;left:0;}
+#cMain{z-index:1;}#cOver{z-index:2;}#cDraw{z-index:3;}#cCross{z-index:4;pointer-events:none;}#cAct{z-index:10;}
+#rsiW{position:absolute;bottom:0;left:0;width:100%;}
+#rsiDrag{position:absolute;left:0;width:100%;height:12px;cursor:ns-resize;z-index:30;background:rgba(0,229,255,0.2);border-top:1px solid rgba(0,229,255,0.4);border-bottom:1px solid rgba(0,229,255,0.4);transition:background 0.2s;display:flex;align-items:center;justify-content:center;}
+#rsiDrag:hover,#rsiDrag.active{background:rgba(0,229,255,0.5);}
+#rsiDrag::before{content:'═══';color:#00e5ff;font-size:10px;font-weight:bold;letter-spacing:-2px;opacity:0.7;}
+#cRSI{z-index:1;}
 
+/* ===== BET TRACKER PANEL ===== */
+#betPanel{position:absolute;left:0;width:100%;background:#0d0d22;border-top:2px solid #ffab00;z-index:25;display:none;flex-direction:column;}
+#betPanel.show{display:flex;}
+#betDrag{position:absolute;left:0;top:-6px;width:100%;height:12px;cursor:ns-resize;z-index:31;background:rgba(255,171,0,0.2);border-top:1px solid rgba(255,171,0,0.4);border-bottom:1px solid rgba(255,171,0,0.4);transition:background 0.2s;display:flex;align-items:center;justify-content:center;}
+#betDrag:hover,#betDrag.active{background:rgba(255,171,0,0.5);}
+#betDrag::before{content:'═══';color:#ffab00;font-size:10px;font-weight:bold;letter-spacing:-2px;opacity:0.7;}
+#betContent{flex:1;display:flex;padding:10px;gap:10px;overflow:hidden;}
+.betSection{background:#1a1a3a;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;}
+.betSection h4{color:#ffab00;font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:1px;border-bottom:1px solid #2a2a4a;padding-bottom:4px;margin-bottom:2px;}
+#betCurrent{flex:0 0 200px;}
+#betStats{flex:0 0 200px;overflow-y:auto;}
+#betGraph{flex:1;min-width:250px;display:flex;flex-direction:column;}
+#betHistory{flex:0 0 280px;overflow-y:auto;}
+.curBet{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:8px;background:#0a0a1a;border-radius:6px;border:2px dashed #2a2a4a;text-align:center;}
+.curBet.active{border-color:#ffab00;border-style:solid;background:linear-gradient(135deg,#1a1a3a,#2a1a3a);}
+.curBet.win{border-color:#00e676;background:linear-gradient(135deg,#1a3a1a,#0a3a1a);animation:winPulse 1s ease-in-out 3;}
+.curBet.loss{border-color:#ff5252;background:linear-gradient(135deg,#3a1a1a,#3a0a1a);}
+.curEmpty{color:#666;font-size:12px;}
+.curPeriod{color:#aaa;font-size:10px;font-family:monospace;}
+.curChoice{font-size:24px;font-weight:700;}
+.curChoice.big{color:#00e676;}
+.curChoice.small{color:#ff5252;}
+.curAmount{color:#ffeb3b;font-size:18px;font-weight:700;font-family:monospace;}
+.curStatus{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;}
+.curStatus.pending{background:#ffab00;color:#000;}
+.curStatus.win{background:#00e676;color:#000;}
+.curStatus.loss{background:#ff5252;color:#fff;}
+@keyframes winPulse{0%,100%{box-shadow:0 0 0 #00e676;}50%{box-shadow:0 0 20px #00e676;}}
+#betChoice{display:flex;gap:6px;}
+#betChoice button{flex:1;padding:10px;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+.btnBig{background:#1a3a1a;color:#00e676;border:2px solid #00e676 !important;}
+.btnBig.selected{background:#00e676;color:#000;}
+.btnSmall{background:#3a1a1a;color:#ff5252;border:2px solid #ff5252 !important;}
+.btnSmall.selected{background:#ff5252;color:#fff;}
+#betAmount{width:100%;padding:8px;background:#0a0a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:14px;font-weight:700;text-align:center;}
+#betPresets{display:flex;gap:4px;flex-wrap:wrap;}
+#betPresets button{flex:1;padding:6px;background:#0a0a1a;border:1px solid #444;border-radius:4px;color:#aaa;font-size:11px;cursor:pointer;min-width:50px;}
+#betPresets button:hover{background:#2a2a5a;color:#fff;border-color:#666;}
+#betPlace{padding:10px;background:linear-gradient(90deg,#ffab00,#ff8800);color:#000;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;}
+#betPlace:hover{opacity:0.9;}
+#betPlace:disabled{background:#444;color:#888;cursor:not-allowed;}
+.statRow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #2a2a4a;font-size:12px;}
+.statRow:last-child{border-bottom:none;}
+.statLabel{color:#aaa;}
+.statValue{font-weight:700;color:#fff;}
+.statValue.win{color:#00e676;}
+.statValue.loss{color:#ff5252;}
+.statValue.profit{font-size:14px;}
+.histRow{display:grid;grid-template-columns:auto auto auto auto 1fr;gap:8px;padding:5px 8px;font-size:11px;border-bottom:1px solid #2a2a4a;align-items:center;}
+.histRow:hover{background:#2a2a5a;}
+.histRow .time{color:#888;font-family:monospace;}
+.histRow .choice{font-weight:700;}
+.histRow .choice.big{color:#00e676;}
+.histRow .choice.small{color:#ff5252;}
+.histRow .amount{color:#aaa;font-family:monospace;}
+.histRow .result{padding:2px 6px;border-radius:3px;font-weight:700;font-size:10px;}
+.histRow .result.win{background:#00e676;color:#000;}
+.histRow .result.loss{background:#ff5252;color:#fff;}
+.histRow .result.pending{background:#ffab00;color:#000;}
+.histRow .profit{font-weight:700;text-align:right;font-family:monospace;}
+.histRow .profit.win{color:#00e676;}
+.histRow .profit.loss{color:#ff5252;}
+.histRow .delBtn{background:none;border:none;color:#666;cursor:pointer;font-size:14px;padding:0;}
+.histRow .delBtn:hover{color:#ff5252;}
+.betEmpty{text-align:center;color:#666;padding:30px;font-size:12px;}
+
+#cmenu{position:absolute;display:none;background:#1e1e3a;border:1px solid #00e5ff;border-radius:6px;padding:4px 0;z-index:60;min-width:140px;}
+#cmenu div{padding:8px 16px;font-size:12px;cursor:pointer;color:#eee;}
+#cmenu div:hover{background:#2a2a5a;}
+#sidePanel{position:absolute;top:0;right:0;height:100%;background:#0a0a1a;z-index:20;display:flex;flex-direction:column;}
+#sidePanel.hide{display:none;}
+#sideTabs{display:flex;background:#0e0e24;border-bottom:1px solid #222;height:36px;flex-shrink:0;border-left:1px solid #2a2a4a;}
+#sideTabs button{flex:1;background:transparent;color:#888;border:none;cursor:pointer;font-size:12px;font-weight:600;padding:6px;border-bottom:2px solid transparent;}
+#sideTabs button.active{color:#00e5ff;border-bottom-color:#00e5ff;background:#12122a;}
+#sideTabs button:hover{color:#fff;}
+#histP{flex:1;overflow-y:auto;display:none;border-left:1px solid #2a2a4a;}
+#histP.show{display:block;}
+.hr{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;font-size:11px;border-bottom:1px solid #151530;}
+.hr.big{color:#00e676;}.hr.small{color:#ff5252;}
+.hr .rn{font-weight:700;font-size:14px;}
+#gameP{flex:1;display:none;position:relative;background:#000;border-left:1px solid #2a2a4a;}
+#gameP.show{display:block;}
+#gameFrame{width:100%;height:100%;border:none;background:#fff;}
+#gameToolbar{position:absolute;top:6px;right:6px;z-index:10;display:flex;gap:4px;}
+#gameToolbar button{background:rgba(26,26,58,0.95);color:#fff;border:1px solid #555;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700;}
+#gameToolbar button:hover{background:rgba(60,60,120,0.95);border-color:#00e5ff;}
+#gameLoading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-size:13px;text-align:center;z-index:5;background:#000;padding:20px;border-radius:8px;}
+#sideResize{position:absolute;top:0;width:8px;height:100%;cursor:ew-resize;z-index:50;background:rgba(0,229,255,0.15);transition:background 0.2s;}
+#sideResize:hover,#sideResize.active{background:rgba(0,229,255,0.6);}
+#sideResize::before{content:'⋮⋮';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#00e5ff;font-size:14px;font-weight:bold;letter-spacing:-2px;}
+#sideResize.hide{display:none;}
+#dbgBox{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:11px;padding:6px 10px;z-index:9999;max-height:30vh;overflow-y:auto;border-top:1px solid #0f0;}
+#dbgBox.hide{display:none;}
+#dbgToggle{display:none;}
+#loadOverlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,30,0.95);border:2px solid #00e5ff;border-radius:8px;padding:20px 30px;z-index:5000;color:#fff;font-size:14px;display:none;text-align:center;box-shadow:0 4px 20px rgba(0,229,255,0.3);min-width:300px;}
+#loadOverlay.show{display:block;}
+#loadProg{margin-top:10px;background:#222;border-radius:4px;height:8px;overflow:hidden;}
+#loadProgBar{background:linear-gradient(90deg,#00e5ff,#00e676);height:100%;width:0%;transition:width 0.3s;}
+#cancelBtn{margin-top:12px;background:#3a1a1a;color:#f55;border:1px solid #f55;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;}
+#cancelBtn:hover{background:#5a2a2a;}
+@media(max-width:600px){
+#header{padding:4px 8px;height:42px;}
+#header .title{font-size:13px;}
+#cnum{font-size:16px;}
+#cres{font-size:10px;max-width:140px;}
+#toolbar button{padding:4px 8px;font-size:11px;}
+#sideResize{width:14px;}
+#authBox{padding:20px;}
+#rsiDrag{height:16px;}
+#betDrag{height:16px;}
+#betContent{flex-direction:column;overflow-y:auto;}
+#betQuick,#betStats,#betHistory{flex:0 0 auto;}
+}
+@media(max-width:900px){#sideResize{width:12px;}}
+</style>
 </head>
 <body>
 <div id="authScreen">
@@ -235,61 +272,31 @@ canvas { position: absolute; top: 0; left: 0; }
 </div>
 </div>
 <div id="toolbar">
-    <button class="active" data-tool="pointer">☝Pointer</button><div class="sep"></div>
-    <button data-tool="trendline">📏Trend</button>
-    <button data-tool="hline">➖HLine</button>
-    <button data-tool="rect">⬜Rect</button>
-    <button data-tool="fib">📐Fib</button>
-    <button data-tool="text">🔤Text</button><div class="sep"></div>
-    <button data-ind="ema9">EMA9</button>
-    <button data-ind="ema21">EMA21</button>
-    <button data-ind="rsi">RSI</button><div class="sep"></div>
-    <button id="btnBet">💰 Bet Tracker</button>
-    <button id="btnLoad">⬇️ Load History</button>
-    <button id="btnFit">📐 Fit</button>
-    <button id="btnGame">🎮 Toggle Game</button>
-    <button id="btnPanelSize">↔ Panel Size</button>
-    <button id="btnHide">👁 Hide Panel</button>
-    <button id="btnClear">🗑Clear</button>
-    <button id="btnReset">⚠️Reset</button>
+<button class="active" data-tool="pointer">☝Pointer</button><div class="sep"></div>
+<button data-tool="trendline">📏Trend</button>
+<button data-tool="hline">➖HLine</button>
+<button data-tool="rect">⬜Rect</button>
+<button data-tool="fib">📐Fib</button>
+<button data-tool="text">🔤Text</button><div class="sep"></div>
+<button data-ind="ema9">EMA9</button>
+<button data-ind="ema21">EMA21</button>
+<button data-ind="rsi">RSI</button><div class="sep"></div>
+<button id="btnBet">💰 Bet Tracker</button>
+<button id="btnLoad">⬇️ Load History</button>
+<button id="btnFit">📐 Fit</button>
+<button id="btnGame">🎮 Toggle Game</button>
+<button id="btnPanelSize">↔ Panel Size</button>
+<button id="btnHide">👁 Hide Panel</button>
+<button id="btnClear">🗑Clear</button>
+<button id="btnReset">⚠️Reset</button>
 </div>
+<div id="wrap">
+<canvas id="cMain"></canvas><canvas id="cOver"></canvas><canvas id="cDraw"></canvas>
+<canvas id="cCross"></canvas><canvas id="cAct"></canvas>
+<div id="rsiDrag"></div>
+<div id="rsiW"><canvas id="cRSI"></canvas></div>
+<div id="cmenu"><div id="cmDel">🗑 Delete</div><div id="cmCol">🎨 Color</div></div>
 
-<div class="main-container">
-
-    <div id="canvas-container">
-        <div id="wrap">
-            <canvas id="cMain"></canvas>
-            <canvas id="cOver"></canvas>
-            <canvas id="cDraw"></canvas>
-            <canvas id="cCross"></canvas>
-            <canvas id="cAct"></canvas>
-        </div>
-        <div id="rsiDrag"></div>
-        <div id="rsiW">
-            <canvas id="cRSI"></canvas>
-        </div>
-        <div id="cmenu">
-            <div id="cmDel">🗑 Delete</div>
-            <div id="cmCol">🎨 Color</div>
-        </div>
-    </div>
-
-    <div id="sideResize"></div>
-    <div id="sidePanel">
-        <div id="sideTabs">
-            <button class="active" onclick="switchTab('hist')">📊 History</button>
-            <button onclick="switchTab('game')">🎮 Game</button>
-        </div>
-        
-        <div id="histP" class="show">
-            </div>
-        
-        <div id="gameP">
-            <iframe id="gameFrame" src=""></iframe>
-        </div>
-    </div>
-
-</div>
 <!-- BET TRACKER PANEL -->
 <div id="betPanel">
   <div id="betDrag"></div>
