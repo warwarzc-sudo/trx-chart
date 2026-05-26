@@ -277,15 +277,19 @@ canvas { position: absolute; top: 0; left: 0; }
     <div id="sideResize"></div>
     <div id="sidePanel">
         <div id="sideTabs">
+            <button class="active" onclick="switchTab('hist')">📊 History</button>
+            <button onclick="switchTab('game')">🎮 Game</button>
+        </div>
+        
+        <div id="histP" class="show">
             </div>
-        <div id="histP">
-            </div>
+        
         <div id="gameP">
-            <iframe id="gameFrame"></iframe>
+            <iframe id="gameFrame" src=""></iframe>
         </div>
     </div>
 
-</div> 
+</div>
 <!-- BET TRACKER PANEL -->
 <div id="betPanel">
   <div id="betDrag"></div>
