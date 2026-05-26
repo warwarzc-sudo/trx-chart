@@ -1779,63 +1779,47 @@ setTimeout(function(){
   <script>
    <script>
 (function() {
-    async function initSavedDataAndAutoLoad() {
-        if (typeof storeLoad === 'function' && typeof results !== 'undefined') {
-            results = storeLoad();
-            
-            if (results.length > 0) {
-                console.log("Found " + results.length + " saved candles. Displaying immediately...");
-                if (typeof lastPeriod !== 'undefined' && results[results.length - 1]) {
-                    lastPeriod = results[results.length - 1].period;
-                }
+    const style = document.createElement('style');
+    style.id = 'trx-master-fix';
+    style.textContent = `
+        body, #app { 
+            height: 100vh !important; 
+            overflow: hidden !important; 
+            margin: 0 !important; 
+        }
+        #chart-container { 
+            height: 100vh !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+        }
+        #chart { 
+            height: 100% !important; 
+        }
+        body > div:empty, body > iframe { 
+            display: none !important; 
+        }
+    `;
+    document.head.appendChild(style);
+
+    async function initData() {
+        if (typeof storeLoad === 'function') {
+            try {
+                results = storeLoad();
                 if (typeof makeCandles === 'function') makeCandles();
                 if (typeof render === 'function') render();
                 if (typeof draw === 'function') draw();
+                if (typeof loadBulkHistory === 'function') await loadBulkHistory(3);
+            } catch (e) {
+                console.error(e);
             }
-            
-            setTimeout(async function() {
-                if (typeof loadBulkHistory === 'function' && results.length > 0) {
-                    try {
-                        const lastCandle = results[results.length - 1];
-                        let lastTime = lastCandle.timestamp;
-                        
-                        if (lastTime < 1e12) lastTime = lastTime * 1000;
-                        
-                        const currentTime = Date.now();
-                        const timeDiffMs = currentTime - lastTime;
-                        
-                        let hoursNeeded = Math.ceil(timeDiffMs / (1000 * 60 * 60));
-                        
-                        if (hoursNeeded <= 0 || isNaN(hoursNeeded)) hoursNeeded = 1;
-                        if (hoursNeeded > 24) hoursNeeded = 24;
-                        
-                        console.log("Chart was offline. Missing time gap calculated: " + hoursNeeded + " hour(s).");
-                        console.log("Background auto-fetching the last " + hoursNeeded + " hour(s) of data...");
-                        
-                        await loadBulkHistory(hoursNeeded);
-                        
-                        if (typeof storeSave === 'function') {
-                            storeSave();
-                        }
-                    } catch (e) {
-                        console.error("Dynamic background auto-load failed:", e);
-                    }
-                } else if (typeof loadBulkHistory === 'function' && results.length === 0) {
-                    try {
-                        await loadBulkHistory(3);
-                    } catch(e) {}
-                }
-            }, 1200);
         }
     }
 
-    if (document.documentElement.classList.contains('app-mode') || document.readyState !== 'loading') {
-        initSavedDataAndAutoLoad();
+    if (document.readyState === 'complete') {
+        initData();
     } else {
-        document.addEventListener('DOMContentLoaded', initSavedDataAndAutoLoad);
+        window.addEventListener('load', initData);
     }
-    
-    setTimeout(initSavedDataAndAutoLoad, 600);
 })();
 </script>
 </script>
