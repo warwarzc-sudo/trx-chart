@@ -382,38 +382,55 @@ canvas {
   </div>
 </div>
 <div id="header">
-<div class="left">
-<span class="title">TRX WinGo</span>
-<div id="cbox"><span id="cnum">--</span><span id="cres">loading...</span></div>
-<span id="pid"></span>
+  <div class="left">
+    <span class="title">TRX WinGo</span>
+    <div id="cbox">
+      <span id="cnum">--</span>
+      <span id="cres">loading...</span>
+    </div>
+    <span id="pid"></span>
+  </div>
 </div>
-</div>
-<div id="toolbar">
-<button class="active" data-tool="pointer">☝Pointer</button><div class="sep"></div>
-<button data-tool="trendline">📏Trend</button>
-<button data-tool="hline">➖HLine</button>
-<button data-tool="rect">⬜Rect</button>
-<button data-tool="fib">📐Fib</button>
-<button data-tool="text">🔤Text</button><div class="sep"></div>
-<button data-ind="ema9">EMA9</button>
-<button data-ind="ema21">EMA21</button>
-<button data-ind="rsi">RSI</button><div class="sep"></div>
-<button id="btnBet">💰 Bet Tracker</button>
-<button id="btnLoad">⬇️ Load History</button>
-<button id="btnFit">📐 Fit</button>
-<button id="btnGame">🎮 Toggle Game</button>
-<button id="btnPanelSize">↔ Panel Size</button>
-<button id="btnHide">👁 Hide Panel</button>
-<button id="btnClear">🗑Clear</button>
-<button id="btnReset">⚠️Reset</button>
-</div>
-<div id="wrap">
-<canvas id="cMain"></canvas><canvas id="cOver"></canvas><canvas id="cDraw"></canvas>
-<canvas id="cCross"></canvas><canvas id="cAct"></canvas>
-<div id="rsiDrag"></div>
-<div id="rsiW"><canvas id="cRSI"></canvas></div>
-<div id="cmenu"><div id="cmDel">🗑 Delete</div><div id="cmCol">🎨 Color</div></div>
 
+<div id="toolbar">
+  <button class="active" data-tool="pointer">☝Pointer</button>
+  <div class="sep"></div>
+  <button data-tool="trendline">📏Trend</button>
+  <button data-tool="hline">➖HLine</button>
+  <button data-tool="rect">⬜Rect</button>
+  <button data-tool="fib">📐Fib</button>
+  <button data-tool="text">🔤Text</button>
+  <div class="sep"></div>
+  <button data-ind="ema9">EMA9</button>
+  <button data-ind="ema21">EMA21</button>
+  <button data-ind="rsi">RSI</button>
+</div>
+
+<div id="wrap">
+  <div id="sidebar-tools">
+    <button id="btnBet">💰 Bet Tracker</button>
+    <button id="btnLoad">⬇️ Load History</button>
+    <button id="btnFit">📐 Fit</button>
+    <button id="btnGame">🎮 Toggle Game</button>
+    <button id="btnPanelSize">↔ Panel Size</button>
+    <button id="btnHide">👁 Hide Panel</button>
+    <button id="btnClear">🗑Clear</button>
+    <button id="btnReset">⚠️Reset</button>
+  </div>
+
+  <canvas id="cMain"></canvas>
+  <canvas id="cOver"></canvas>
+  <canvas id="cDraw"></canvas>
+  <canvas id="cCross"></canvas>
+  <canvas id="cAct"></canvas>
+  
+  <div id="rsiDrag"></div>
+  <div id="rsiW"><canvas id="cRSI"></canvas></div>
+  <div id="cmenu">
+    <div id="cmDel">🗑 Delete</div>
+    <div id="cmCol">🎨 Color</div>
+  </div>
+</div>
 <!-- BET TRACKER PANEL -->
 <div id="betPanel">
   <div id="betDrag"></div>
