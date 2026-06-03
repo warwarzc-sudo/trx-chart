@@ -677,38 +677,40 @@ function renderProfitChart(todayBets){
   ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
   ctx.fillText('0',pad-2,zeroY+3);
   ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
+// Ensure global scrolling variables exist safely
+if (window.zoomFactor === undefined) window.zoomFactor = 1.0;
 
-  // Ensure global scrolling variables exist safely
-  if (window.zoomFactor === undefined) window.zoomFactor = 1.0;
+// 1. ISOLATE CANVAS STATE: Prevents clipping from locking HTML buttons/inputs
+ctx.save();
 
-  // ⭐ FIX 1: (Uncommented) Slice only the last 50 data points to freeze screen jumping
-  const displayPoints = points.slice(-50); 
+// 2. DEFINE CLIP MASK: Restricts drawing boundary strictly inside chart walls
+ctx.beginPath();
+ctx.rect(pad, pad, chartW, chartH);
+ctx.clip();
 
-  // Clip Canvas Drawing Area (Prevents lines from bleeding into padding)
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(pad, pad, chartW, chartH);
-  ctx.clip();
+// 3. RENDER TREND LINE
+ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
+ctx.lineWidth = 2;
+ctx.beginPath();
 
-  // Render Cumulative Profit Trend Line
-  ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); // Make sure beginPath is called here
+// Fixed viewport math to stabilize candles on screen refresh
+const spacing = chartW / Math.max(50, points.length); 
+const displayPoints = points.slice(-50);
 
-  // ⭐ FIX 2: Spacing based on filtered display points
-  const spacing = chartW / Math.max(50, displayPoints.length); 
-
-  for (let i = 0; i < displayPoints.length; i++) {
-    const x = pad + (i * spacing * window.zoomFactor);
-    const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
-    
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
+for (let i = 0; i < displayPoints.length; i++) {
+  const x = pad + (i * spacing * window.zoomFactor);
+  const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
+  
+  if (i === 0) {
+    ctx.moveTo(x, y);
+  } else {
+    ctx.lineTo(x, y);
   }
-  ctx.stroke();
+}
+ctx.stroke();
+
+// 4. RELEASE MASK: Instantly releases UI layer so buttons become clickable again
+ctx.restore();
 
   // Restore Canvas Masking State
   ctx.restore();
