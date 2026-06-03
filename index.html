@@ -670,44 +670,53 @@ function renderProfitChart(todayBets){
   ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(pad,zeroY);ctx.lineTo(W-pad,zeroY);ctx.stroke();
   ctx.setLineDash([]);
-  // Labels
+ // Labels
   ctx.fillStyle='#666';
   ctx.font='9px monospace';
   ctx.textAlign='right';
   ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
   ctx.fillText('0',pad-2,zeroY+3);
   ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
-// 1. LOCAL VARIABLES ONLY: Safe from freezing HTML input/buttons
-const localZoom = window.zoomFactor || 1.0;
-const localScrollX = 0; // Fixed zero offset locally to kill jumping behavior
 
-// 2. ISOLATE CANVAS STATE
-ctx.save();
+  // ==========================================================
+  // 1. FIXED VIEWPORT LOGIC: Forces rendering to stay frozen inside view
+  // ==========================================================
+  const displayPoints = points.slice(-50); 
+  const spacing = chartW / Math.max(50, displayPoints.length);
 
-// 3. DEFINE DRAWING BOUNDARY MASK
-ctx.beginPath();
-ctx.rect(pad, pad, chartW, chartH);
-ctx.clip();
+  // 2. RENDER TREND LINE WITHOUT CLIPPING (Prevents UI freezing)
+  ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
 
-// 4. RENDER TREND LINE WITH FIXED VIEWPORT LOGIC
-ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
-ctx.lineWidth = 2;
-ctx.beginPath();
-
-const spacing = chartW / Math.max(50, points.length); 
-const displayPoints = points.slice(-50);
-
-for (let i = 0; i < displayPoints.length; i++) {
-  const x = pad + (i * spacing * localZoom) + localScrollX;
-  const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
-  
-  if (i === 0) {
-    ctx.moveTo(x, y);
-  } else {
-    ctx.lineTo(x, y);
+  for (let i = 0; i < displayPoints.length; i++) {
+    const x = pad + (i * spacing);
+    const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
+    
+    // Bounds check to manually stop drawing outside padding (Replacement for clip)
+    if (x >= pad && x <= (W - pad)) {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
   }
-}
-ctx.stroke();
+  ctx.stroke();
+
+  // ==========================================================
+  // 3. EMERGENCY UI UNBLOCKER: Safely allows mouse clicks to pass through canvas layers
+  // ==========================================================
+  setTimeout(() => {
+    const canvasIds = ['cMain', 'cOver', 'cDraw', 'cCross', 'cAct', 'cRSI'];
+    canvasIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        // Allows user clicks to penetrate canvas layers directly to HTML buttons below
+        el.style.pointerEvents = 'none'; 
+      }
+    });
+    // Ensure the interaction wrapper container is kept fully active
+    const wrap = document.getElementById('wrap');
+    if (wrap) wrap.style.pointerEvents = 'auto';
+  }, 100);
 
 // 5. RESTORE ORIGINAL CANVAS MASK STATE
 ctx.restore();
