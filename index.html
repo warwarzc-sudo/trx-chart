@@ -677,28 +677,28 @@ function renderProfitChart(todayBets){
   ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
   ctx.fillText('0',pad-2,zeroY+3);
   ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
-// Ensure global scrolling variables exist safely
-if (window.zoomFactor === undefined) window.zoomFactor = 1.0;
+// 1. LOCAL VARIABLES ONLY: Safe from freezing HTML input/buttons
+const localZoom = window.zoomFactor || 1.0;
+const localScrollX = 0; // Fixed zero offset locally to kill jumping behavior
 
-// 1. ISOLATE CANVAS STATE: Prevents clipping from locking HTML buttons/inputs
+// 2. ISOLATE CANVAS STATE
 ctx.save();
 
-// 2. DEFINE CLIP MASK: Restricts drawing boundary strictly inside chart walls
+// 3. DEFINE DRAWING BOUNDARY MASK
 ctx.beginPath();
 ctx.rect(pad, pad, chartW, chartH);
 ctx.clip();
 
-// 3. RENDER TREND LINE
+// 4. RENDER TREND LINE WITH FIXED VIEWPORT LOGIC
 ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
 ctx.lineWidth = 2;
 ctx.beginPath();
 
-// Fixed viewport math to stabilize candles on screen refresh
 const spacing = chartW / Math.max(50, points.length); 
 const displayPoints = points.slice(-50);
 
 for (let i = 0; i < displayPoints.length; i++) {
-  const x = pad + (i * spacing * window.zoomFactor);
+  const x = pad + (i * spacing * localZoom) + localScrollX;
   const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
   
   if (i === 0) {
@@ -709,11 +709,8 @@ for (let i = 0; i < displayPoints.length; i++) {
 }
 ctx.stroke();
 
-// 4. RELEASE MASK: Instantly releases UI layer so buttons become clickable again
+// 5. RESTORE ORIGINAL CANVAS MASK STATE
 ctx.restore();
-
-  // Restore Canvas Masking State
-  ctx.restore();
 
 // ⭐ FIX 2: Spacing based on filtered display points
 const spacing = chartW / Math.max(50, displayPoints.length); 
