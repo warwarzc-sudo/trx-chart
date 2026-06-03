@@ -670,7 +670,6 @@ function renderProfitChart(todayBets){
   ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(pad,zeroY);ctx.lineTo(W-pad,zeroY);ctx.stroke();
   ctx.setLineDash([]);
-  
   // Labels
   ctx.fillStyle='#666';
   ctx.font='9px monospace';
@@ -678,22 +677,41 @@ function renderProfitChart(todayBets){
   ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
   ctx.fillText('0',pad-2,zeroY+3);
   ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
-// Ensure global scrolling variables exist safely
-if (window.zoomFactor === undefined) window.zoomFactor = 1.0;
 
-// ⭐ FIX 1: နောက်ဆုံးပေါ် Candle ၅၀ ခုကိုပဲ ဖြတ်ယူပြီး ပုံသေပြခိုင်းခြင်း (ဒါမှ ညာဘက်မပြေးမှာပါ)
-const displayPoints = points.slice(-50); 
+  // Ensure global scrolling variables exist safely
+  if (window.zoomFactor === undefined) window.zoomFactor = 1.0;
 
-// Clip Canvas Drawing Area (Prevents lines from bleeding into padding)
-ctx.save();
-ctx.beginPath();
-ctx.rect(pad, pad, chartW, chartH);
-ctx.clip();
+  // ⭐ FIX 1: (Uncommented) Slice only the last 50 data points to freeze screen jumping
+  const displayPoints = points.slice(-50); 
 
-// Render Cumulative Profit Trend Line
-ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
-ctx.lineWidth = 2;
-ctx.beginPath();
+  // Clip Canvas Drawing Area (Prevents lines from bleeding into padding)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pad, pad, chartW, chartH);
+  ctx.clip();
+
+  // Render Cumulative Profit Trend Line
+  ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); // Make sure beginPath is called here
+
+  // ⭐ FIX 2: Spacing based on filtered display points
+  const spacing = chartW / Math.max(50, displayPoints.length); 
+
+  for (let i = 0; i < displayPoints.length; i++) {
+    const x = pad + (i * spacing * window.zoomFactor);
+    const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
+    
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
+
+  // Restore Canvas Masking State
+  ctx.restore();
 
 // ⭐ FIX 2: Spacing based on filtered display points
 const spacing = chartW / Math.max(50, displayPoints.length); 
