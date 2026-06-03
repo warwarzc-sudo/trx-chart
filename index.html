@@ -678,18 +678,36 @@ function renderProfitChart(todayBets){
   ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
   ctx.fillText('0',pad-2,zeroY+3);
   ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
+// Ensure global scrolling variables exist safely
+if (window.scrollX === undefined) window.scrollX = 0;
+if (window.zoomFactor === undefined) window.zoomFactor = 1.0;
+const pointSpacing = 20; 
+
+// Clip Canvas Drawing Area (Prevents lines from bleeding into padding)
+ctx.save();
+ctx.beginPath();
+ctx.rect(pad, pad, chartW, chartH);
+ctx.clip();
+
+// Render Cumulative Profit Trend Line (Fixed X math prevents flying to the right)
+ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
+ctx.lineWidth = 2;
+ctx.beginPath();
+
+for (let i = 0; i < points.length; i++) {
+  const x = pad + (i * pointSpacing * window.zoomFactor) + window.scrollX;
+  const y = zeroY - (points[i] / range) * (chartH / 2);
   
-  // Profit line
-  ctx.strokeStyle=cum>=0?'#00e676':'#ff5252';
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  for(let i=0;i<points.length;i++){
-    const x=pad+(points.length===1?chartW/2:(i/(points.length-1))*chartW);
-    const y=zeroY-(points[i]/range)*(chartH/2);
-    if(i===0)ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
+  if (i === 0) {
+    ctx.moveTo(x, y);
+  } else {
+    ctx.lineTo(x, y);
   }
-  ctx.stroke();
+}
+ctx.stroke();
+
+// Restore Canvas Masking State
+ctx.restore();
   
   // Fill area under line
   ctx.fillStyle=cum>=0?'rgba(0,230,118,0.15)':'rgba(255,82,82,0.15)';
