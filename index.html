@@ -630,7 +630,8 @@ function renderProfitChart(todayBets){
   const cv=document.getElementById('profitChart');
   if(!cv)return;
   const finished=todayBets.filter(b=>b.status==='win'||b.status==='loss').sort((a,b)=>a.timestamp-b.timestamp);
-   // Setup canvas
+  
+  // Setup canvas
   const dpr=window.devicePixelRatio||1;
   const rect=cv.getBoundingClientRect();
   cv.width=rect.width*dpr;
@@ -638,9 +639,11 @@ function renderProfitChart(todayBets){
   const ctx=cv.getContext('2d');
   ctx.scale(dpr,dpr);
   const W=rect.width,H=rect.height;
+  
   // Clear
   ctx.fillStyle='#0a0a1a';
   ctx.fillRect(0,0,W,H);
+  
   if(finished.length===0){
     ctx.fillStyle='#666';
     ctx.font='12px Segoe UI';
@@ -648,108 +651,45 @@ function renderProfitChart(todayBets){
     ctx.fillText('No completed bets yet',W/2,H/2);
     return;
   }
-   // Calculate cumulative profit
+  
+  // Calculate cumulative profit
   let cum=0;
   const points=finished.map(b=>{cum+=b.profit;return cum;});
   const maxP=Math.max(0,...points);
   const minP=Math.min(0,...points);
   const range=Math.max(Math.abs(maxP),Math.abs(minP),100);
-   const pad=20;
+  
+  const pad=20;
   const chartW=W-pad*2;
   const chartH=H-pad*2;
   const zeroY=pad+chartH/2;
-   // Grid + zero line
+  
+  // Grid + zero line
   ctx.strokeStyle='#2a2a4a';
   ctx.lineWidth=1;
   ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(pad,zeroY);ctx.lineTo(W-pad,zeroY);ctx.stroke();
   ctx.setLineDash([]);
- // Labels
+  
+  // Labels
   ctx.fillStyle='#666';
   ctx.font='9px monospace';
   ctx.textAlign='right';
   ctx.fillText('+'+range.toFixed(0),pad-2,pad+8);
   ctx.fillText('0',pad-2,zeroY+3);
   ctx.fillText('-'+range.toFixed(0),pad-2,H-pad);
-// ==========================================================
-  // 1. FIXED VIEWPORT LOGIC: Forces rendering to stay frozen inside view
-  // ==========================================================
-  const displayPoints = points.slice(-50); 
-  const spacing = chartW / Math.max(50, displayPoints.length);
-
-  // 2. RENDER TREND LINE
-  ctx.strokeStyle = cum >= 0 ? '#00e676' : '#ff5252';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-
-  for (let i = 0; i < displayPoints.length; i++) {
-    const x = pad + (i * spacing);
-    const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
-    
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  }
-  ctx.stroke();
-} // 🌟 This closing bracket restores the script and unlocks all HTML buttons!
-
-  for (let i = 0; i < displayPoints.length; i++) {
-    const x = pad + (i * spacing);
-    const y = zeroY - (displayPoints[i] / range) * (chartH / 2);
-    
-    // Bounds check to manually stop drawing outside padding (Replacement for clip)
-    if (x >= pad && x <= (W - pad)) {
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-  }
-  ctx.stroke();
-
-  // ==========================================================
-  // 3. EMERGENCY UI UNBLOCKER: Safely allows mouse clicks to pass through canvas layers
-  // ==========================================================
-  setTimeout(() => {
-    const canvasIds = ['cMain', 'cOver', 'cDraw', 'cCross', 'cAct', 'cRSI'];
-    canvasIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        // Allows user clicks to penetrate canvas layers directly to HTML buttons below
-        el.style.pointerEvents = 'none'; 
-      }
-    });
-    // Ensure the interaction wrapper container is kept fully active
-    const wrap = document.getElementById('wrap');
-    if (wrap) wrap.style.pointerEvents = 'auto';
-  }, 100);
-
-// 5. RESTORE ORIGINAL CANVAS MASK STATE
-ctx.restore();
-
-// ⭐ FIX 2: Spacing based on filtered display points
-const spacing = chartW / Math.max(50, displayPoints.length); 
-
-for (let i = 0; i < displayPoints.length; i++) {
-  const x = pad + (i * spacing * window.zoomFactor);
-  const y = zeroY - (displayPoints[i] / range) * (chartH / 2); 
   
-  if (i === 0) {
-    ctx.moveTo(x, y);
-  } else {
-    ctx.lineTo(x, y);
+  // Profit line
+  ctx.strokeStyle=cum>=0?'#00e676':'#ff5252';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  for(let i=0;i<points.length;i++){
+    const x=pad+(points.length===1?chartW/2:(i/(points.length-1))*chartW);
+    const y=zeroY-(points[i]/range)*(chartH/2);
+    if(i===0)ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
   }
-}
-ctx.stroke();
-
-// Restore Canvas Masking State
-ctx.restore();
-
-// Restore Canvas Masking State
-ctx.restore();
-
-// Restore Canvas Masking State
-ctx.restore();
+  ctx.stroke();
   
   // Fill area under line
   ctx.fillStyle=cum>=0?'rgba(0,230,118,0.15)':'rgba(255,82,82,0.15)';
