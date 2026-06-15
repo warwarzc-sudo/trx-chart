@@ -1837,213 +1837,59 @@ setTimeout(function(){
     
     setTimeout(initSavedDataAndAutoLoad, 600);
 })();
-</script>
-(function(){
-  var isApp = navigator.userAgent.indexOf('TRXTrackerChartWebView') !== -1;
-  if(!isApp) return;
-  document.documentElement.classList.add('app-mode');
-  
-  try { localStorage.setItem('TRX_SIDE_V3', '0'); } catch(e){}
-  
-  var injectCSS = function(){
-    if(document.getElementById('appModeCSS')) return;
-    var style = document.createElement('style');
-    style.id = 'appModeCSS';
-    style.textContent =
-      'html.app-mode #sidePanel,' +
-      'html.app-mode #gameP,' +
-      'html.app-mode #gameFrame,' +
-      'html.app-mode #gameLoading,' +
-      'html.app-mode #sideResize,' +
-      'html.app-mode #btnGame,' +
-      'html.app-mode #btnPanelSize,' +
-      'html.app-mode #btnHide{' +
-      'display:none !important;' +
-      'width:0 !important;' +
-      '}' +
-      'html.app-mode #betPanel{' +
-      'width:100vw !important;' +
-      'left:0 !important;' +
-      'right:0 !important;' +
-      '}' +
-      'html.app-mode #header{' +
-      'flex-wrap:wrap !important;' +
-      'height:auto !important;' +
-      'min-height:48px !important;' +
-      'padding:4px 8px !important;' +
-      'gap:4px !important;' +
-      '}' +
-      'html.app-mode #header .left{' +
-      'flex-wrap:wrap !important;' +
-      'gap:4px !important;' +
-      'align-items:center !important;' +
-      '}' +
-      'html.app-mode #toolbar{' +
-      'position:fixed !important;' +
-      'left:0 !important;' +
-      'top:auto !important;' +
-      'bottom:0 !important;' +
-      'width:56px !important;' +
-      'height:calc(100vh - 90px) !important;' +
-      'flex-direction:column !important;' +
-      'align-items:center !important;' +
-      'padding:6px 2px !important;' +
-      'gap:4px !important;' +
-      'overflow-y:auto !important;' +
-      'overflow-x:hidden !important;' +
-      'z-index:9999 !important;' +
-      'background:#0e0e24 !important;' +
-      'border-right:1px solid #222248 !important;' +
-      '}' +
-      'html.app-mode #toolbar button{' +
-      'width:48px !important;' +
-      'min-height:36px !important;' +
-      'padding:4px 2px !important;' +
-      'font-size:10px !important;' +
-      'text-align:center !important;' +
-      'line-height:1.1 !important;' +
-      'white-space:normal !important;' +
-      '}' +
-      'html.app-mode #toolbar .sep{' +
-      'width:36px !important;' +
-      'height:1px !important;' +
-      'margin:2px 0 !important;' +
-      'flex-shrink:0 !important;' +
-      '}' +
-      'html.app-mode #wrap{' +
-      'margin-left:56px !important;' +
-      'width:calc(100vw - 56px) !important;' +
-      'position:relative !important;' +
-      '}' +
-      'html.app-mode #wrap canvas{' +
-      'left:0 !important;' +
-      '}' +
-      'html.app-mode .appbtn{' +
-      'background:#1a1a3a;color:#ccc;border:1px solid #333;border-radius:4px;' +
-      'padding:5px 10px;font-size:12px;cursor:pointer;' +
-      '}' +
-      'html.app-mode .appbtn:hover{background:#2a2a5a;color:#fff;}' +
-      'html.app-mode #btnReloadChart{color:#0bf !important;border-color:#0bf !important;}' +
-      'html.app-mode #btnReloadGame{color:#0f0 !important;border-color:#0f0 !important;}' +
-      'html.app-mode #btnHideGame{' +
-      'background:#1a1a3a !important;color:#f0f !important;' +
-      'border:1px solid #f0f !important;border-radius:4px !important;' +
-      'padding:8px 2px !important;font-size:18px !important;' +
-      'width:48px !important;min-height:42px !important;' +
-      'text-align:center !important;' +
-      'margin-bottom:4px !important;cursor:pointer !important;' +
-      'flex-shrink:0 !important;' +
-      '}';
-    document.head.appendChild(style);
-  };
-  
-  var moveButtonsToHeader = function(){
-    var header = document.querySelector('#header .left');
-    if(!header) return;
-    
-    if(!document.getElementById('btnReloadChart')){
-      var btn1 = document.createElement('button');
-      btn1.id = 'btnReloadChart';
-      btn1.className = 'appbtn';
-      btn1.innerHTML = '🔄 Chart';
-      btn1.onclick = function(){
-        if(window.AndroidBridge && window.AndroidBridge.reloadChart){
-          window.AndroidBridge.reloadChart();
-        } else {
-          location.reload();
-        }
-      };
-      header.appendChild(btn1);
-    }
-    
-    if(!document.getElementById('btnReloadGame')){
-      var btn2 = document.createElement('button');
-      btn2.id = 'btnReloadGame';
-      btn2.className = 'appbtn';
-      btn2.innerHTML = '🔄 Game';
-      btn2.onclick = function(){
-        if(window.AndroidBridge && window.AndroidBridge.reloadGame){
-          window.AndroidBridge.reloadGame();
-        }
-      };
-      header.appendChild(btn2);
-    }
-    
-    var moveIds = ['btnBet', 'btnLoad', 'btnFit', 'btnClear', 'btnReset'];
-    for(var i=0;i<moveIds.length;i++){
-      var btn = document.getElementById(moveIds[i]);
-      if(btn && btn.parentElement && btn.parentElement.id === 'toolbar'){
-        btn.classList.add('appbtn');
-        header.appendChild(btn);
-      }
-    }
-  };
-  
-  var addHideGameButton = function(){
-    var toolbar = document.getElementById('toolbar');
-    if(!toolbar) return;
-    if(document.getElementById('btnHideGame')) return;
-    
-    var btn = document.createElement('button');
-    btn.id = 'btnHideGame';
-    btn.innerHTML = '🎮';
-    btn.dataset.visible = 'false';
-    btn.onclick = function(){
-      var visible = btn.dataset.visible === 'true';
-      if(visible){
-        if(window.AndroidBridge && window.AndroidBridge.hideGame){
-          window.AndroidBridge.hideGame();
-        }
-        btn.innerHTML = '🎮';
-        btn.dataset.visible = 'false';
-      } else {
-        if(window.AndroidBridge && window.AndroidBridge.showGame){
-          window.AndroidBridge.showGame();
-        }
-        btn.innerHTML = '❌';
-        btn.dataset.visible = 'true';
-      }
-    };
-    toolbar.insertBefore(btn, toolbar.firstChild);
-  };
-  
-  var triggerResize = function(){
-    window.dispatchEvent(new Event('resize'));
-  };
-  
-  var setup = function(){
-    injectCSS();
-    moveButtonsToHeader();
-    addHideGameButton();
-    
-    var frame = document.getElementById('gameFrame');
-    if(frame) frame.src = 'about:blank';
-    
-    triggerResize();
-    setTimeout(triggerResize, 200);
-    setTimeout(triggerResize, 600);
-    setTimeout(triggerResize, 1500);
-    setTimeout(triggerResize, 3000);
-  };
-  
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', setup);
-  } else {
-    setup();
-  }
-  
-  setTimeout(setup, 500);
-  setTimeout(setup, 1500);
-})();<script>
+<script>
   const EXTENSION_ID = "YOUR_CHROME_EXTENSION_ID_HERE";
 
+  // Function to load and render full chart history
+  function loadFullChartHistory() {
+    chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_BETS" }, (response) => {
+      if (response && response.bets) {
+        
+        // Sort data from oldest to newest for full chart initialization
+        const sortedBets = response.bets.sort((a, b) => a.timestamp - b.timestamp);
+        const chartDataArray = [];
+
+        sortedBets.forEach((bet) => {
+          if (bet.number !== null) {
+            const gameNumber = Number(bet.number);
+            const formattedTime = Math.floor(bet.timestamp / 1000);
+            const basePrice = 150.0 + gameNumber;
+
+            chartDataArray.push({
+              time: formattedTime,
+              open: basePrice - 0.2,
+              high: basePrice + 0.5,
+              low: basePrice - 0.5,
+              close: basePrice
+            });
+          }
+        });
+
+        // Find the active chart series variable safely
+        const activeSeries = typeof candleSeries !== 'undefined' ? candleSeries : 
+                             typeof mainSeries !== 'undefined' ? mainSeries : null;
+
+        // Set full historical candles to prevent 10-minute limit bug
+        if (activeSeries && chartDataArray.length > 0) {
+          activeSeries.setData(chartDataArray);
+          console.log("[Chart History] Successfully loaded full history rows:", chartDataArray.length);
+        }
+      }
+    });
+  }
+
+  // Load full data immediately when the chart website opens
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(loadFullChartHistory, 1000); 
+  });
+
+  // Listen for real-time dynamic extension updates
   window.addEventListener("message", (event) => {
     if (event.data && event.data.type === "TRX_DATA_UPDATED") {
       
       chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_BETS" }, (response) => {
         if (response && response.bets) {
           
-          // Sort to get the absolute latest dynamic data from game
           const sortedBets = response.bets.sort((a, b) => a.timestamp - b.timestamp);
           
           if (sortedBets.length > 0) {
@@ -2052,15 +1898,13 @@ setTimeout(function(){
             if (latestBet.number !== null) {
               const gameNumber = Number(latestBet.number);
               const formattedTime = Math.floor(latestBet.timestamp / 1000);
+              const basePrice = 150.0 + gameNumber;
 
-              // Standardized baseline price logic to sync with your actual chart axis (150.0 - 165.0)
-              const basePrice = 150.0 + gameNumber; 
-
-              // Safe execution check to prevent rewriting your main chart layout style
               const activeSeries = typeof candleSeries !== 'undefined' ? candleSeries : 
                                    typeof mainSeries !== 'undefined' ? mainSeries : null;
 
               if (activeSeries && typeof activeSeries.update === 'function') {
+                // Update or append the absolute latest candle
                 activeSeries.update({
                   time: formattedTime,
                   open: basePrice - 0.2,
@@ -2068,7 +1912,7 @@ setTimeout(function(){
                   low: basePrice - 0.5,
                   close: basePrice
                 });
-                console.log("[Chart Sync] Successfully injected game number to chart axis:", gameNumber);
+                console.log("[Chart Live] Appended new candle for number:", gameNumber);
               }
             }
           }
