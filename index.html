@@ -866,6 +866,14 @@ function initApp(){
   matchBets();
   if(results.length===0){setTimeout(()=>{if(confirm('No history.\n\nLoad 24 hours?')){loadBulkHistory(24);}},1500);}
   setInterval(tickCD,1000);tickCD();
+  // Extension message listener
+if(window.chrome && chrome.runtime){
+  window.addEventListener('message', function(e){
+    if(e.data && e.data.type === 'TRX_DATA_UPDATED'){
+      doFetch();
+    }
+  });
+}
   doFetch();setInterval(doFetch,5000);
 }
 window.addEventListener('resize',()=>{sideW=Math.min(sideW,maxSideW());szAll();if(!userZoomed)autoFitCandles();renderAll();});
