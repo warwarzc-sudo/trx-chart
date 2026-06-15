@@ -903,7 +903,59 @@ function setupRD(){const rd=document.getElementById('rsiDrag');const s=y=>{rsiDr
 
 function tickCD(){const now=Math.floor(Date.now()/1000);let v=60-(now%60);if(v>=60)v=0;const el=document.getElementById('cnum');el.textContent=v+'s';el.style.color=v<=10?'#ff1744':'#ffab00';}
 
-async function doFetch(){if(isLoading)return;try{const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),8000);const r=await fetch(API,{signal:ctrl.signal});clearTimeout(tid);const data=await r.json();let rec=data.record||(data.data&&data.data.record)||data;if(!rec||!rec.period)return;const isBig=rec.bigSmall==='Big';document.getElementById('cres').textContent=(isBig?'🟢 Big ':'🔴 Small ')+rec.result;document.getElementById('cres').style.color=isBig?COL.up:COL.dn;document.getElementById('pid').textContent='#'+rec.period;if(rec.period===lastPeriod)return;if(results.some(x=>x.period===rec.period)){lastPeriod=rec.period;return;}lastPeriod=rec.period;results.push({period:rec.period,result:rec.result,bigSmall:rec.bigSmall,timestamp:rec.timestamp||Date.now(),second:rec.second||0});results.sort((a,b)=>{const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;return ta-tb;});storeSave();buildCandles();if(!blk&&!isDr&&!drg)scrollEnd();renderAll();renderHistory();matchBets();}catch(e){}}
+async function doFetch(){
+  if(isLoading)return;
+  try{
+    const ctrl=new AbortController();
+    const tid=setTimeout(()=>ctrl.abort(),8000);
+    const r=await fetch(API,{signal:ctrl.signal});
+    clearTimeout(tid);
+    const data=await r.json();
+
+    let rec=data.record||(data.data&&data.data.record)||data;
+    if(!rec||!rec.period)return;
+
+    const isBig=rec.bigSmall==='Big';
+    document.getElementById('cres').textContent=(isBig?'🟢 Big ':'🔴 Small ')+rec.result;
+    document.getElementById('cres').style.color=isBig?COL.up:COL.dn;
+    document.getElementById('pid').textContent='#'+rec.period;
+
+    if(results.some(x=>x.period===rec.period)){
+      lastPeriod=rec.period;
+      return;
+    }
+
+    lastPeriod=rec.period;
+
+    const ts=rec.timestamp
+      ?(rec.timestamp>1e12?rec.timestamp:rec.timestamp*1000)
+      :Date.now();
+
+    results.push({
+      period:rec.period,
+      result:rec.result,
+      bigSmall:rec.bigSmall,
+      timestamp:ts,
+      second:rec.second||0
+    });
+
+    results.sort((a,b)=>{
+      const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;
+      const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;
+      return ta-tb;
+    });
+
+    storeSave();
+    buildCandles();
+    if(!blk&&!isDr&&!drg&&!userScrolled)scrollEnd();
+    renderAll();
+    renderHistory();
+    matchBets();
+
+  }catch(e){
+    D('Fetch error: '+e.message);
+  }
+}
 
 function buildCandles(){cds=[];if(!results.length)return;let price=50;for(const r of results){const ib=r.bigSmall==='Big';const o=price,c2=ib?price+BODY_H:price-BODY_H;price=c2;const ts=r.timestamp>1e12?Math.floor(r.timestamp/1000):(r.timestamp||Math.floor(Date.now()/1000));cds.push({time:ts,open:o,high:Math.max(o,c2),low:Math.min(o,c2),close:c2,result:r.result,period:r.period,bigSmall:r.bigSmall});}if(ind.ema9)calcEMA(9,e9);else e9=[];if(ind.ema21)calcEMA(21,e21);else e21=[];if(ind.rsi)calcRSI2(14);else{rsi=[];rsig=[];}}
 function scrollEnd(){if(!cds.length){sx=0;return;}const totalW=cds.length*(cW+cG);const visW=chW();if(totalW<visW-PAW){sx=-((visW-PAW-totalW)/2);}else{sx=Math.max(0,totalW-visW+PAW+30);}}
