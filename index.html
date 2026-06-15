@@ -2095,6 +2095,38 @@ setTimeout(function(){
         document.body.appendChild(bgBar);
     }
 })();
+  <script>
+  const EXTENSION_ID = "YOUR_CHROME_EXTENSION_ID_HERE";
+
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "TRX_DATA_UPDATED") {
+      
+      chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_BETS" }, (response) => {
+        if (response && response.bets) {
+          
+          const sortedBets = response.bets.sort((a, b) => a.timestamp - b.timestamp);
+          
+          sortedBets.forEach((bet) => {
+            if (bet.number !== null && bet.closePrice !== null) {
+              
+              const candlePrice = Number(bet.closePrice); 
+              const formattedTime = Math.floor(bet.timestamp / 1000); 
+              
+              candleSeries.update({
+                time: formattedTime,
+                open: candlePrice - 0.5,
+                high: candlePrice + 1.0,
+                low: candlePrice - 1.0,
+                close: candlePrice
+              });
+            }
+          });
+          
+          console.log("[Chart App] Candles updated successfully using game results.");
+        }
+      });
+    }
+  });
 </script>
 </body>
 </html>
