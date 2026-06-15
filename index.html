@@ -1840,12 +1840,10 @@ setTimeout(function(){
 <script>
   const EXTENSION_ID = "YOUR_CHROME_EXTENSION_ID_HERE";
 
-  // Function to load and render full chart history
   function loadFullChartHistory() {
     chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_BETS" }, (response) => {
       if (response && response.bets) {
         
-        // Sort data from oldest to newest for full chart initialization
         const sortedBets = response.bets.sort((a, b) => a.timestamp - b.timestamp);
         const chartDataArray = [];
 
@@ -1865,33 +1863,31 @@ setTimeout(function(){
           }
         });
 
-        // Find the active chart series variable safely
-        const activeSeries = typeof candleSeries !== 'undefined' ? candleSeries : 
-                             typeof mainSeries !== 'undefined' ? mainSeries : null;
+        // Loop through all common chart series variables just in case
+        const activeSeries = window.candleSeries || window.mainSeries || window.series || typeof candleSeries !== 'undefined' ? candleSeries : null;
 
-        // Set full historical candles to prevent 10-minute limit bug
         if (activeSeries && chartDataArray.length > 0) {
-          activeSeries.setData(chartDataArray);
-          console.log("[Chart History] Successfully loaded full history rows:", chartDataArray.length);
+          if (typeof activeSeries.setData === 'function') {
+            activeSeries.setData(chartDataArray);
+            console.log("[Chart Sync] History applied:", chartDataArray.length);
+          }
         }
       }
     });
   }
 
-  // Load full data immediately when the chart website opens
-  document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(loadFullChartHistory, 1000); 
+  // Reload history window event
+  window.addEventListener("load", () => {
+    setTimeout(loadFullChartHistory, 1500);
   });
 
-  // Listen for real-time dynamic extension updates
+  // Listener for dynamic live messages
   window.addEventListener("message", (event) => {
     if (event.data && event.data.type === "TRX_DATA_UPDATED") {
       
       chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_BETS" }, (response) => {
         if (response && response.bets) {
-          
           const sortedBets = response.bets.sort((a, b) => a.timestamp - b.timestamp);
-          
           if (sortedBets.length > 0) {
             const latestBet = sortedBets[sortedBets.length - 1];
             
@@ -1900,11 +1896,9 @@ setTimeout(function(){
               const formattedTime = Math.floor(latestBet.timestamp / 1000);
               const basePrice = 150.0 + gameNumber;
 
-              const activeSeries = typeof candleSeries !== 'undefined' ? candleSeries : 
-                                   typeof mainSeries !== 'undefined' ? mainSeries : null;
+              const activeSeries = window.candleSeries || window.mainSeries || window.series || typeof candleSeries !== 'undefined' ? candleSeries : null;
 
               if (activeSeries && typeof activeSeries.update === 'function') {
-                // Update or append the absolute latest candle
                 activeSeries.update({
                   time: formattedTime,
                   open: basePrice - 0.2,
@@ -1912,7 +1906,7 @@ setTimeout(function(){
                   low: basePrice - 0.5,
                   close: basePrice
                 });
-                console.log("[Chart Live] Appended new candle for number:", gameNumber);
+                console.log("[Chart Sync] Live update added:", gameNumber);
               }
             }
           }
