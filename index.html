@@ -1864,7 +1864,17 @@ setTimeout(function(){
         });
 
         // Loop through all common chart series variables just in case
-        const activeSeries = window.candleSeries || window.mainSeries || window.series || typeof candleSeries !== 'undefined' ? candleSeries : null;
+       // Bulletproof local and global fallback engine
+let activeSeries = null;
+if (typeof candleSeries !== 'undefined' && candleSeries) { activeSeries = candleSeries; }
+else if (typeof mainSeries !== 'undefined' && mainSeries) { activeSeries = mainSeries; }
+else if (typeof series !== 'undefined' && series) { activeSeries = series; }
+else if (window.candleSeries) { activeSeries = window.candleSeries; }
+
+// Force export to global window for Console debugging
+if (activeSeries) {
+  window.globalCandleSeries = activeSeries;
+}
 
         if (activeSeries && chartDataArray.length > 0) {
           if (typeof activeSeries.setData === 'function') {
