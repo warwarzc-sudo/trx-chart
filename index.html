@@ -361,7 +361,35 @@ function D(msg){const t=new Date().toLocaleTimeString();const line='['+t+'] '+ms
 const AUTH_API='https://trx-auth.warwar-zc.workers.dev';
 const ADMIN_CONTACT='@YourTelegram';
 let authCheckInterval=null;
-
+async function requestAccess(){
+  const name=document.getElementById('userNameInput').value.trim();
+  if(!name){alert('Please enter your name');return;}
+  if(name.length<2){alert('Name too short');return;}
+  setUserName(name);
+  const deviceId=getDeviceId();
+  const btn=document.getElementById('reqBtn');
+  btn.disabled=true;
+  btn.textContent='Submitting...';
+  try{
+    await fetch(AUTH_API+'/request',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        deviceId,
+        name,
+        info:{
+          browser:getBrowserInfo(),
+          userAgent:navigator.userAgent
+        }
+      })
+    });
+    showStep2(deviceId);
+  }catch(e){
+    alert('Error: '+e.message);
+    btn.disabled=false;
+    btn.textContent='Request Access →';
+  }
+}
 function getDeviceId(){let id=localStorage.getItem('trx_device_id');if(!id){const nav=navigator;const screen=window.screen;const fp=[nav.userAgent,nav.language,nav.platform,screen.width+'x'+screen.height,screen.colorDepth,new Date().getTimezoneOffset(),Math.random().toString(36).substr(2,9)].join('|');let hash=0;for(let i=0;i<fp.length;i++){hash=((hash<<5)-hash)+fp.charCodeAt(i);hash=hash&hash;}id='dev_'+Math.abs(hash).toString(36)+'_'+Date.now().toString(36);localStorage.setItem('trx_device_id',id);}return id;}
 function getUserName(){return localStorage.getItem('trx_user_name')||'';}
 function setUserName(n){localStorage.setItem('trx_user_name',n);}
