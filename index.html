@@ -957,7 +957,46 @@ function syncExtensionBets(extBets) {
     D('✅ Extension sync: +' + added + ' bets');
   }
 }
+window.addEventListener('message',(e)=>{
+  if(e.data&&e.data.type==='TRX_BETS_UPDATED'&&Array.isArray(e.data.bets)){
+    syncExtensionBets(e.data.bets);
+  }
+});
 
+function syncExtensionBets(extBets){
+  let added=0;
+  for(const b of extBets){
+    if(!b.period||b.number===null||b.number===undefined)continue;
+    if(results.some(x=>x.period===b.period))continue;
+    
+    const num=Number(b.number);
+    const isBig=num>=5;
+    results.push({
+      period:b.period,
+      result:num,
+      bigSmall:isBig?'Big':'Small',
+      timestamp:b.timestamp||Date.now(),
+      second:0
+    });
+    added++;
+  }
+  
+  if(added>0){
+    results.sort((a,b)=>{
+      const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;
+      const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;
+      return ta-tb;
+    });
+    lastPeriod=results[results.length-1].period;
+    storeSave();
+    buildCandles();
+    if(!blk&&!isDr&&!drg&&!userScrolled)scrollEnd();
+    renderAll();
+    renderHistory();
+    matchBets();
+    D('✅ Extension sync: +'+added+' bets');
+  }
+}
 // Replace existing doFetch() with this:
 async function doFetch(){
   if(isLoading)return;
