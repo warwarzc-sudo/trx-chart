@@ -534,8 +534,7 @@ function tabSave(){try{localStorage.setItem(TAB_KEY,activeTab);}catch(e){}}
 function showOverlay(msg,prog){const el=document.getElementById('loadOverlay');document.getElementById('loadMsg').innerHTML=msg;if(prog!==undefined)document.getElementById('loadProgBar').style.width=prog+'%';el.classList.add('show');}
 function hideOverlay(){document.getElementById('loadOverlay').classList.remove('show');}
 function mergeResults(newRecords){const map=new Map();for(const r of results)map.set(r.period,r);let added=0;for(const r of newRecords){if(!map.has(r.period)){map.set(r.period,r);added++;}}results=Array.from(map.values()).sort((a,b)=>{const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;return ta-tb;});if(results.length>0)lastPeriod=results[results.length-1].period;return added;}
-function autoFitCandles(){if(!cds.length)return;const visW=chW();const targetVisible=Math.min(cds.length,150);let idealW=Math.floor((visW-PAW-30)/(targetVisible*1.3));if(cds.length>800){cW=Math.max(2,Math.min(5,idealW));}else if(cds.length>400){cW=Math.max(3,Math.min(7,idealW));}else if(cds.length>200){cW=Math.max(5,Math.min(10,idealW));}else if(cds.length>50){cW=Math.max(8,Math.min(15,idealW));}else{cW=Math.max(15,Math.min(25,idealW));}cG=Math.max(1,Math.round(cW*0.3));}
-
+function autoFitCandles(){if(!cds.length)return;const visW=chW();const targetVisible=Math.min(cds.length,60);let idealW=Math.floor((visW-PAW-30)/(targetVisible*1.3));if(cds.length>800){cW=Math.max(8,Math.min(14,idealW));}else if(cds.length>400){cW=Math.max(10,Math.min(18,idealW));}else if(cds.length>200){cW=Math.max(12,Math.min(22,idealW));}else if(cds.length>50){cW=Math.max(16,Math.min(30,idealW));}else{cW=Math.max(22,Math.min(45,idealW));}cG=Math.max(2,Math.round(cW*0.3));}
 // ============ BET TRACKER FUNCTIONS ============
 function selectChoice(c){
   selectedChoice=c;
