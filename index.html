@@ -412,7 +412,8 @@ function syncExtensionBets(extBets){
   let added=0;
   for(const b of extBets){
     if(!b.period||b.number===null||b.number===undefined)continue;
-    if(results.some(x=>x.period===b.period))continue;
+    const bSuffix=b.period.replace(/\*/g,'').slice(-4);
+if(results.some(x=>x.period.slice(-4)===bSuffix))continue;
     const num=Number(b.number);
     const isBig=num>=5;
     results.push({
