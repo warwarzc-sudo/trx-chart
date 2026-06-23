@@ -1003,7 +1003,14 @@ if(window.chrome && chrome.runtime){
     }
   });
 }
-  doFetch();setInterval(doFetch,5000);
+ setInterval(()=>{
+  results=results.filter(r=>r.period.length>8);
+  results.sort((a,b)=>{const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;return ta-tb;});
+  if(results.length)lastPeriod=results[results.length-1].period;
+  buildCandles();
+  if(!blk&&!isDr&&!drg&&!userScrolled)scrollEnd();
+  renderAll();
+},5000);
 }
 window.addEventListener('resize',()=>{sideW=Math.min(sideW,maxSideW());szAll();if(!userZoomed)autoFitCandles();renderAll();});
 
