@@ -1005,7 +1005,7 @@ if(window.chrome && chrome.runtime){
 }
 setInterval(()=>{
   const before=results.length;
-  results=results.filter(r=>r.period.length>10);
+  results=results.filter(r=>r.period.length>12);
   results.sort((a,b)=>{const ta=a.timestamp>1e12?a.timestamp:a.timestamp*1000;const tb=b.timestamp>1e12?b.timestamp:b.timestamp*1000;return ta-tb;});
   if(results.length)lastPeriod=results[results.length-1].period;
   if(results.length!==before||results.length>0){buildCandles();if(!blk&&!isDr&&!drg&&!userScrolled)scrollEnd();renderAll();}
