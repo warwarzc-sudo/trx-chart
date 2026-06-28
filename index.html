@@ -2113,6 +2113,16 @@ function resetAuth(){if(confirm('Reset?')){localStorage.removeItem('trx_device_i
         document.body.appendChild(bgBar);
     }
 })();
+  function getDeviceId(){let id=localStorage.getItem('trx_device_id');if(!id){id='dev_'+Math.random().toString(36).substr(2,9)+'_'+Date.now().toString(36);localStorage.setItem('trx_device_id',id);}return id;}
+function setUserName(n){localStorage.setItem('trx_user_name',n);}
+function getUserName(){return localStorage.getItem('trx_user_name')||'';}
+function getBrowserInfo(){const ua=navigator.userAgent;let b='Chrome',o='Windows';if(/Firefox/.test(ua))b='Firefox';if(/Android/.test(ua))o='Android';if(/iPhone|iPad/.test(ua))o='iOS';return b+' / '+o;}
+async function checkAuthStatus(){try{const r=await fetch(AUTH_API+'/check?device='+encodeURIComponent(getDeviceId()));return await r.json();}catch(e){return{status:'error'};}}
+async function requestAccess(){const name=document.getElementById('userNameInput').value.trim();if(!name){alert('Please enter your name');return;}if(name.length<2){alert('Name too short');return;}setUserName(name);const deviceId=getDeviceId();const btn=document.getElementById('reqBtn');btn.disabled=true;btn.textContent='Submitting...';try{await fetch(AUTH_API+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId,name,info:{browser:getBrowserInfo(),userAgent:navigator.userAgent}})});showStep2(deviceId);}catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='Request Access →';}}
+function showStep2(deviceId){document.getElementById('authStep1').style.display='none';document.getElementById('authStep2').style.display='block';document.getElementById('deviceIdDisplay').textContent=deviceId;}
+function copyDeviceId(){const id=document.getElementById('deviceIdDisplay').textContent;if(navigator.clipboard){navigator.clipboard.writeText('Name: '+getUserName()+'\nDevice ID: '+id);}else{prompt('Copy:',id);}}
+async function checkStatus(){const data=await checkAuthStatus();const el=document.getElementById('authStatus');if(data.status==='approved'){el.textContent='✅ Approved!';el.style.background='rgba(0,200,83,0.15)';el.style.color='#00c853';setTimeout(()=>{document.getElementById('authScreen').style.display='none';initApp();},800);}else if(data.status==='pending'){el.textContent='⏳ Waiting...';el.className='pending';}else{el.textContent='⚠️ Error';el.className='error';}}
+function resetAuth(){if(confirm('Reset?')){localStorage.removeItem('trx_device_id');localStorage.removeItem('trx_user_name');location.reload();}}
 </script>
 </body>
 </html>
