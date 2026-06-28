@@ -1136,7 +1136,6 @@ function syncExtensionBets(extBets){
 async function doFetch(){
   return;
 }
-  if(isLoading)return;
   try{
     const ctrl=new AbortController();
     const tid=setTimeout(()=>ctrl.abort(),8000);
