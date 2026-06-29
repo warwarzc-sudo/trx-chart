@@ -1004,7 +1004,10 @@ if(window.chrome && chrome.runtime){
   });
 }
 setInterval(()=>{
-  if(results.length>0){
+  results=results.filter(r=>r.period.length===17);
+  results.sort((a,b)=>a.timestamp-b.timestamp);
+  if(results.length){
+    lastPeriod=results[results.length-1].period;
     buildCandles();
     if(!blk&&!isDr&&!drg&&!userScrolled)scrollEnd();
     renderAll();
