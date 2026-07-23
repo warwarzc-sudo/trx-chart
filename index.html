@@ -443,17 +443,16 @@ window.addEventListener('message',(e)=>{
 function syncExtensionBets(extBets){
   let added=0;
   for(const b of extBets){
-    if(!b.period||b.number===null||b.number===undefined)continue;
-    const bSuffix=b.period.replace(/\*/g,'').slice(-4);
-if(results.some(x=>x.period.slice(-4)===bSuffix))continue;
-    const num=Number(b.number);
+    if(!b.period||b.result===null||b.result===undefined)continue;
+    if(results.some(x=>x.period===b.period))continue;
+    const num=Number(b.result);
     const isBig=num>=5;
     results.push({
       period:b.period,
       result:num,
       bigSmall:isBig?'Big':'Small',
       timestamp:b.timestamp||Date.now(),
-      second:0
+      second:b.second||54
     });
     added++;
   }
@@ -464,13 +463,18 @@ if(results.some(x=>x.period.slice(-4)===bSuffix))continue;
       return ta-tb;
     });
     lastPeriod=results[results.length-1].period;
+    const last=results[results.length-1];
+    const isBig=last.bigSmall==='Big';
+    document.getElementById('cres').textContent=(isBig?'🟢 Big ':'🔴 Small ')+last.result;
+    document.getElementById('cres').style.color=isBig?COL.up:COL.dn;
+    document.getElementById('pid').textContent='#'+last.period;
     storeSave();
     buildCandles();
     if(!blk&&!isDr&&!drg&&!userScrolled)scrollEnd();
     renderAll();
     renderHistory();
     matchBets();
-    D('✅ Extension sync: +'+added+' bets');
+    D('✅ Sync: +'+added+' bets');
   }
 };
 
