@@ -441,7 +441,17 @@ window.addEventListener('message',(e)=>{
 });
 
 function syncExtensionBets(extBets){
-  let added=0;
+ if(added>0){
+  // Update top bar with latest result
+  const last=results[results.length-1];
+  if(last){
+    const isBig=last.bigSmall==='Big';
+    const cresEl=document.getElementById('cres');
+    const pidEl=document.getElementById('pid');
+    if(cresEl)cresEl.textContent=(isBig?'🟢 Big ':'🔴 Small ')+last.result;
+    if(cresEl)cresEl.style.color=isBig?COL.up:COL.dn;
+    if(pidEl)pidEl.textContent='#'+last.period;
+  } let added=0;
   for(const b of extBets){
     if(!b.period||b.result===null||b.result===undefined)continue;
     if(results.some(x=>x.period===b.period))continue;
